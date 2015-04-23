@@ -80,13 +80,13 @@ public class Analyse_ implements PlugIn {
     protected final String labels[] = {"Channel 1", "Channel 2"};
     protected boolean gpuEnabled = false;
 
-//    public static void main(String args[]) {
-////        if (imp != null) {
-//        Analyse_ instance = new Analyse_();
-//        instance.run(null);
-////        }
-//        System.exit(0);
-//    }
+    public static void main(String args[]) {
+//        if (imp != null) {
+        Analyse_ instance = new Analyse_();
+        instance.run(null);
+//        }
+        System.exit(0);
+    }
     public Analyse_(double spatialRes, double timeRes, double trajMaxStep, double chan1MaxThresh, boolean monoChrome, ImagePlus imp, double scale, double minTrajLength) {
         UserVariables.setSpatialRes(spatialRes);
         UserVariables.setTimeRes(timeRes);
@@ -391,112 +391,9 @@ public class Analyse_ implements PlugIn {
 //        IJ.saveAs(new ImagePlus("", maxima), "TIF", parentDir + "/all_maxima.tif");
 //        IJ.saveAs(new ImagePlus("", input_output), "TIF", parentDir + "/input_output.tif");
         if (update) {
-            updateTrajectories(particles, UserVariables.getTimeRes(), UserVariables.getTrajMaxStep(), spatialRes, true, 1.0);
+            TrajectoryBuilder.updateTrajectories(particles, UserVariables.getTimeRes(), UserVariables.getTrajMaxStep(), spatialRes, true, 1.0, trajectories);
         }
         return particles;
-    }
-
-    public void updateTrajectories(ParticleArray objects, double timeRes, double trajMaxStep, double spatialRes, boolean projectPos, double magNormFactor) {
-        if (objects == null) {
-            return;
-        }
-        int depth = objects.getDepth();
-        ParticleTrajectory traj = null;
-        double x, y, score, minScore;
-        ProgressDialog progress = new ProgressDialog(null, "Building Trajectories...", false, title, false);
-        progress.setVisible(true);
-        for (int m = 0; m < depth; m++) {
-            progress.updateProgress(m, depth);
-            for (int k = m; (k < depth) && (((k - m)) < trajMaxStep); k++) {
-                int size = trajectories.size();
-                ArrayList<Particle> detections = objects.getLevel(k);
-                for (int j = 0; j < detections.size(); j++) {
-                    Particle currentParticle = detections.get(j);
-                    if (currentParticle != null) {
-                        IsoGaussian ch1G = currentParticle.getC1Gaussian();
-                        /*
-                         * If no trajectories have yet been built, start a new
-                         * one:
-                         */
-                        if (k == m) {
-                            traj = new ParticleTrajectory(timeRes, spatialRes);
-                            /*
-                             * Particles need to be cloned as they are set to
-                             * null once inserted into trajectories.
-                             */
-                            traj.addPoint((Particle) currentParticle.clone());
-                            trajectories.add(traj);
-                            /*
-                             * Otherwise, determine whether the current particle
-                             * belongs to a pre-existing trajectory:
-                             */
-                        } else {
-                            int i, minScoreIndex;
-                            for (minScoreIndex = -1, minScore = Double.MAX_VALUE, i = 0; i < size; i++) {
-                                traj = (ParticleTrajectory) trajectories.get(i);
-                                Particle last = traj.getEnd();
-                                if ((last != null) && (last.getTimePoint() == m) && k != m) {
-                                    /*
-                                     * Evaluate the probability that the current
-                                     * particle belongs to the current
-                                     * trajectory, based on the particle's
-                                     * distance from last point on the current
-                                     * trajectory and the number of frames
-                                     * between the current particle, the last
-                                     * point of the current trajectory and
-                                     * differences in respective intensity
-                                     * levels:
-                                     */
-                                    x = ch1G.getX();
-                                    y = ch1G.getY();
-                                    double vector1[] = {x, y, currentParticle.getTimePoint(),
-                                        ch1G.getMagnitude() / magNormFactor};
-                                    double vector2[] = {last.getX(), last.getY(),
-                                        last.getTimePoint(), last.getC1Intensity() / magNormFactor};
-                                    score = Utils.calcEuclidDist(vector1, vector2);
-                                    if (projectPos) {
-                                        double vector3[] = {x, y};
-                                        double vector4[] = {last.getX() + traj.getXVelocity(),
-                                            last.getY() + traj.getYVelocity()};
-                                        score += Utils.calcEuclidDist(vector3, vector4);
-                                    }
-                                    if (score < minScore) {
-                                        minScore = score;
-                                        minScoreIndex = i;
-                                    }
-                                }
-                            }
-                            /*
-                             * If an acceptably low score has been evaluated,
-                             * the particle is temporarily assigned to the
-                             * "winning" trajectory:
-                             */
-                            if (traj != null) {
-                                if (minScoreIndex > -1) {
-                                    traj = (ParticleTrajectory) trajectories.get(minScoreIndex);
-                                }
-                                if ((minScore < trajMaxStep) && (minScore < traj.getTempScore())) {
-                                    traj.addTempPoint((Particle) currentParticle.clone(), minScore, j, k);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            for (ParticleTrajectory trajectory : trajectories) {
-                traj = (ParticleTrajectory) trajectory;
-                Particle temp = traj.getTemp();
-                if (temp != null) {
-                    int row = traj.getTempRow();
-                    int col = traj.getTempColumn();
-                    if (col <= m + 1) {
-                        traj.checkDetections(temp, 0.0, 0.0);
-                        objects.nullifyDetection(col, row);
-                    }
-                }
-            }
-        }
-        progress.dispose();
     }
 
     /**

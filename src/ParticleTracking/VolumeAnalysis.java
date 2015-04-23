@@ -253,7 +253,7 @@ public class VolumeAnalysis extends Analyse_ {
             }
         }
         if (update) {
-            updateTrajectories(particles, timeRes, UserVariables.getTrajMaxStep(), spatialRes, true, 1.0);
+            TrajectoryBuilder.updateTrajectories(particles, timeRes, UserVariables.getTrajMaxStep(), spatialRes, true, 1.0, trajectories);
         }
         return particles;
     }
@@ -308,4 +308,4 @@ public class VolumeAnalysis extends Analyse_ {
                 + decFormat.format(fluorMin / fluorMaj));
         return true;
     }
-    }
+}
