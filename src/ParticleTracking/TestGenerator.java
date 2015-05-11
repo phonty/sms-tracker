@@ -35,7 +35,7 @@ public class TestGenerator {
     private double lambda = 602.0;
     private double res = 0.133333;
 //    private double sigmaEstPix = 0.305 * lambda / (numAp * res * 1000.0);
-    private double sigmaEstPix = 0.131/res;
+    private double sigmaEstPix = 0.131 / res;
     private double sens = 0.05;
 
 //    public static void main(String args[]) {
@@ -50,26 +50,67 @@ public class TestGenerator {
 //    }
 //    public static void main(String args[]) {
 //        TestGenerator tg = new TestGenerator();
-//        tg.generateMulti(20, 512, 512, 60);
+//        tg.generateCalibrationTest();
+//        System.exit(0);
 //    }
 
     public TestGenerator() {
     }
 
-    public void generate() {
+    public void generateColocalisationGrid() {
         DecimalFormat indFormat = new DecimalFormat("000");
-        int width = 640, height = 480;
+        int width = 256, height = 512;
 //        double res = Timelapse_Analysis.getSpatialRes();
-        for (int i = 0; i < 50; i++) {
-            ByteProcessor image = new ByteProcessor(width, height);
-            IsoGaussian g1 = new IsoGaussian((i * 0.2 + 320) * res, 240.0 * res, 100.0, 2.0 * res, 2.0 * res, 0.1);
-            IsoGaussian g2 = new IsoGaussian((320 - i * 0.2) * res, 240.0 * res, 100.0, 2.0 * res, 2.0 * res, 0.1);
-            Utils.draw2DGaussian(image, g1, 0.0, UserVariables.getSpatialRes(), false, false);
-            Utils.draw2DGaussian(image, g2, 0.0, UserVariables.getSpatialRes(), false, false);
-            IJ.saveAs(new ImagePlus("", image.duplicate()), "PNG",
-                    "C:\\Users\\barry05\\Desktop\\Test_Data_Sets\\Tracking_Test_Sequences\\Simulation\\"
-                    + indFormat.format(i));
+        double res = 133.333, yinc = 5000, xinc = 5000, theta = 0.005;//, deltax = 100.0, deltay = 80.0;
+        double xc = (width * res) / 2, yc = (height * res) / 2;
+        double cnoise = xinc / 100.0, anoise = theta / 100.0;
+        FloatProcessor image1 = new FloatProcessor(width, height);
+        FloatProcessor image2 = new FloatProcessor(width, height);
+        Random r = new Random();
+        for (double x = xinc; x < width * res; x += xinc) {
+            for (double y = yinc; y < height * res; y += yinc) {
+                double x1 = x - cnoise / 2.0 + cnoise * r.nextDouble();
+                double y1 = y - cnoise / 2.0 + cnoise * r.nextDouble();
+                IsoGaussian g1 = new IsoGaussian(x1, y1, 100.0, 158.0 / res, 158.0 / res, 0.1);
+                double x2 = (x - xc) * Math.cos(theta - anoise / 2.0 + anoise * r.nextDouble()) - (y - yc)
+                        * Math.sin(theta - anoise / 2.0 + anoise * r.nextDouble()) + xc;
+                double y2 = (x - xc) * Math.sin(theta - anoise / 2.0 + anoise * r.nextDouble()) + (y - yc)
+                        * Math.cos(theta - anoise / 2.0 + anoise * r.nextDouble()) + yc;
+                IsoGaussian g2 = new IsoGaussian(x2, y2, 100.0, 168.0 / res, 168.0 / res, 0.1);
+                Utils.draw2DGaussian(image1, g1, 0.0, res, false, false);
+                Utils.draw2DGaussian(image2, g2, 0.0, res, false, false);
+                System.out.println(x1 / res + "," + y1 / res + "," + x2 / res + "," + y2 / res);
+            }
         }
+        IJ.saveAs(new ImagePlus("", image1), "TIF",
+                "C:\\Users\\barry05\\Desktop\\Test_Data_Sets\\Tracking_Test_Sequences\\Simulation\\CalibrationGrid_C0");
+        IJ.saveAs(new ImagePlus("", image2), "TIF",
+                "C:\\Users\\barry05\\Desktop\\Test_Data_Sets\\Tracking_Test_Sequences\\Simulation\\CalibrationGrid_C1");
+    }
+
+    public void generateCalibrationTest() {
+        DecimalFormat indFormat = new DecimalFormat("000");
+        int width = 256, height = 512;
+        double res = 133.333, theta = 0.005;
+        double xc = (width * res) / 2, yc = (height * res) / 2;
+        FloatProcessor image1 = new FloatProcessor(width, height);
+        FloatProcessor image2 = new FloatProcessor(width, height);
+        Random r = new Random();
+        for (int i = 0; i < 50; i++) {
+            double x = (5 + (width - 6) * r.nextDouble()) * res;
+            double y = (5 + (height - 6) * r.nextDouble()) * res;
+            double xt = (x - xc) * Math.cos(theta) - (y - yc) * Math.sin(theta) + xc;
+            double yt = (x - xc) * Math.sin(theta) + (y - yc) * Math.cos(theta) + yc;
+            System.out.println(x / 1000.0 + "," + y / 1000.0 + "," + xt / 1000.0 + "," + yt / 1000.0);
+            IsoGaussian g1 = new IsoGaussian(x, y, 100.0, 158.0 / res, 158.0 / res, 0.1);
+            IsoGaussian g2 = new IsoGaussian(xt, yt, 100.0, 168.0 / res, 168.0 / res, 0.1);
+            Utils.draw2DGaussian(image1, g1, 0.0, res, false, false);
+            Utils.draw2DGaussian(image2, g2, 0.0, res, false, false);
+        }
+        IJ.saveAs(new ImagePlus("", image1), "TIF",
+                "C:\\Users\\barry05\\Desktop\\Test_Data_Sets\\Tracking_Test_Sequences\\Simulation\\CalibrationTest_C0");
+        IJ.saveAs(new ImagePlus("", image2), "TIF",
+                "C:\\Users\\barry05\\Desktop\\Test_Data_Sets\\Tracking_Test_Sequences\\Simulation\\CalibrationTest_C1");
     }
 
     public void generateMulti(int n, int width, int height, int length) {

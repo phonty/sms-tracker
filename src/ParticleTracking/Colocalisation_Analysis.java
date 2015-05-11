@@ -39,8 +39,8 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
 
 //    public static void main(String args[]) {
 //        ImagePlus inputs[] = new ImagePlus[2];
-//        inputs[0] = new ImagePlus("C:\\Users\\barry05\\Desktop\\Test_Data_Sets\\Co_Localiser_Test\\C1.tif");
-//        inputs[1] = new ImagePlus("C:\\Users\\barry05\\Desktop\\Test_Data_Sets\\Co_Localiser_Test\\C0.tif");
+//        inputs[0] = new ImagePlus("C:\\Users\\barry05\\Google Drive\\Work\\Lab Book\\SuperRes Actin Tails\\2015.05.01_Registration Tests\\Simulation3 - Rotation plus noise - 2.5um Grid\\CalibrationGrid_C0.tif");
+//        inputs[1] = new ImagePlus("C:\\Users\\barry05\\Google Drive\\Work\\Lab Book\\SuperRes Actin Tails\\2015.05.01_Registration Tests\\Simulation3 - Rotation plus noise - 2.5um Grid\\CalibrationGrid_C1.tif");
 //        (new Colocalisation_Analysis(inputs)).run(null);
 //    }
 
@@ -193,8 +193,8 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
                     } else {
                         coordString = String.valueOf(c1.getX()) + "\t" + String.valueOf(c1.getY()) + "\t \t ";
                     }
+                    particleCoords.append(coordString);
                 }
-                particleCoords.append(coordString);
             }
             if (results == null) {
                 results = new TextWindow(title + " Results", resultsHeadings, new String(), 1000, 500);

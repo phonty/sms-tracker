@@ -52,7 +52,7 @@ public class Analyse_ implements PlugIn {
     protected final double sigmas[] = {SIG_EST_RED, SIG_EST_GREEN};
 //    protected int xyPartRad; //Radius over which to draw particles in visualisation
     public final int SHOW_RESULTS = -1;
-    public static final int VERSION = 4;
+    public static final int VERSION = 5;
     protected final double LAMBDA = 650.0, //Wavelength of light
             NUM_AP = 1.4; //Numerical aperture of system
     protected static double colocalThresh = 0.1;
@@ -80,13 +80,13 @@ public class Analyse_ implements PlugIn {
     protected final String labels[] = {"Channel 1", "Channel 2"};
     protected boolean gpuEnabled = false;
 
-    public static void main(String args[]) {
-//        if (imp != null) {
-        Analyse_ instance = new Analyse_();
-        instance.run(null);
-//        }
-        System.exit(0);
-    }
+//    public static void main(String args[]) {
+////        if (imp != null) {
+//        Analyse_ instance = new Analyse_();
+//        instance.run(null);
+////        }
+//        System.exit(0);
+//    }
     public Analyse_(double spatialRes, double timeRes, double trajMaxStep, double chan1MaxThresh, boolean monoChrome, ImagePlus imp, double scale, double minTrajLength) {
         UserVariables.setSpatialRes(spatialRes);
         UserVariables.setTimeRes(timeRes);
@@ -260,6 +260,8 @@ public class Analyse_ implements PlugIn {
             results.append(toString());
             results.setVisible(true);
             resultSummary.setVisible(true);
+            IJ.saveString(results.getTextPanel().getText(), parentDir + "/results.txt");
+            IJ.saveString(resultSummary.getTextPanel().getText(), parentDir + "/resultsSummary.txt");
             if (maps != null) {
                 (new ImagePlus("Trajectory Maps", maps)).show();
                 IJ.saveAs((new ImagePlus("", maps)), "TIF", parentDir + "/trajectories.tif");
@@ -346,20 +348,28 @@ public class Analyse_ implements PlugIn {
                          * <code>xyPartRad</code> pixels of maxima in red image:
                          */
                         Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan1Proc);
-                        MultiGaussFitter c1Fitter = new MultiGaussFitter(UserVariables.getnMax(), fitRad, pSize);
-                        c1Fitter.fit(pixValues, sigEst1 / UserVariables.getSpatialRes());
-                        ArrayList<IsoGaussian> c1Fits = c1Fitter.getFits(spatialRes, c1X - fitRad, c1Y - fitRad, c1Threshold, fitTol);
-
+//                        MultiGaussFitter c1Fitter = new MultiGaussFitter(UserVariables.getnMax(), fitRad, pSize);
+//                        c1Fitter.fit(pixValues, sigEst1 / UserVariables.getSpatialRes());
+//                        ArrayList<IsoGaussian> c1Fits = c1Fitter.getFits(spatialRes, c1X - fitRad, c1Y - fitRad, c1Threshold, fitTol);
+                        IsoGaussianFitter c1Fitter = new IsoGaussianFitter(xCoords, yCoords, pixValues);
+                        c1Fitter.doFit(sigEst1 / UserVariables.getSpatialRes());
+                        ArrayList<IsoGaussian> c1Fits = new ArrayList();
+                        c1Fits.add(new IsoGaussian((c1X - fitRad + c1Fitter.getX0()) * spatialRes, (c1Y - fitRad + c1Fitter.getY0()) * spatialRes,
+                                c1Fitter.getMag(), sigEst1 / UserVariables.getSpatialRes(), sigEst1 / UserVariables.getSpatialRes(), c1Fitter.getRSquared()));
                         if (c2Points != null) {
                             if (fitC2Gaussian) {
                                 Utils.extractValues(xCoords, yCoords, pixValues,
                                         c2Points[0][0], c2Points[0][1], chan2Proc);
-                                MultiGaussFitter c2Fitter = new MultiGaussFitter(1, fitRad, pSize);
-                                c2Fitter.fit(pixValues, sigEst2 / UserVariables.getSpatialRes());
-                                ArrayList<IsoGaussian> c2Fits = c2Fitter.getFits(spatialRes, c2Points[0][0] - fitRad, c2Points[0][1] - fitRad, c2Threshold, UserVariables.getCurveFitTol());
-                                if (c2Fits != null && c2Fits.size() > 0) {
-                                    c2Gaussian = c2Fits.get(0);
-                                }
+//                                MultiGaussFitter c2Fitter = new MultiGaussFitter(1, fitRad, pSize);
+//                                c2Fitter.fit(pixValues, sigEst2 / UserVariables.getSpatialRes());
+//                                ArrayList<IsoGaussian> c2Fits = c2Fitter.getFits(spatialRes, c2Points[0][0] - fitRad, c2Points[0][1] - fitRad, c2Threshold, UserVariables.getCurveFitTol());
+//                                if (c2Fits != null && c2Fits.size() > 0) {
+//                                    c2Gaussian = c2Fits.get(0);
+//                                }
+                                IsoGaussianFitter c2Fitter = new IsoGaussianFitter(xCoords, yCoords, pixValues);
+                                c2Fitter.doFit(sigEst2 / UserVariables.getSpatialRes());
+                                c2Gaussian = new IsoGaussian((c2Points[0][0] - fitRad + c2Fitter.getX0()) * spatialRes, (c2Points[0][1] - fitRad + c2Fitter.getY0()) * spatialRes,
+                                        c2Fitter.getMag(), sigEst2 / UserVariables.getSpatialRes(), sigEst2 / UserVariables.getSpatialRes(), c2Fitter.getRSquared());
                             } else {
 //                                int xC2 = c2Points[0][0] - (int) Math.round(fitRad * searchScale);
 //                                int yC2 = c2Points[0][1] - (int) Math.round(fitRad * searchScale);
@@ -739,7 +749,11 @@ public class Analyse_ implements PlugIn {
             coords = reader.open(calDir + delimiter + "coords.txt");
         }
 //        goshtasbyShiftEval(xcoeffs, ycoeffs, coords);
-//        goshtasbyErrorEval(coords);
+//        for (int m = 1; m <= 4; m++) {
+//            for (int n = 1; n <= 4; n++) {
+//                multiGoshtasbyErrorEval(1, 1, 256, 512);
+//            }
+//        }
         Particle sigStartP = ptraj.getEnd();
         if (signalWidth % 2 == 0) {
             signalWidth++;
@@ -898,18 +912,44 @@ public class Analyse_ implements PlugIn {
         }
     }
 
-    void goshtasbyErrorEval(ImageProcessor coords) {
-        int size = coords.getHeight();
+    void goshtasbyErrorEval() {
         TextReader reader = new TextReader();
+        ImageProcessor tcoords = reader.open(calDir + delimiter + "testcoords.txt");
+        ImageProcessor xcoeffs = reader.open(calDir + delimiter + "xcoeffs.txt");
+        ImageProcessor ycoeffs = reader.open(calDir + delimiter + "ycoeffs.txt");
+        ImageProcessor coords = reader.open(calDir + delimiter + "coords.txt");
+        int size = tcoords.getHeight();
         System.out.println("x,y,xg,yg");
         for (int i = 1; i <= size; i++) {
-            ImageProcessor xcoeffs = reader.open(calDir + delimiter + "goshtasby/xcoeffs_" + i + ".txt");
-            ImageProcessor ycoeffs = reader.open(calDir + delimiter + "goshtasby/ycoeffs_" + i + ".txt");
-            ImageProcessor tcoords = reader.open(calDir + delimiter + "goshtasby/coords_" + i + ".txt");
-            double x = coords.getPixelValue(0, i - 1);
-            double y = coords.getPixelValue(1, i - 1);
-            double xg = goshtasbyEval(xcoeffs, tcoords, x, y);
-            double yg = goshtasbyEval(ycoeffs, tcoords, x, y);
+            double x = tcoords.getPixelValue(0, i - 1);
+            double y = tcoords.getPixelValue(1, i - 1);
+            double xg = goshtasbyEval(xcoeffs, coords, x, y);
+            double yg = goshtasbyEval(ycoeffs, coords, x, y);
+            System.out.println(x + "," + y + "," + xg + "," + yg + "");
+        }
+    }
+
+    void multiGoshtasbyErrorEval(int m, int n, int width, int height) {
+        double xdiv = width * UserVariables.getSpatialRes() / m;
+        double ydiv = height * UserVariables.getSpatialRes() / n;
+        TextReader reader = new TextReader();
+        ImageProcessor tcoords = reader.open(calDir + delimiter + "testcoords.txt");
+        int size = tcoords.getHeight();
+        System.out.println(m + "_" + n);
+        System.out.println("x,y,xg,yg");
+        for (int i = 1; i <= size; i++) {
+            double x = tcoords.getPixelValue(0, i - 1);
+            double y = tcoords.getPixelValue(1, i - 1);
+            int xi = 1 + (int) Math.floor(x / xdiv);
+            int yi = 1 + (int) Math.floor(y / ydiv);
+            ImageProcessor xcoeffs = reader.open(calDir + delimiter + "goshtasby"
+                    + delimiter + m + "_" + n + delimiter + "xcoeffs" + xi + "_" + yi + ".txt");
+            ImageProcessor ycoeffs = reader.open(calDir + delimiter + "goshtasby"
+                    + delimiter + m + "_" + n + delimiter + "ycoeffs" + xi + "_" + yi + ".txt");
+            ImageProcessor coords = reader.open(calDir + delimiter + "goshtasby"
+                    + delimiter + m + "_" + n + delimiter + "coords" + xi + "_" + yi + ".txt");
+            double xg = goshtasbyEval(xcoeffs, coords, x, y);
+            double yg = goshtasbyEval(ycoeffs, coords, x, y);
             System.out.println(x + "," + y + "," + xg + "," + yg + "");
         }
     }
@@ -923,6 +963,7 @@ public class Analyse_ implements PlugIn {
             if (r > 0.0) {
                 double R = r * Math.log(r);
                 sum = sum + coeffs.getPixelValue(0, i) * R;
+//                System.out.println("x," + coords.getPixelValue(0, i - 3) + ",y," + coords.getPixelValue(1, i - 3) + ",c," + (coeffs.getPixelValue(0, i) * R));
             }
 //            }
         }
