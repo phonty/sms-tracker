@@ -229,7 +229,7 @@ public class VolumeAnalysis extends Analyse_ {
                         /*
                          * Remove adjacent Gaussians
                          */
-                        IsoGaussianFitter c1GF = new IsoGaussianFitter(xCoords, yCoords, pixValues);
+                        IsoGaussianFitter c1GF = new IsoGaussianFitter(xCoords, yCoords, pixValues, false);
                         c1GF.doFit(SIG_EST_RED);
                         //if (c1GF.getXsig() < (c1SigmaTol * xySigEst)) {
                         if (c1GF.getRSquared() > c1CurveFitTol) {

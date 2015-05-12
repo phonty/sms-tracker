@@ -18,13 +18,9 @@ package ui;
 
 import IAClasses.IsoGaussian;
 import IAClasses.Utils;
-import ParticleTracking.Particle;
-import ParticleTracking.ParticleArray;
-import ParticleTracking.Analyse_;
 import ParticleTracking.Analyse_;
 import ParticleTracking.Particle;
 import ParticleTracking.ParticleArray;
-import ParticleTracking.UserVariables;
 import ParticleTracking.UserVariables;
 import UIClasses.UIMethods;
 import ij.IJ;
@@ -51,8 +47,8 @@ public class UserInterface extends javax.swing.JDialog {
     private static final String maxLinkDistLabelText = "Maximum linking distance:";
     private static final String chan1MaxThreshLabelText = "Minimum peak size (C1):";
     private static final String chan2MaxThreshLabelText = "Minimum peak size (C2):";
-    private static final String curveFitTolLabelText = "Curve fit tolerance:";
-    private static final String nMaxLabelText = "Nmax:";
+    private static final String c1CurveFitTolLabelText = "Curve fit tolerance (C1):";
+    private static final String c2CurveFitTolLabelText = "Curve fit tolerance (C2):";
     private static final String colocalToggleText = "Co-Localised Only";
     private static final String preprocessToggleText = "Pre-Process Images";
     private static final String gpuToggleText = "Use GPU";
@@ -104,16 +100,16 @@ public class UserInterface extends javax.swing.JDialog {
         chan2MaxThreshTextField = new javax.swing.JTextField();
         colocaliseToggleButton = new javax.swing.JToggleButton();
         preprocessToggleButton = new javax.swing.JToggleButton();
-        curveFitTolLabel = new javax.swing.JLabel();
-        curveFitTolTextField = new javax.swing.JTextField();
-        nMaxTextField = new javax.swing.JTextField();
-        nMaxLabel = new javax.swing.JLabel();
+        c1CurveFitTolLabel = new javax.swing.JLabel();
+        c1CurveFitTolTextField = new javax.swing.JTextField();
         gpuToggleButton = new javax.swing.JToggleButton();
         minTrajDistLabel = new javax.swing.JLabel();
         minTrajDistTextField = new javax.swing.JTextField();
         trackLengthLabel = new javax.swing.JLabel();
         trackLengthTextField = new javax.swing.JTextField();
         previewResultsToggleButton = new javax.swing.JToggleButton();
+        c2CurveFitTolLabel = new javax.swing.JLabel();
+        c2CurveFitTolTextField = new javax.swing.JTextField();
         jPanel2 = new javax.swing.JPanel();
         canvas1 = new ImageCanvas(imp);
         previewScrollBar = new javax.swing.JScrollBar();
@@ -322,7 +318,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         jPanel1.add(preprocessToggleButton, gridBagConstraints);
 
-        curveFitTolLabel.setText(curveFitTolLabelText);
+        c1CurveFitTolLabel.setText(c1CurveFitTolLabelText);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 10;
@@ -331,9 +327,9 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.weightx = 0.5;
         gridBagConstraints.weighty = 0.0625;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 0);
-        jPanel1.add(curveFitTolLabel, gridBagConstraints);
+        jPanel1.add(c1CurveFitTolLabel, gridBagConstraints);
 
-        curveFitTolTextField.setText(String.valueOf(UserVariables.getCurveFitTol()));
+        c1CurveFitTolTextField.setText(String.valueOf(UserVariables.getCurveFitTol()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 10;
@@ -342,31 +338,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.weightx = 0.5;
         gridBagConstraints.weighty = 0.0625;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
-        jPanel1.add(curveFitTolTextField, gridBagConstraints);
-
-        nMaxTextField.setText(String.valueOf(UserVariables.getnMax()));
-        nMaxTextField.setEnabled(false);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 11;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
-        gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
-        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
-        jPanel1.add(nMaxTextField, gridBagConstraints);
-
-        nMaxLabel.setText(nMaxLabelText);
-        nMaxLabel.setEnabled(false);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 11;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 0);
-        jPanel1.add(nMaxLabel, gridBagConstraints);
+        jPanel1.add(c1CurveFitTolTextField, gridBagConstraints);
 
         gpuToggleButton.setText(gpuToggleText);
         gpuToggleButton.setEnabled(analyser.isGpuEnabled());
@@ -435,6 +407,28 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.weighty = 0.0625;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         jPanel1.add(previewResultsToggleButton, gridBagConstraints);
+
+        c2CurveFitTolLabel.setText(c2CurveFitTolLabelText);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 11;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 0);
+        jPanel1.add(c2CurveFitTolLabel, gridBagConstraints);
+
+        c2CurveFitTolTextField.setText(String.valueOf(UserVariables.getC2CurveFitTol()));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 11;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        jPanel1.add(c2CurveFitTolTextField, gridBagConstraints);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
@@ -588,12 +582,12 @@ public class UserInterface extends javax.swing.JDialog {
             UserVariables.setSpatialRes(Double.parseDouble(spatResTextField.getText()));
             UserVariables.setTimeRes(Double.parseDouble(timeResTextField.getText()));
             UserVariables.setTrajMaxStep(Double.parseDouble(maxTrajStepTextField.getText()));
-            UserVariables.setCurveFitTol(Double.parseDouble(curveFitTolTextField.getText()));
+            UserVariables.setCurveFitTol(Double.parseDouble(c1CurveFitTolTextField.getText()));
+            UserVariables.setC2CurveFitTol(Double.parseDouble(c2CurveFitTolTextField.getText()));
             UserVariables.setColocal(colocaliseToggleButton.isSelected());
             UserVariables.setPreProcess(preprocessToggleButton.isSelected());
             UserVariables.setC1Index(c1ComboBox.getSelectedIndex());
 //            UserVariables.setC2Index(c2ComboBox.getSelectedIndex());
-            UserVariables.setnMax(Integer.parseInt(nMaxTextField.getText()));
             UserVariables.setGpu(gpuToggleButton.isSelected());
             UserVariables.setTrackLength(Double.parseDouble(trackLengthTextField.getText()));
             UserVariables.setPrevRes(previewResultsToggleButton.isSelected());
@@ -605,32 +599,15 @@ public class UserInterface extends javax.swing.JDialog {
         return true;
     }
 
-//    void printParams() {
-//        File paramFile = new File("C:\\Users\\barry05\\gausstrackerparams.txt");
-//        PrintWriter paramStream;
-//        try {
-//            paramStream = new PrintWriter(new FileOutputStream(paramFile));
-//        } catch (FileNotFoundException e) {
-//            System.out.println("Error: Failed to create CUDA parameter file.\n");
-//            System.out.println(e.toString());
-//            return;
-//        }
-//        paramStream.println("input_folder_c1 = C:\\Users\\barry05\\Desktop\\Test_Data_Sets\\Tracking_Test_Sequences\\TestSequence43\\Input\\C0");
-//        paramStream.println("input_folder_c1 = empty");
-//        paramStream.println("extension = .tif");
-//        paramStream.println("spatialRes = " + UserVariables.getSpatialRes() * 1000.0);
-//        paramStream.println("numAp = 1.4");
-//        paramStream.println("lambda = 602.0");
-//        paramStream.println("sigmaFact = 0.305");
-//        paramStream.println("scalefactor = 1.0");
-//        paramStream.println("maxthresh = 0.9999");
-//        paramStream.close();
-//    }
     public void viewDetections() {
         analyser.calcParticleRadius(UserVariables.getSpatialRes());
         ImageStack stacks[] = analyser.getStacks();
-        ParticleArray detections = null;
-        detections = analyser.findParticles(1.0, true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, 0.0, stacks[0], stacks[1], false);
+        ParticleArray detections;
+        if (!UserVariables.isColocal()) {
+            detections = analyser.findParticles(true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, 0.0, stacks[0], stacks[1], false);
+        } else {
+            detections = analyser.findParticles(true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, 0.0, stacks[0], stacks[1], true);
+        }
         if (detections != null) {
             ImageProcessor output = Utils.updateImage(stacks[0], stacks[1], previewScrollBar.getValue());
             double mag = 1.0 / UIMethods.getMagnification(output, canvas1);
@@ -646,7 +623,7 @@ public class UserInterface extends javax.swing.JDialog {
                 c1 = particle.getC1Gaussian();
                 c2 = particle.getC2Gaussian();
                 drawDetections(output, (int) (Math.round(sr * c1.getX())), (int) (Math.round(sr * c1.getY())),
-                        radius, c1.getFit() > UserVariables.getCurveFitTol(), c1Color);
+                        radius, true, c1Color);
                 if (c2 != null) {
                     drawDetections(output, (int) (Math.round(sr * c2.getX())),
                             (int) (Math.round(sr * c2.getY())), radius,
@@ -670,25 +647,6 @@ public class UserInterface extends javax.swing.JDialog {
         }
     }
 
-//    public byte[] getPixels(int channel, int frame) {
-//        ColorProcessor processor = (ColorProcessor) analyser.getStacks().getProcessor(frame + 1);
-//        int width = processor.getWidth(), height = processor.getHeight();
-//        int size = width * height;
-//        byte redPix[] = new byte[size], greenPix[] = new byte[size],
-//                bluePix[] = new byte[size], emptyPix[] = new byte[size];
-//        Arrays.fill(emptyPix, (byte) 0);
-//        processor.getRGB(redPix, greenPix, bluePix);
-//        switch (channel) {
-//            case UserVariables.RED:
-//                return redPix;
-//            case UserVariables.GREEN:
-//                return greenPix;
-//            case UserVariables.BLUE:
-//                return bluePix;
-//            default:
-//                return emptyPix;
-//        }
-//    }
     public boolean isWasOKed() {
         return wasOKed;
     }
@@ -726,11 +684,11 @@ public class UserInterface extends javax.swing.JDialog {
     }
 
     public static String getCurveFitTolLabelText() {
-        return curveFitTolLabelText;
+        return c1CurveFitTolLabelText;
     }
 
-    public static String getnMaxLabelText() {
-        return nMaxLabelText;
+    public static String getC2CurveFitTolLabelText() {
+        return c2CurveFitTolLabelText;
     }
 
     public static String getColocalToggleText() {
@@ -759,7 +717,11 @@ public class UserInterface extends javax.swing.JDialog {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JComboBox c1ComboBox;
+    private javax.swing.JLabel c1CurveFitTolLabel;
+    private javax.swing.JTextField c1CurveFitTolTextField;
     private javax.swing.JLabel c1Label;
+    private javax.swing.JLabel c2CurveFitTolLabel;
+    private javax.swing.JTextField c2CurveFitTolTextField;
     private javax.swing.JButton cancelButton;
     private java.awt.Canvas canvas1;
     private javax.swing.JLabel chan1MaxThreshLabel;
@@ -767,8 +729,6 @@ public class UserInterface extends javax.swing.JDialog {
     private javax.swing.JLabel chan2MaxThreshLabel;
     private javax.swing.JTextField chan2MaxThreshTextField;
     private javax.swing.JToggleButton colocaliseToggleButton;
-    private javax.swing.JLabel curveFitTolLabel;
-    private javax.swing.JTextField curveFitTolTextField;
     private javax.swing.JToggleButton gpuToggleButton;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel1;
@@ -780,8 +740,6 @@ public class UserInterface extends javax.swing.JDialog {
     private javax.swing.JTextField minTrajDistTextField;
     private javax.swing.JLabel minTrajLengthLabel;
     private javax.swing.JTextField minTrajLengthTextField;
-    private javax.swing.JLabel nMaxLabel;
-    private javax.swing.JTextField nMaxTextField;
     private javax.swing.JButton okButton;
     private javax.swing.JToggleButton preprocessToggleButton;
     private javax.swing.JToggleButton previewResultsToggleButton;
