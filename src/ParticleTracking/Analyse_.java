@@ -64,7 +64,7 @@ public class Analyse_ implements PlugIn {
     protected DecimalFormat intFormat = new DecimalFormat("000");
     String title = "Particle Tracker", ext;
     protected static boolean msdPlot = false, intensPlot = false, trajPlot = false;
-    protected boolean monoChrome, useCals = false;
+    protected boolean monoChrome, useCals = true;
 //    private final double IMAGE_MAX = 255.0;
     protected final double SEARCH_SCALE = 0.5;
 //    private final double TRACK_LENGTH = 5.0;
@@ -238,7 +238,7 @@ public class Analyse_ implements PlugIn {
                         printData(i, resultSummary, count);
                         traj.printTrajectory(count, results, numFormat, title);
                         if (type == ParticleTrajectory.COLOCAL) {
-                            ImageStack signals[] = extractSignalValues(traj,
+                            ImageStack signals[] = extractTrajSignalValues(traj,
                                     (int) Math.round(UserVariables.getTrackLength() / UserVariables.getSpatialRes()),
                                     (int) Math.round(TRACK_WIDTH / UserVariables.getSpatialRes()), TRACK_EXT / ((float) UserVariables.getSpatialRes()));
                             if (signals[0].getSize() > 0) {
@@ -271,7 +271,7 @@ public class Analyse_ implements PlugIn {
     }
 
     protected ParticleArray findParticles() {
-        return findParticles(SEARCH_SCALE, true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], false, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()]);
+        return findParticles(SEARCH_SCALE, true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], false, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], UserVariables.isColocal());
     }
 
     /**
@@ -296,12 +296,12 @@ public class Analyse_ implements PlugIn {
         return fp;
     }
 
-    public ParticleArray findParticles(boolean update, int startSlice, int endSlice, double fitTol, ImageStack channel1, ImageStack channel2, boolean fitC2Gaussian) {
+    public ParticleArray findParticles(boolean update, int startSlice, int endSlice, double fitTol, ImageStack channel1, ImageStack channel2, boolean fitC2Gaussian, boolean colocal) {
         return findParticles(SEARCH_SCALE, update, startSlice, endSlice, fitTol,
-                channel1, channel2, fitC2Gaussian, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()]);
+                channel1, channel2, fitC2Gaussian, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], colocal);
     }
 
-    public ParticleArray findParticles(double searchScale, boolean update, int startSlice, int endSlice, double fitTol, ImageStack channel1, ImageStack channel2, boolean fitC2Gaussian, double sigEst1, double sigEst2) {
+    public ParticleArray findParticles(double searchScale, boolean update, int startSlice, int endSlice, double fitTol, ImageStack channel1, ImageStack channel2, boolean fitC2Gaussian, double sigEst1, double sigEst2, boolean colocal) {
         if (channel1 == null) {
             return null;
         }
@@ -366,8 +366,8 @@ public class Analyse_ implements PlugIn {
                         if (c1Fits != null) {
                             for (IsoGaussian c1Fit : c1Fits) {
                                 if (c1Fit.getFit() > fitTol
-                                        && (c2Gaussian == null && !UserVariables.isColocal())
-                                        || (c2Gaussian != null && UserVariables.isColocal()
+                                        && (c2Gaussian == null && !colocal)
+                                        || (c2Gaussian != null && colocal
                                         && c2Gaussian.getFit() > UserVariables.getC2CurveFitTol())) {
                                     particles.addDetection(i - startSlice, new Particle(i - startSlice, c1Fit, c2Gaussian, null, -1));
                                 }
@@ -749,7 +749,7 @@ public class Analyse_ implements PlugIn {
      * @param signalWidth
      * @return
      */
-    ImageStack[] extractSignalValues(ParticleTrajectory ptraj, int signalLength, int signalWidth, float offset) {
+    ImageStack[] extractTrajSignalValues(ParticleTrajectory ptraj, int signalLength, int signalWidth, float offset) {
         TextReader reader = new TextReader();
         ImageProcessor xcoeffs = null, ycoeffs = null, coords = null;
         if (useCals) {
@@ -837,7 +837,7 @@ public class Analyse_ implements PlugIn {
                 if (useCals) {
                     ImageStack virStack = new ImageStack(virTemps[j].getWidth(), virTemps[j].getHeight());
                     virStack.addSlice(virTemps[j]);
-                    particles = findParticles(0.0, false, 0, 0, UserVariables.getCurveFitTol(), virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()]);
+                    particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false);
                 }
                 if (!useCals || !particles.getLevel(0).isEmpty()) {
                     String timepoint = Float.toString(virTemps[j].getPixelValue(0, 0));
@@ -859,6 +859,97 @@ public class Analyse_ implements PlugIn {
                     sigBlitter.copyBits(sigTemps[j], 0, 0, Blitter.COPY);
                     output[1].addSlice(timepoint, sigSlice);
                     FloatProcessor virSlice = new FloatProcessor(outputWidth, signalWidth);
+                    FloatBlitter virBlitter = new FloatBlitter(virSlice);
+                    virBlitter.copyBits(virTemps[j], 0, 0, Blitter.COPY);
+                    output[0].addSlice(timepoint, virSlice);
+                }
+            }
+        }
+        return output;
+    }
+
+    ImageStack[] extractStaticSignalValues(ParticleTrajectory ptraj, int signalWidth) {
+        TextReader reader = new TextReader();
+        ImageProcessor xcoeffs = null, ycoeffs = null, coords = null;
+        if (useCals) {
+            xcoeffs = reader.open(calDir + delimiter + "xcoeffs.txt");
+            ycoeffs = reader.open(calDir + delimiter + "ycoeffs.txt");
+            coords = reader.open(calDir + delimiter + "coords.txt");
+        }
+        Particle sigStartP = ptraj.getEnd();
+        if (signalWidth % 2 == 0) {
+            signalWidth++;
+        }
+        int size = ptraj.getSize();
+        ImageProcessor[] sigTemps = new ImageProcessor[size];
+        ImageProcessor[] virTemps = new ImageProcessor[size];
+        Particle current = sigStartP;
+        for (int f = size - 1; f >= 0; f--) {
+            double xr = current.getX();
+            double yr = current.getY();
+            double xg = xr;
+            double yg = yr;
+            if (useCals) {
+                xg = goshtasbyEval(xcoeffs, coords, xr, yr);
+                yg = goshtasbyEval(ycoeffs, coords, xr, yr);
+            }
+            ImageProcessor sigIP = stacks[1].getProcessor(current.getTimePoint() + 1);
+            ImageProcessor virIP = stacks[0].getProcessor(current.getTimePoint() + 1);
+            FloatProcessor sigRegion = new FloatProcessor(2 * signalWidth + 1, 2 * signalWidth + 1);
+            FloatProcessor virRegion = new FloatProcessor(2 * signalWidth + 1, 2 * signalWidth + 1);
+            sigIP.setInterpolate(true);
+            sigIP.setInterpolationMethod(ImageProcessor.BICUBIC);
+            virIP.setInterpolate(true);
+            virIP.setInterpolationMethod(ImageProcessor.BICUBIC);
+            for (int j = 0; j < sigRegion.getHeight(); j++) {
+                for (int i = 0; i < sigRegion.getWidth(); i++) {
+                    sigRegion.putPixelValue(i, j, sigIP.getInterpolatedValue(xg / UserVariables.getSpatialRes() - signalWidth + i,
+                            yg / UserVariables.getSpatialRes() - signalWidth + j));
+                    virRegion.putPixelValue(i, j, virIP.getInterpolatedValue(xr / UserVariables.getSpatialRes() - signalWidth + i,
+                            yr / UserVariables.getSpatialRes() - signalWidth + j));
+                }
+            }
+            sigTemps[f] = sigRegion;
+            virTemps[f] = virRegion;
+            IJ.saveAs(new ImagePlus("", virRegion), "TIF", "C:\\Users\\barry05\\Desktop\\virRegions\\"+current.getTimePoint()+".tif");
+            if (virTemps[f] != null) {
+                virTemps[f].putPixelValue(0, 0, current.getTimePoint());
+            }
+            current = current.getLink();
+        }
+        int xc = signalWidth;
+        int yc = signalWidth;
+        ImageStack output[] = new ImageStack[2];
+        output[0] = new ImageStack(2 * signalWidth + 1, 2 * signalWidth + 1);
+        output[1] = new ImageStack(2 * signalWidth + 1, 2 * signalWidth + 1);
+        for (int j = 0; j < size; j++) {
+            if (virTemps[j] != null && sigTemps[j] != null) {
+                ParticleArray particles = null;
+                if (useCals) {
+                    ImageStack virStack = new ImageStack(virTemps[j].getWidth(), virTemps[j].getHeight());
+                    virStack.addSlice(virTemps[j]);
+                    particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false);
+                }
+                if (!useCals || !particles.getLevel(0).isEmpty()) {
+                    String timepoint = Float.toString(virTemps[j].getPixelValue(0, 0));
+                    virTemps[j].setInterpolate(true);
+                    virTemps[j].setInterpolationMethod(ImageProcessor.BICUBIC);
+                    sigTemps[j].setInterpolate(true);
+                    sigTemps[j].setInterpolationMethod(ImageProcessor.BICUBIC);
+                    double xinc = 0.0;
+                    double yinc = 0.0;
+                    if (useCals) {
+                        Particle p = particles.getLevel(0).get(0);
+                        xinc = p.getC1Gaussian().getX() / UserVariables.getSpatialRes() - xc;
+                        yinc = p.getC1Gaussian().getY() / UserVariables.getSpatialRes() - yc;
+                    }
+                    virTemps[j].translate(-xinc, -yinc);
+                    sigTemps[j].translate(-xinc, -yinc);
+                    FloatProcessor sigSlice = new FloatProcessor(2 * signalWidth + 1, 2 * signalWidth + 1);
+                    FloatBlitter sigBlitter = new FloatBlitter(sigSlice);
+                    sigBlitter.copyBits(sigTemps[j], 0, 0, Blitter.COPY);
+                    output[1].addSlice(timepoint, sigSlice);
+                    FloatProcessor virSlice = new FloatProcessor(2 * signalWidth + 1, 2 * signalWidth + 1);
                     FloatBlitter virBlitter = new FloatBlitter(virSlice);
                     virBlitter.copyBits(virTemps[j], 0, 0, Blitter.COPY);
                     output[0].addSlice(timepoint, virSlice);
