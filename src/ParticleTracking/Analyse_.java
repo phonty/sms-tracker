@@ -363,17 +363,15 @@ public class Analyse_ implements PlugIn {
                          * A particle has been isolated - trajectories need to
                          * be updated:
                          */
-                        if (c1Fits != null) {
-                            for (IsoGaussian c1Fit : c1Fits) {
-                                if (c1Fit.getFit() > fitTol
-                                        && (c2Gaussian == null && !colocal)
-                                        || (c2Gaussian != null && colocal
-                                        && c2Gaussian.getFit() > UserVariables.getC2CurveFitTol())) {
-                                    particles.addDetection(i - startSlice, new Particle(i - startSlice, c1Fit, c2Gaussian, null, -1));
-                                }
+                        for (IsoGaussian c1Fit : c1Fits) {
+                            if (c1Fit.getFit() > fitTol
+                                    && (c2Gaussian == null && !colocal)
+                                    || (c2Gaussian != null && colocal
+                                    && c2Gaussian.getFit() > UserVariables.getC2CurveFitTol())) {
+                                particles.addDetection(i - startSlice, new Particle(i - startSlice, c1Fit, c2Gaussian, null, -1));
+                            }
 //                                Utils.draw2DGaussian(oslice, c1Fit, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false, false);
 //                                Utils.draw2DGaussian(chan1Proc, c1Fit, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false, true);
-                            }
                         }
                     }
                 }
@@ -768,15 +766,15 @@ public class Analyse_ implements PlugIn {
             signalWidth++;
         }
         int size = ptraj.getSize();
-        int iterations = ptraj.getSize();
+//        int iterations = ptraj.getSize();
         float xSigArray[];
         float ySigArray[];
         float xVirArray[];
         float yVirArray[];
         ArrayList<Float> xSigPoints, ySigPoints, xVirPoints, yVirPoints;
-        ImageProcessor[] sigTemps = new ImageProcessor[iterations];
-        ImageProcessor[] virTemps = new ImageProcessor[iterations];
-        for (int i = 0; i < iterations; i++) {
+        ImageProcessor[] sigTemps = new ImageProcessor[size];
+        ImageProcessor[] virTemps = new ImageProcessor[size];
+        for (int i = 0; i < size; i++) {
             Particle current = sigStartP;
             xSigPoints = new ArrayList();
             ySigPoints = new ArrayList();
@@ -814,15 +812,12 @@ public class Analyse_ implements PlugIn {
             ImagePlus virImp = new ImagePlus("", stacks[0].getProcessor(sigStartP.getTimePoint() + 1));
             sigImp.setRoi(sigProi);
             virImp.setRoi(virProi);
-            sigTemps[iterations - 1 - i] = straightener.straighten(sigImp, sigProi, signalWidth);
-            virTemps[iterations - 1 - i] = straightener.straighten(virImp, virProi, signalWidth);
-            if (virTemps[iterations - 1 - i] != null) {
-                virTemps[iterations - 1 - i].putPixelValue(0, 0, sigStartP.getTimePoint());
+            sigTemps[size - 1 - i] = straightener.straighten(sigImp, sigProi, signalWidth);
+            virTemps[size - 1 - i] = straightener.straighten(virImp, virProi, signalWidth);
+            if (virTemps[size - 1 - i] != null) {
+                virTemps[size - 1 - i].putPixelValue(0, 0, sigStartP.getTimePoint());
             }
-//            IJ.saveAs((new ImagePlus("", virTemps[i])), "TIF", "c:\\users\\barry05\\desktop\\virTemps_" + i);
-//            System.out.println("virTemp: " + virTemps[i].getWidth() + "virProi: " + virProi.getLength());
             sigStartP = sigStartP.getLink();
-//            System.out.println(i + " " + xSigArray.length + " " + sigTemps[iterations - 1 - i].getWidth());
         }
         int xc = (int) Math.ceil(TRACK_OFFSET * offset);
         int yc = (signalWidth - 1) / 2;
@@ -831,15 +826,30 @@ public class Analyse_ implements PlugIn {
         output[0] = new ImageStack(outputWidth, signalWidth);
         output[1] = new ImageStack(outputWidth, signalWidth);
 
-        for (int j = 0; j < iterations; j++) {
-            if (virTemps[j] != null && sigTemps[j] != null && sigTemps[j].getWidth() >= outputWidth) {
+        for (int j = 0; j < size; j++) {
+            if (virTemps[j] != null && sigTemps[j] != null) {
                 ParticleArray particles = null;
+                Particle alignmentParticle = null;
                 if (useCals) {
                     ImageStack virStack = new ImageStack(virTemps[j].getWidth(), virTemps[j].getHeight());
                     virStack.addSlice(virTemps[j]);
                     particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false);
+                    ArrayList<Particle> detections = particles.getLevel(0);
+                    double mindist = Double.MAX_VALUE;
+                    int minindex = -1;
+                    for (int k = 0; k < detections.size(); k++) {
+                        Particle p = detections.get(k);
+                        double dist = Utils.calcDistance(p.getX(), p.getY(), xc * UserVariables.getSpatialRes(), yc * UserVariables.getSpatialRes());
+                        if (dist < mindist) {
+                            mindist = dist;
+                            minindex = k;
+                        }
+                    }
+                    if (minindex > -1) {
+                        alignmentParticle = detections.get(minindex);
+                    }
                 }
-                if (!useCals || !particles.getLevel(0).isEmpty()) {
+                if (!useCals || alignmentParticle != null) {
                     String timepoint = Float.toString(virTemps[j].getPixelValue(0, 0));
                     virTemps[j].setInterpolate(true);
                     virTemps[j].setInterpolationMethod(ImageProcessor.BICUBIC);
@@ -848,9 +858,8 @@ public class Analyse_ implements PlugIn {
                     double xinc = 0.0;
                     double yinc = 0.0;
                     if (useCals) {
-                        Particle p = particles.getLevel(0).get(0);
-                        xinc = p.getC1Gaussian().getX() / UserVariables.getSpatialRes() - xc;
-                        yinc = p.getC1Gaussian().getY() / UserVariables.getSpatialRes() - yc;
+                        xinc = alignmentParticle.getC1Gaussian().getX() / UserVariables.getSpatialRes() - xc;
+                        yinc = alignmentParticle.getC1Gaussian().getY() / UserVariables.getSpatialRes() - yc;
                     }
                     virTemps[j].translate(-xinc, -yinc);
                     sigTemps[j].translate(-xinc, -yinc);
@@ -911,7 +920,7 @@ public class Analyse_ implements PlugIn {
             }
             sigTemps[f] = sigRegion;
             virTemps[f] = virRegion;
-            IJ.saveAs(new ImagePlus("", virRegion), "TIF", "C:\\Users\\barry05\\Desktop\\virRegions\\"+current.getTimePoint()+".tif");
+            IJ.saveAs(new ImagePlus("", virRegion), "TIF", "C:\\Users\\barry05\\Desktop\\virRegions\\" + current.getTimePoint() + ".tif");
             if (virTemps[f] != null) {
                 virTemps[f].putPixelValue(0, 0, current.getTimePoint());
             }
