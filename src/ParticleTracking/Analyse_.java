@@ -51,10 +51,10 @@ public class Analyse_ implements PlugIn {
     protected final double SIG_EST_RED = 0.158, SIG_EST_GREEN = 0.168;
     protected final double sigmas[] = {SIG_EST_RED, SIG_EST_GREEN};
 //    protected int xyPartRad; //Radius over which to draw particles in visualisation
-    public final int SHOW_RESULTS = -1;
+    public final int GOSHTASBY_M = 2, GOSHTASBY_N = 4;
     public static final int VERSION = 5;
-    protected final double LAMBDA = 650.0, //Wavelength of light
-            NUM_AP = 1.4; //Numerical aperture of system
+//    protected final double LAMBDA = 650.0, //Wavelength of light
+//            NUM_AP = 1.4; //Numerical aperture of system
     protected static double colocalThresh = 0.1;
     protected ArrayList<ParticleTrajectory> trajectories = new ArrayList(); //Trajectories of the detected particles
     protected ImagePlus imp; //The active image stack
@@ -62,6 +62,7 @@ public class Analyse_ implements PlugIn {
     private long startTime;
     protected DecimalFormat numFormat = new DecimalFormat("0.000");
     protected DecimalFormat intFormat = new DecimalFormat("000");
+    protected DecimalFormat floatFormat = new DecimalFormat("0.00");
     String title = "Particle Tracker", ext;
     protected static boolean msdPlot = false, intensPlot = false, trajPlot = false;
     protected boolean monoChrome, useCals = true;
@@ -240,7 +241,8 @@ public class Analyse_ implements PlugIn {
                         if (type == ParticleTrajectory.COLOCAL) {
                             ImageStack signals[] = extractTrajSignalValues(traj,
                                     (int) Math.round(UserVariables.getTrackLength() / UserVariables.getSpatialRes()),
-                                    (int) Math.round(TRACK_WIDTH / UserVariables.getSpatialRes()), TRACK_EXT / ((float) UserVariables.getSpatialRes()));
+                                    (int) Math.round(TRACK_WIDTH / UserVariables.getSpatialRes()),
+                                    TRACK_EXT / ((float) UserVariables.getSpatialRes()), stacks[0].getWidth(), stacks[0].getHeight());
                             if (signals[0].getSize() > 0) {
                                 for (int j = 1; j <= signals[0].getSize(); j++) {
                                     IJ.saveAs((new ImagePlus("", signals[0].getProcessor(j))),
@@ -747,45 +749,60 @@ public class Analyse_ implements PlugIn {
      * @param signalWidth
      * @return
      */
-    ImageStack[] extractTrajSignalValues(ParticleTrajectory ptraj, int signalLength, int signalWidth, float offset) {
+    ImageStack[] extractTrajSignalValues(ParticleTrajectory ptraj, int signalLength, int signalWidth, float offset, int width, int height) {
         TextReader reader = new TextReader();
-        ImageProcessor xcoeffs = null, ycoeffs = null, coords = null;
-        if (useCals) {
-            xcoeffs = reader.open(calDir + delimiter + "xcoeffs.txt");
-            ycoeffs = reader.open(calDir + delimiter + "ycoeffs.txt");
-            coords = reader.open(calDir + delimiter + "coords.txt");
-        }
-//        goshtasbyShiftEval(xcoeffs, ycoeffs, coords);
-//        for (int m = 1; m <= 4; m++) {
-//            for (int n = 1; n <= 4; n++) {
-//                multiGoshtasbyErrorEval(1, 1, 256, 512);
-//            }
-//        }
+        double xdiv = width * UserVariables.getSpatialRes() / GOSHTASBY_M;
+        double ydiv = height * UserVariables.getSpatialRes() / GOSHTASBY_N;
         Particle sigStartP = ptraj.getEnd();
         if (signalWidth % 2 == 0) {
             signalWidth++;
         }
         int size = ptraj.getSize();
-//        int iterations = ptraj.getSize();
-        float xSigArray[];
-        float ySigArray[];
-        float xVirArray[];
-        float yVirArray[];
+        float xSigArray[], ySigArray[], xVirArray[], yVirArray[];
         ArrayList<Float> xSigPoints, ySigPoints, xVirPoints, yVirPoints;
         ImageProcessor[] sigTemps = new ImageProcessor[size];
         ImageProcessor[] virTemps = new ImageProcessor[size];
+        Particle last = null, next;
         for (int i = 0; i < size; i++) {
             Particle current = sigStartP;
+            next = sigStartP.getLink();
             xSigPoints = new ArrayList();
             ySigPoints = new ArrayList();
             xVirPoints = new ArrayList();
             yVirPoints = new ArrayList();
+            double x1, y1, x2, y2, t = 2.0 / UserVariables.getTimeRes();
+            if (last != null) {
+                x1 = last.getX();
+                y1 = last.getY();
+            } else {
+                x1 = sigStartP.getX();
+                y1 = sigStartP.getY();
+                t /= 2.0;
+            }
+            if (next != null) {
+                x2 = next.getX();
+                y2 = next.getY();
+            } else {
+                x2 = sigStartP.getX();
+                y2 = sigStartP.getY();
+                t /= 2.0;
+            }
+            double vel = Utils.calcDistance(x1, y1, x2, y2) / t;
             for (int index = 1; index <= size && current != null; index++) {
                 double xg = current.getC1Gaussian().getX();
                 double yg = current.getC1Gaussian().getY();
                 if (useCals) {
-                    xg = goshtasbyEval(xcoeffs, coords, current.getC1Gaussian().getX(), current.getC1Gaussian().getY());
-                    yg = goshtasbyEval(ycoeffs, coords, current.getC1Gaussian().getX(), current.getC1Gaussian().getY());
+                    double x = current.getC1Gaussian().getX(), y = current.getC1Gaussian().getY();
+                    int xi = 1 + (int) Math.floor(x / xdiv);
+                    int yi = 1 + (int) Math.floor(y / ydiv);
+                    ImageProcessor xcoeffs = reader.open(calDir + delimiter + "goshtasby"
+                            + delimiter + GOSHTASBY_M + "_" + GOSHTASBY_N + delimiter + "xcoeffs" + xi + "_" + yi + ".txt");
+                    ImageProcessor ycoeffs = reader.open(calDir + delimiter + "goshtasby"
+                            + delimiter + GOSHTASBY_M + "_" + GOSHTASBY_N + delimiter + "ycoeffs" + xi + "_" + yi + ".txt");
+                    ImageProcessor coords = reader.open(calDir + delimiter + "goshtasby"
+                            + delimiter + GOSHTASBY_M + "_" + GOSHTASBY_N + delimiter + "coords" + xi + "_" + yi + ".txt");
+                    xg = goshtasbyEval(xcoeffs, coords, x, y);
+                    yg = goshtasbyEval(ycoeffs, coords, x, y);
                 }
                 xSigPoints.add((float) (xg / UserVariables.getSpatialRes()));
                 ySigPoints.add((float) (yg / UserVariables.getSpatialRes()));
@@ -816,7 +833,9 @@ public class Analyse_ implements PlugIn {
             virTemps[size - 1 - i] = straightener.straighten(virImp, virProi, signalWidth);
             if (virTemps[size - 1 - i] != null) {
                 virTemps[size - 1 - i].putPixelValue(0, 0, sigStartP.getTimePoint());
+                virTemps[size - 1 - i].putPixelValue(1, 0, vel);
             }
+            last = sigStartP;
             sigStartP = sigStartP.getLink();
         }
         int xc = (int) Math.ceil(TRACK_OFFSET * offset);
@@ -828,12 +847,11 @@ public class Analyse_ implements PlugIn {
 
         for (int j = 0; j < size; j++) {
             if (virTemps[j] != null && sigTemps[j] != null) {
-                ParticleArray particles = null;
                 Particle alignmentParticle = null;
                 if (useCals) {
                     ImageStack virStack = new ImageStack(virTemps[j].getWidth(), virTemps[j].getHeight());
                     virStack.addSlice(virTemps[j]);
-                    particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false);
+                    ParticleArray particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false);
                     ArrayList<Particle> detections = particles.getLevel(0);
                     double mindist = Double.MAX_VALUE;
                     int minindex = -1;
@@ -850,7 +868,8 @@ public class Analyse_ implements PlugIn {
                     }
                 }
                 if (!useCals || alignmentParticle != null) {
-                    String timepoint = Float.toString(virTemps[j].getPixelValue(0, 0));
+                    String label = Float.toString(virTemps[j].getPixelValue(0, 0))
+                            + "-" + floatFormat.format(virTemps[j].getPixelValue(1, 0));
                     virTemps[j].setInterpolate(true);
                     virTemps[j].setInterpolationMethod(ImageProcessor.BICUBIC);
                     sigTemps[j].setInterpolate(true);
@@ -866,11 +885,11 @@ public class Analyse_ implements PlugIn {
                     FloatProcessor sigSlice = new FloatProcessor(outputWidth, signalWidth);
                     FloatBlitter sigBlitter = new FloatBlitter(sigSlice);
                     sigBlitter.copyBits(sigTemps[j], 0, 0, Blitter.COPY);
-                    output[1].addSlice(timepoint, sigSlice);
+                    output[1].addSlice(label, sigSlice);
                     FloatProcessor virSlice = new FloatProcessor(outputWidth, signalWidth);
                     FloatBlitter virBlitter = new FloatBlitter(virSlice);
                     virBlitter.copyBits(virTemps[j], 0, 0, Blitter.COPY);
-                    output[0].addSlice(timepoint, virSlice);
+                    output[0].addSlice(label, virSlice);
                 }
             }
         }

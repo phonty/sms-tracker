@@ -27,7 +27,7 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
 //    protected ImageStack[] stacks = new ImageStack[2];
     protected String title = "Colocaliser";
     protected String resultsHeadings = "Image\tChannel 1 Detections\tColocalised Channel 2 Detections\t% Colocalisation\t"
-            + "\u0394 (nm)", coordHeadings = "C0_X\tC0_Y\tC1_X\tC1_Y";
+            + "\u0394 (nm)", coordHeadings = "C0_X\tC0_Y\tC1_X\tC1_Y\tC0 Fit\tC1 Fit";
     protected static double coFactor = 1.0;
     public static final int RED = 0, GREEN = 1, BLUE = 2;
     protected DecimalFormat numFormat = new DecimalFormat("0.0");
@@ -39,8 +39,8 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
 
 //    public static void main(String args[]) {
 //        ImagePlus inputs[] = new ImagePlus[2];
-//        inputs[0] = new ImagePlus("C:\\Users\\barry05\\Google Drive\\Work\\Lab Book\\SuperRes Actin Tails\\2015.05.01_Registration Tests\\Simulation3 - Rotation plus noise - 2.5um Grid\\CalibrationGrid_C0.tif");
-//        inputs[1] = new ImagePlus("C:\\Users\\barry05\\Google Drive\\Work\\Lab Book\\SuperRes Actin Tails\\2015.05.01_Registration Tests\\Simulation3 - Rotation plus noise - 2.5um Grid\\CalibrationGrid_C1.tif");
+//        inputs[0] = IJ.openImage();
+//        inputs[1] = IJ.openImage();
 //        (new Colocalisation_Analysis(inputs)).run(null);
 //    }
 
@@ -169,6 +169,7 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
             FloatProcessor ch1proc = new FloatProcessor(width, height);
             FloatProcessor ch2proc = new FloatProcessor(width, height);
             ArrayList detections = curves.getLevel(0);
+            String fits = " ";
             for (int j = 0; j < detections.size(); j++) {
                 IsoGaussian c1 = ((Particle) detections.get(j)).getC1Gaussian();
                 String coordString = " ";
@@ -180,6 +181,7 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
 //                        displaymax = c1.getMagnitude();
 //                    }
                     count++;
+                    fits = String.valueOf(c1.getFit());
                     IsoGaussian c2 = ((Particle) detections.get(j)).getC2Gaussian();
                     if (Utils.draw2DGaussian(ch2proc, c2, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(),
                             partialDetect, false)) {
@@ -190,10 +192,11 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
                         sepsum += Utils.calcDistance(c1.getX(), c1.getY(), c2.getX(), c2.getY());
                         coordString = String.valueOf(c1.getX()) + "\t" + String.valueOf(c1.getY())
                                 + "\t" + String.valueOf(c2.getX()) + "\t" + String.valueOf(c2.getY());
+                        fits = fits + "\t" + String.valueOf(c2.getFit());
                     } else {
                         coordString = String.valueOf(c1.getX()) + "\t" + String.valueOf(c1.getY()) + "\t \t ";
                     }
-                    particleCoords.append(coordString);
+                    particleCoords.append(coordString+"\t"+fits);
                 }
             }
             if (results == null) {
