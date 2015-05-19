@@ -242,7 +242,7 @@ public class Analyse_ implements PlugIn {
                             ImageStack signals[] = extractTrajSignalValues(traj,
                                     (int) Math.round(UserVariables.getTrackLength() / UserVariables.getSpatialRes()),
                                     (int) Math.round(TRACK_WIDTH / UserVariables.getSpatialRes()),
-                                    TRACK_EXT / ((float) UserVariables.getSpatialRes()), stacks[0].getWidth(), stacks[0].getHeight());
+                                    TRACK_EXT / ((float) UserVariables.getSpatialRes()), stacks[0].getWidth(), stacks[0].getHeight(), count);
                             if (signals[0].getSize() > 0) {
                                 for (int j = 1; j <= signals[0].getSize(); j++) {
                                     IJ.saveAs((new ImagePlus("", signals[0].getProcessor(j))),
@@ -273,7 +273,7 @@ public class Analyse_ implements PlugIn {
     }
 
     protected ParticleArray findParticles() {
-        return findParticles(SEARCH_SCALE, true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], false, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], UserVariables.isColocal());
+        return findParticles(SEARCH_SCALE, true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], false, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], UserVariables.isColocal(), true);
     }
 
     /**
@@ -300,10 +300,10 @@ public class Analyse_ implements PlugIn {
 
     public ParticleArray findParticles(boolean update, int startSlice, int endSlice, double fitTol, ImageStack channel1, ImageStack channel2, boolean fitC2Gaussian, boolean colocal) {
         return findParticles(SEARCH_SCALE, update, startSlice, endSlice, fitTol,
-                channel1, channel2, fitC2Gaussian, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], colocal);
+                channel1, channel2, fitC2Gaussian, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], colocal, true);
     }
 
-    public ParticleArray findParticles(double searchScale, boolean update, int startSlice, int endSlice, double fitTol, ImageStack channel1, ImageStack channel2, boolean fitC2Gaussian, double sigEst1, double sigEst2, boolean colocal) {
+    public ParticleArray findParticles(double searchScale, boolean update, int startSlice, int endSlice, double fitTol, ImageStack channel1, ImageStack channel2, boolean fitC2Gaussian, double sigEst1, double sigEst2, boolean colocal, boolean showProgress) {
         if (channel1 == null) {
             return null;
         }
@@ -323,7 +323,9 @@ public class Analyse_ implements PlugIn {
 //        ImageStack maxima = new ImageStack(stack.getWidth(), stack.getHeight());
 //        ImageStack input_output = new ImageStack(stack.getWidth(), stack.getHeight());
         ProgressDialog progress = new ProgressDialog(null, "Finding Particles...", false, title, false);
-        progress.setVisible(true);
+        if (showProgress) {
+            progress.setVisible(true);
+        }
         for (i = startSlice; i < noOfImages && i <= endSlice; i++) {
 //            ByteProcessor oslice = new ByteProcessor(detect_output.getWidth(), detect_output.getHeight());
             IJ.freeMemory();
@@ -749,7 +751,7 @@ public class Analyse_ implements PlugIn {
      * @param signalWidth
      * @return
      */
-    ImageStack[] extractTrajSignalValues(ParticleTrajectory ptraj, int signalLength, int signalWidth, float offset, int width, int height) {
+    ImageStack[] extractTrajSignalValues(ParticleTrajectory ptraj, int signalLength, int signalWidth, float offset, int width, int height, int count) {
         TextReader reader = new TextReader();
         double xdiv = width * UserVariables.getSpatialRes() / GOSHTASBY_M;
         double ydiv = height * UserVariables.getSpatialRes() / GOSHTASBY_N;
@@ -763,7 +765,10 @@ public class Analyse_ implements PlugIn {
         ImageProcessor[] sigTemps = new ImageProcessor[size];
         ImageProcessor[] virTemps = new ImageProcessor[size];
         Particle last = null, next;
+        ProgressDialog progress = new ProgressDialog(null, "Extracting Signal Areas " + count + "...", false, title, false);
+        progress.setVisible(true);
         for (int i = 0; i < size; i++) {
+            progress.updateProgress(i, size);
             Particle current = sigStartP;
             next = sigStartP.getLink();
             xSigPoints = new ArrayList();
@@ -838,6 +843,7 @@ public class Analyse_ implements PlugIn {
             last = sigStartP;
             sigStartP = sigStartP.getLink();
         }
+        progress.dispose();
         int xc = (int) Math.ceil(TRACK_OFFSET * offset);
         int yc = (signalWidth - 1) / 2;
         int outputWidth = (int) Math.round(signalLength + offset);
@@ -845,13 +851,16 @@ public class Analyse_ implements PlugIn {
         output[0] = new ImageStack(outputWidth, signalWidth);
         output[1] = new ImageStack(outputWidth, signalWidth);
 
+        progress = new ProgressDialog(null, "Aligning Signal Areas " + count + "...", false, title, false);
+        progress.setVisible(true);
         for (int j = 0; j < size; j++) {
+            progress.updateProgress(j, size);
             if (virTemps[j] != null && sigTemps[j] != null) {
                 Particle alignmentParticle = null;
                 if (useCals) {
                     ImageStack virStack = new ImageStack(virTemps[j].getWidth(), virTemps[j].getHeight());
                     virStack.addSlice(virTemps[j]);
-                    ParticleArray particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false);
+                    ParticleArray particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false, false);
                     ArrayList<Particle> detections = particles.getLevel(0);
                     double mindist = Double.MAX_VALUE;
                     int minindex = -1;
@@ -893,6 +902,7 @@ public class Analyse_ implements PlugIn {
                 }
             }
         }
+        progress.dispose();
         return output;
     }
 
@@ -956,7 +966,7 @@ public class Analyse_ implements PlugIn {
                 if (useCals) {
                     ImageStack virStack = new ImageStack(virTemps[j].getWidth(), virTemps[j].getHeight());
                     virStack.addSlice(virTemps[j]);
-                    particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false);
+                    particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false, true);
                 }
                 if (!useCals || !particles.getLevel(0).isEmpty()) {
                     String timepoint = Float.toString(virTemps[j].getPixelValue(0, 0));
