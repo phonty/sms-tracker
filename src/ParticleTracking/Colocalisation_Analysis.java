@@ -165,14 +165,14 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
             colocalisation = 0;
             count = 0;
             sepsum = 0.0;
-            ParticleArray curves = analyser.findParticles(coFactor, false, i, i, UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, SIG_EST_RED, SIG_EST_GREEN, UserVariables.isColocal(), true, false);
+            ParticleArray curves = analyser.findParticles(coFactor, false, i, i, UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, SIG_EST_RED, SIG_EST_GREEN, UserVariables.isColocal(), true, false, UserVariables.getCurveFitTol());
             FloatProcessor ch1proc = new FloatProcessor(width, height);
             FloatProcessor ch2proc = new FloatProcessor(width, height);
             ArrayList detections = curves.getLevel(0);
-            String fits = " ";
+            String fits;
             for (int j = 0; j < detections.size(); j++) {
                 IsoGaussian c1 = ((Particle) detections.get(j)).getC1Gaussian();
-                String coordString = " ";
+                String coordString;
                 if (particleCoords == null) {
                     particleCoords = new TextWindow(title + " Particle Coordinates", coordHeadings, new String(), 1000, 500);
                 }
