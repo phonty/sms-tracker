@@ -48,7 +48,7 @@ import java.util.Random;
 public class Analyse_ implements PlugIn {
 
 //    protected static double hystDiff = 1.25;
-    protected final double SIG_EST_RED = 0.158, SIG_EST_GREEN = 0.168;
+    protected final double SIG_EST_RED = 0.132, SIG_EST_GREEN = 0.125;
     protected final double sigmas[] = {SIG_EST_RED, SIG_EST_GREEN};
 //    protected int xyPartRad; //Radius over which to draw particles in visualisation
     public final int GOSHTASBY_M = 2, GOSHTASBY_N = 4;
@@ -273,7 +273,7 @@ public class Analyse_ implements PlugIn {
     }
 
     protected ParticleArray findParticles() {
-        return findParticles(SEARCH_SCALE, true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], false, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], UserVariables.isColocal(), true, true, UserVariables.getC2CurveFitTol());
+        return findParticles(SEARCH_SCALE, true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], false, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], UserVariables.isColocal(), true, true, UserVariables.getC2CurveFitTol(), false);
     }
 
     /**
@@ -300,10 +300,10 @@ public class Analyse_ implements PlugIn {
 
     public ParticleArray findParticles(boolean update, int startSlice, int endSlice, double c1FitTol, ImageStack channel1, ImageStack channel2, boolean fitC2Gaussian, boolean colocal, boolean floatingSigma, double c2FitTol) {
         return findParticles(SEARCH_SCALE, update, startSlice, endSlice, c1FitTol,
-                channel1, channel2, fitC2Gaussian, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], colocal, true, floatingSigma, c2FitTol);
+                channel1, channel2, fitC2Gaussian, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], colocal, true, floatingSigma, c2FitTol, false);
     }
 
-    public ParticleArray findParticles(double searchScale, boolean update, int startSlice, int endSlice, double c1FitTol, ImageStack channel1, ImageStack channel2, boolean fitC2Gaussian, double sigEst1, double sigEst2, boolean colocal, boolean showProgress, boolean floatingSigma, double c2FitTol) {
+    public ParticleArray findParticles(double searchScale, boolean update, int startSlice, int endSlice, double c1FitTol, ImageStack channel1, ImageStack channel2, boolean fitC2Gaussian, double sigEst1, double sigEst2, boolean colocal, boolean showProgress, boolean c2FloatingSigma, double c2FitTol, boolean c1FloatingSigma) {
         if (channel1 == null) {
             return null;
         }
@@ -354,13 +354,13 @@ public class Analyse_ implements PlugIn {
 //                        MultiGaussFitter c1Fitter = new MultiGaussFitter(UserVariables.getnMax(), fitRad, pSize);
 //                        c1Fitter.fit(pixValues, sigEst1 / UserVariables.getSpatialRes());
 //                        ArrayList<IsoGaussian> c1Fits = c1Fitter.getFits(spatialRes, c1X - fitRad, c1Y - fitRad, c1Threshold, fitTol);
-                        IsoGaussianFitter c1Fitter = new IsoGaussianFitter(xCoords, yCoords, pixValues, false);
+                        IsoGaussianFitter c1Fitter = new IsoGaussianFitter(xCoords, yCoords, pixValues, c1FloatingSigma);
                         c1Fitter.doFit(sigEst1 / UserVariables.getSpatialRes());
                         ArrayList<IsoGaussian> c1Fits = new ArrayList();
                         c1Fits.add(new IsoGaussian((c1X - fitRad + c1Fitter.getX0()) * spatialRes, (c1Y - fitRad + c1Fitter.getY0()) * spatialRes,
-                                c1Fitter.getMag(), sigEst1 / UserVariables.getSpatialRes(), sigEst1 / UserVariables.getSpatialRes(), c1Fitter.getRSquared()));
+                                c1Fitter.getMag(), c1Fitter.getXsig(), c1Fitter.getYsig(), c1Fitter.getRSquared()));
                         if (c2Points != null) {
-                            c2Gaussian = findC2Particle(c1X, c1Y, radius, pSize, c2Threshold, chan2Proc, fitC2Gaussian, sigEst2, fitRad, spatialRes, floatingSigma);
+                            c2Gaussian = findC2Particle(c1X, c1Y, radius, pSize, c2Threshold, chan2Proc, fitC2Gaussian, sigEst2, fitRad, spatialRes, c2FloatingSigma);
                         }
 
                         /*
@@ -858,7 +858,7 @@ public class Analyse_ implements PlugIn {
                 if (useCals) {
                     ImageStack virStack = new ImageStack(virTemps[j].getWidth(), virTemps[j].getHeight());
                     virStack.addSlice(virTemps[j]);
-                    ParticleArray particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false, false, false, 0.0);
+                    ParticleArray particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false, false, false, 0.0, false);
                     ArrayList<Particle> detections = particles.getLevel(0);
                     double mindist = Double.MAX_VALUE;
                     int minindex = -1;
@@ -964,7 +964,7 @@ public class Analyse_ implements PlugIn {
                 if (useCals) {
                     ImageStack virStack = new ImageStack(virTemps[j].getWidth(), virTemps[j].getHeight());
                     virStack.addSlice(virTemps[j]);
-                    particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false, true, false, 0.0);
+                    particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false, true, false, 0.0, false);
                 }
                 if (!useCals || !particles.getLevel(0).isEmpty()) {
                     String timepoint = Float.toString(virTemps[j].getPixelValue(0, 0));

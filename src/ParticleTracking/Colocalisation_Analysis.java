@@ -27,15 +27,16 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
 //    protected ImageStack[] stacks = new ImageStack[2];
     protected String title = "Colocaliser";
     protected String resultsHeadings = "Image\tChannel 1 Detections\tColocalised Channel 2 Detections\t% Colocalisation\t"
-            + "\u0394 (nm)", coordHeadings = "C0_X\tC0_Y\tC1_X\tC1_Y\tC0 Fit\tC1 Fit";
+            + "\u0394 (nm)", coordHeadings = "C0_X\tC0_Y\tC1_X\tC1_Y\tC0_\u03c3\tC1_\u03c3\tC0 Fit\tC1 Fit";
     protected static double coFactor = 1.0;
     public static final int RED = 0, GREEN = 1, BLUE = 2;
     protected DecimalFormat numFormat = new DecimalFormat("0.0");
-    protected static boolean partialDetect = false;
+//    protected static boolean partialDetect = false;
     protected TextWindow results = null, particleCoords = null;
     protected boolean findTails = false;
 //    private final String labels[] = {"Channel 1", "Channel 2"};
     private final DecimalFormat intFormat = new DecimalFormat("000");
+    private boolean floatingSigma;
 
 //    public static void main(String args[]) {
 //        ImagePlus inputs[] = new ImagePlus[2];
@@ -103,7 +104,8 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
             dialog.addNumericField("Minimum Peak Size (Ch 2):", UserVariables.getChan2MaxThresh(), 3, 7, "");
             dialog.addNumericField("Curve Fit Tolerance:", UserVariables.getCurveFitTol(), 3, 7, "");
             dialog.addNumericField("Colocalisation Factor:", coFactor, 3, 7, "");
-            dialog.addCheckbox("Include Partial Detections", partialDetect);
+            dialog.addCheckbox("Floating Sigma", floatingSigma);
+//            dialog.addCheckbox("Include Partial Detections", partialDetect);
             dialog.showDialog();
             if (!dialog.wasCanceled()) {
                 UserVariables.setC1Index(0);
@@ -117,7 +119,8 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
                  * Timelapse_Analysis.setC2SigmaTol(sigmaTolC2);
                  */
                 coFactor = dialog.getNextNumber();
-                partialDetect = dialog.getNextBoolean();
+//                partialDetect = dialog.getNextBoolean();
+                floatingSigma = dialog.getNextBoolean();
                 // Check that entries were numeric:
                 if (dialog.invalidNumber()) {
                     Toolkit.getDefaultToolkit().beep();
@@ -165,38 +168,43 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
             colocalisation = 0;
             count = 0;
             sepsum = 0.0;
-            ParticleArray curves = analyser.findParticles(coFactor, false, i, i, UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, SIG_EST_RED, SIG_EST_GREEN, UserVariables.isColocal(), true, false, UserVariables.getCurveFitTol());
+            ParticleArray curves = analyser.findParticles(coFactor, false, i, i,
+                    UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, SIG_EST_RED,
+                    SIG_EST_GREEN, UserVariables.isColocal(), true, floatingSigma, UserVariables.getCurveFitTol(), floatingSigma);
             FloatProcessor ch1proc = new FloatProcessor(width, height);
             FloatProcessor ch2proc = new FloatProcessor(width, height);
             ArrayList detections = curves.getLevel(0);
-            String fits;
+//            String fits;
             for (int j = 0; j < detections.size(); j++) {
                 IsoGaussian c1 = ((Particle) detections.get(j)).getC1Gaussian();
                 String coordString;
                 if (particleCoords == null) {
                     particleCoords = new TextWindow(title + " Particle Coordinates", coordHeadings, new String(), 1000, 500);
                 }
-                if (Utils.draw2DGaussian(ch1proc, c1, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), partialDetect, false)) {
+                if (Utils.draw2DGaussian(ch1proc, c1, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false, false)) {
 //                    if (c1.getMagnitude() > displaymax) {
 //                        displaymax = c1.getMagnitude();
 //                    }
                     count++;
-                    fits = String.valueOf(c1.getFit());
                     IsoGaussian c2 = ((Particle) detections.get(j)).getC2Gaussian();
-                    if (Utils.draw2DGaussian(ch2proc, c2, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(),
-                            partialDetect, false)) {
+                    if (Utils.draw2DGaussian(ch2proc, c2, UserVariables.getC2CurveFitTol(), UserVariables.getSpatialRes(),
+                            false, false)) {
 //                        if (c2.getMagnitude() > displaymax) {
 //                            displaymax = c2.getMagnitude();
 //                        }
                         colocalisation++;
                         sepsum += Utils.calcDistance(c1.getX(), c1.getY(), c2.getX(), c2.getY());
                         coordString = String.valueOf(c1.getX()) + "\t" + String.valueOf(c1.getY())
-                                + "\t" + String.valueOf(c2.getX()) + "\t" + String.valueOf(c2.getY());
-                        fits = fits + "\t" + String.valueOf(c2.getFit());
+                                + "\t" + String.valueOf(c2.getX()) + "\t" + String.valueOf(c2.getY())
+                                + "\t" + String.valueOf(c1.getXSigma() * UserVariables.getSpatialRes())
+                                + "\t" + String.valueOf(c2.getXSigma() * UserVariables.getSpatialRes())
+                                + "\t" + String.valueOf(c1.getFit()) + "\t" + String.valueOf(c2.getFit());
                     } else {
-                        coordString = String.valueOf(c1.getX()) + "\t" + String.valueOf(c1.getY()) + "\t \t ";
+                        coordString = String.valueOf(c1.getX()) + "\t" + String.valueOf(c1.getY())
+                                + "\t \t \t" + String.valueOf(c1.getXSigma()) + "\t \t"
+                                + String.valueOf(c1.getFit());
                     }
-                    particleCoords.append(coordString+"\t"+fits);
+                    particleCoords.append(coordString);
                 }
             }
             if (results == null) {
@@ -220,6 +228,7 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
             particleCoords.setVisible(true);
         }
         ImagePlus output = new ImagePlus("Detected Particles", outStack);
+//        IJ.saveAs(output, "TIF", "c:/users/barry05/desktop/output.tif");
 //        if (displaymax > 255) {
 //            displaymax = 255;
 //        }
