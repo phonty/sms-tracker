@@ -54,7 +54,7 @@ public class TailFitter extends IsoGaussianFitter {
     private final String checkBoxLabels[] = {"Randomize", "Cell by Cell"};
     private boolean checks[] = {randomize, cellByCell};
     private static int chanChoice, eqChoice, iterations = 100;
-    double minVersion = 4.112;
+    double minVersion = 5.011;
 
 //    public static void main(String args[]) {
 //        TailFitter tf = new TailFitter();
@@ -84,7 +84,7 @@ public class TailFitter extends IsoGaussianFitter {
             } else {
                 stackAverage = projectStack(buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, randomize));
             }
-            Rectangle cropRoi = new Rectangle(0, 15, stackAverage.getWidth() - 2, 1);
+            Rectangle cropRoi = new Rectangle(0, 15, stackAverage.getWidth() - 16, 1);
             stackAverage.setRoi(cropRoi);
             stackAverage = stackAverage.crop();
             ImageStatistics stats = stackAverage.getStatistics();
@@ -146,7 +146,9 @@ public class TailFitter extends IsoGaussianFitter {
                                 while (scanner.hasNext()) {
                                     if (scanner.hasNextDouble()) {
                                         version = scanner.nextDouble();
-                                    } else scanner.next();
+                                    } else {
+                                        scanner.next();
+                                    }
                                 }
                                 if (version >= minVersion) {
                                     selectedSubDirs.add(new File(resultsDir.getAbsolutePath() + "/" + key));
@@ -165,6 +167,7 @@ public class TailFitter extends IsoGaussianFitter {
         ImageStack overallStack = new ImageStack(stackwidth, stackheight);
         int nDirs = subDirs.size();
         Random r = new Random();
+        int count = 0;
         for (int j = 0; j < nDirs; j++) {
             File files[] = subDirs.get(j).listFiles();
             ArrayList<ArrayList> sortedFiles = sortFiles(files, channel);
@@ -173,6 +176,7 @@ public class TailFitter extends IsoGaussianFitter {
             for (int i = 0; i < n; i++) {
                 ArrayList<File> theseFiles = sortedFiles.get(i);
                 int m = theseFiles.size();
+                count += m;
                 ImageStack tailStack = new ImageStack(stackwidth, stackheight);
                 for (int l = 0; l < m; l++) {
                     int fileindex = randomize ? r.nextInt(m) : l;
@@ -188,6 +192,7 @@ public class TailFitter extends IsoGaussianFitter {
                 overallStack.addSlice(projectStack(cellStack));
             }
         }
+        System.out.println("Images: " + String.valueOf(count));
         if (overallStack.getSize() > 0) {
             return projectStack(overallStack);
         } else {
@@ -199,6 +204,7 @@ public class TailFitter extends IsoGaussianFitter {
         ImageStack output = new ImageStack(stackwidth, stackheight);
         int nDirs = subDirs.size();
         Random r = new Random();
+        int count = 0;
         for (int j = 0; j < nDirs; j++) {
             int dirIndex = randomize ? r.nextInt(nDirs) : j;
             File files[] = subDirs.get(dirIndex).listFiles();
@@ -208,6 +214,7 @@ public class TailFitter extends IsoGaussianFitter {
                 int sortedFileIndex = randomize ? r.nextInt(n) : i;
                 ArrayList<File> theseFiles = sortedFiles.get(sortedFileIndex);
                 int m = theseFiles.size();
+                count += m;
                 for (int l = 0; l < m; l++) {
                     int fileIndex = randomize ? r.nextInt(m) : l;
                     ImagePlus imp = IJ.openImage(theseFiles.get(fileIndex).getAbsolutePath());
@@ -216,6 +223,7 @@ public class TailFitter extends IsoGaussianFitter {
                 }
             }
         }
+        System.out.println("Images: " + String.valueOf(count));
         return output;
     }
 

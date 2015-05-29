@@ -65,9 +65,9 @@ public class Analyse_ implements PlugIn {
     protected DecimalFormat floatFormat = new DecimalFormat("0.00");
     String title = "Particle Tracker", ext;
     protected static boolean msdPlot = false, intensPlot = false, trajPlot = false;
-    protected boolean monoChrome, useCals = true;
+    protected boolean monoChrome, useCals = true, extractsigs = true;
 //    private final double IMAGE_MAX = 255.0;
-    protected final double SEARCH_SCALE = 0.5;
+    protected final double SEARCH_SCALE = 1.0;
 //    private final double TRACK_LENGTH = 5.0;
     private final double TRACK_WIDTH = 4.0;
     public static final float TRACK_EXT = 1.0f;
@@ -117,7 +117,7 @@ public class Analyse_ implements PlugIn {
      * Implements run method from {@link PlugIn}.
      */
     public void run(String arg) {
-        Utilities.setLookAndFeel(UserInterface.class);
+//        Utilities.setLookAndFeel(UserInterface.class);
         title = title + "_v" + VERSION + "." + intFormat.format(Revision.Revision.revisionNumber);
         stacks = new ImageStack[2];
         if (IJ.getInstance() != null) {
@@ -238,7 +238,7 @@ public class Analyse_ implements PlugIn {
 //                        }
                         printData(i, resultSummary, count);
                         traj.printTrajectory(count, results, numFormat, title);
-                        if (type == ParticleTrajectory.COLOCAL) {
+                        if (extractsigs && type == ParticleTrajectory.COLOCAL) {
                             ImageStack signals[] = extractTrajSignalValues(traj,
                                     (int) Math.round(UserVariables.getTrackLength() / UserVariables.getSpatialRes()),
                                     (int) Math.round(TRACK_WIDTH / UserVariables.getSpatialRes()),
@@ -273,7 +273,7 @@ public class Analyse_ implements PlugIn {
     }
 
     protected ParticleArray findParticles() {
-        return findParticles(SEARCH_SCALE, true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], false, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], UserVariables.isColocal(), true, true, UserVariables.getC2CurveFitTol(), false);
+        return findParticles(SEARCH_SCALE, true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], false, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], UserVariables.isColocal(), true, true, UserVariables.getC2CurveFitTol(), false);
     }
 
     /**
@@ -361,6 +361,9 @@ public class Analyse_ implements PlugIn {
                                 c1Fitter.getMag(), c1Fitter.getXsig(), c1Fitter.getYsig(), c1Fitter.getRSquared()));
                         if (c2Points != null) {
                             c2Gaussian = findC2Particle(c1X, c1Y, radius, pSize, c2Threshold, chan2Proc, fitC2Gaussian, sigEst2, fitRad, spatialRes, c2FloatingSigma);
+                            if (c2Gaussian.getFit() < c2FitTol) {
+                                c2Gaussian = null;
+                            }
                         }
 
                         /*
@@ -368,11 +371,10 @@ public class Analyse_ implements PlugIn {
                          * be updated:
                          */
                         for (IsoGaussian c1Fit : c1Fits) {
-                            if (c1Fit.getFit() > c1FitTol
-                                    && (c2Gaussian == null && !colocal)
-                                    || (c2Gaussian != null && colocal
-                                    && c2Gaussian.getFit() > c2FitTol)) {
-                                particles.addDetection(i - startSlice, new Particle(i - startSlice, c1Fit, c2Gaussian, null, -1));
+                            if (c1Fit.getFit() > c1FitTol) {
+                                if (!(colocal && c2Gaussian == null)) {
+                                    particles.addDetection(i - startSlice, new Particle(i - startSlice, c1Fit, c2Gaussian, null, -1));
+                                }
                             }
 //                                Utils.draw2DGaussian(oslice, c1Fit, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false, false);
 //                                Utils.draw2DGaussian(chan1Proc, c1Fit, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false, true);
@@ -1130,7 +1132,7 @@ public class Analyse_ implements PlugIn {
         paramStream.println(UserInterface.getTrackLengthText() + "," + UserVariables.getTrackLength());
         paramStream.println(UserInterface.getChan1MaxThreshLabelText() + "," + UserVariables.getChan1MaxThresh());
         paramStream.println(UserInterface.getChan2MaxThreshLabelText() + "," + UserVariables.getChan2MaxThresh());
-        paramStream.println(UserInterface.getCurveFitTolLabelText() + "," + UserVariables.getCurveFitTol());
+        paramStream.println(UserInterface.getCurveFitTolLabelText() + "," + UserVariables.getC1CurveFitTol());
         paramStream.println(UserInterface.getC2CurveFitTolLabelText() + "," + UserVariables.getC2CurveFitTol());
         paramStream.println(UserInterface.getColocalToggleText() + "," + UserVariables.isColocal());
         paramStream.println(UserInterface.getPreprocessToggleText() + "," + UserVariables.isPreProcess());
