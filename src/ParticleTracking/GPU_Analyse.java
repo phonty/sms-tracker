@@ -95,7 +95,6 @@ public class GPU_Analyse extends Analyse_ {
                     false, title, false);
             progress.setVisible(true);
             int c0Size = c0CudaData[f].size();
-            int c1Size = c1CudaData[f].size();
             for (int row = 0; row < c0Size; row++) {
                 progress.updateProgress(row, c0Size);
                 int c0t = (int) Math.round(c0CudaData[f].get(row)[0]);
@@ -109,6 +108,7 @@ public class GPU_Analyse extends Analyse_ {
                 int minIndex = -1;
                 int i = 0;
                 int c1t = (int) Math.round(c1CudaData[f].get(i)[0]);
+                int c1Size = c1CudaData[f].size();
                 while (i < c1Size && c1t <= c0t) {
                     c1t = (int) Math.round(c1CudaData[f].get(i)[0]);
                     if (!(c1t < c0t)) {
@@ -129,15 +129,10 @@ public class GPU_Analyse extends Analyse_ {
                             sigmas[UserVariables.getC2Index()],
                             sigmas[UserVariables.getC2Index()],
                             c1CudaData[f].get(minIndex)[4]);
+                    c1CudaData[f].remove(minIndex);
                 }
                 if (c1Gaussian.getFit() > UserVariables.getC1CurveFitTol()) {
-                    if (UserVariables.isColocal()) {
-                        if (c2Gaussian != null) {
-                            particles.addDetection(c0t - startSlice, new Particle(c0t, c1Gaussian, c2Gaussian, null, -1));
-                        }
-                    } else {
-                        particles.addDetection(c0t - startSlice, new Particle(c0t, c1Gaussian, c2Gaussian, null, -1));
-                    }
+                    particles.addDetection(c0t - startSlice, new Particle(c0t, c1Gaussian, c2Gaussian, null, -1));
                 }
             }
             progress.dispose();

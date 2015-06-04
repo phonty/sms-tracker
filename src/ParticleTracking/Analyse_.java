@@ -213,7 +213,7 @@ public class Analyse_ implements PlugIn {
                 ArrayList<Integer> includeList = previewResults();
                 if (includeList != null) {
                     ArrayList<ParticleTrajectory> temps = new ArrayList();
-                    for (Integer e : includeList) { 
+                    for (Integer e : includeList) {
                         temps.add(trajectories.get(e));
                     }
                     trajectories = new ArrayList();
@@ -373,9 +373,7 @@ public class Analyse_ implements PlugIn {
                          */
                         for (IsoGaussian c1Fit : c1Fits) {
                             if (c1Fit.getFit() > c1FitTol) {
-                                if (!(colocal && c2Gaussian == null)) {
-                                    particles.addDetection(i - startSlice, new Particle(i - startSlice, c1Fit, c2Gaussian, null, -1));
-                                }
+                                particles.addDetection(i - startSlice, new Particle(i - startSlice, c1Fit, c2Gaussian, null, -1));
                             }
 //                                Utils.draw2DGaussian(oslice, c1Fit, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false, false);
 //                                Utils.draw2DGaussian(chan1Proc, c1Fit, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false, true);
