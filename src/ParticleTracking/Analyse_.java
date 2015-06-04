@@ -65,7 +65,7 @@ public class Analyse_ implements PlugIn {
     protected DecimalFormat floatFormat = new DecimalFormat("0.00");
     String title = "Particle Tracker", ext;
     protected static boolean msdPlot = false, intensPlot = false, trajPlot = false;
-    protected boolean monoChrome, useCals = true, extractsigs = true;
+    protected boolean monoChrome, useCals = false, extractsigs = false;
 //    private final double IMAGE_MAX = 255.0;
     protected final double SEARCH_SCALE = 1.0;
 //    private final double TRACK_LENGTH = 5.0;
@@ -200,8 +200,8 @@ public class Analyse_ implements PlugIn {
             int n = trajectories.size();
             for (i = 0; i < n; i++) {
                 ParticleTrajectory traj = (ParticleTrajectory) trajectories.get(i);
-                if (!(traj.getSize() / UserVariables.getTimeRes() > UserVariables.getMinTrajLength()
-                        && traj.getDisplacement(traj.getEnd(), traj.getSize()) > UserVariables.getMinTrajDist()
+                if (!(traj.getSize() / UserVariables.getTimeRes() >= UserVariables.getMinTrajLength()
+                        && traj.getDisplacement(traj.getEnd(), traj.getSize()) >= UserVariables.getMinTrajDist()
                         && ((traj.getType(colocalThresh) == ParticleTrajectory.COLOCAL)
                         || ((traj.getType(colocalThresh) == ParticleTrajectory.NON_COLOCAL) && !UserVariables.isColocal())))) {
                     trajectories.remove(i);
@@ -213,7 +213,7 @@ public class Analyse_ implements PlugIn {
                 ArrayList<Integer> includeList = previewResults();
                 if (includeList != null) {
                     ArrayList<ParticleTrajectory> temps = new ArrayList();
-                    for (Integer e : includeList) {
+                    for (Integer e : includeList) { 
                         temps.add(trajectories.get(e));
                     }
                     trajectories = new ArrayList();
@@ -331,21 +331,22 @@ public class Analyse_ implements PlugIn {
             IJ.freeMemory();
             progress.updateProgress(i - startSlice, arraySize);
             FloatProcessor chan1Proc = preProcess(channel1.getProcessor(i + 1).duplicate());
-            Utils.normalise(chan1Proc, 1.0);
+//            Utils.normalise(chan1Proc, 1.0);
             FloatProcessor chan2Proc = (channel2 != null) ? preProcess(channel2.getProcessor(i + 1).duplicate()) : null;
             if (chan2Proc != null) {
-                Utils.normalise(chan2Proc, 1.0);
+//                Utils.normalise(chan2Proc, 1.0);
             }
             double c1Threshold = Utils.getPercentileThresh(chan1Proc, UserVariables.getChan1MaxThresh());
             ByteProcessor thisC1Max = Utils.findLocalMaxima(xyPartRad, xyPartRad, UserVariables.FOREGROUND, chan1Proc, c1Threshold, true);
 //            maxima.addSlice(thisC1Max);
             double c2Threshold = Utils.getPercentileThresh(chan2Proc, UserVariables.getChan2MaxThresh());
+            ByteProcessor thisC2Max = Utils.findLocalMaxima(xyPartRad, xyPartRad, UserVariables.FOREGROUND, chan2Proc, c2Threshold, true);
             for (c1X = 0; c1X < width; c1X++) {
                 for (c1Y = 0; c1Y < height; c1Y++) {
                     if (thisC1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
                         IsoGaussian c2Gaussian = null;
                         c2Points = Utils.searchNeighbourhood(c1X, c1Y, radius,
-                                c2Threshold, (ImageProcessor) chan2Proc);
+                                UserVariables.FOREGROUND, (ImageProcessor) thisC2Max);
                         /*
                          * Search for local maxima in green image within
                          * <code>xyPartRad</code> pixels of maxima in red image:
@@ -391,7 +392,7 @@ public class Analyse_ implements PlugIn {
 //        IJ.saveAs(new ImagePlus("", maxima), "TIF", parentDir + "/all_maxima.tif");
 //        IJ.saveAs(new ImagePlus("", input_output), "TIF", parentDir + "/input_output.tif");
         if (update) {
-            TrajectoryBuilder.updateTrajectories(particles, UserVariables.getTimeRes(), UserVariables.getTrajMaxStep(), spatialRes, true, 1.0, trajectories);
+            TrajectoryBuilder.updateTrajectories(particles, UserVariables.getTimeRes(), UserVariables.getTrajMaxStep(), spatialRes, true, Utils.getStackMinMax(stacks[0])[1], trajectories);
         }
         return particles;
     }

@@ -98,7 +98,7 @@ public class GPU_Analyse extends Analyse_ {
             int c1Size = c1CudaData[f].size();
             for (int row = 0; row < c0Size; row++) {
                 progress.updateProgress(row, c0Size);
-                int t = (int) Math.round(c0CudaData[f].get(row)[0]);
+                int c0t = (int) Math.round(c0CudaData[f].get(row)[0]);
                 double x0 = c0CudaData[f].get(row)[1];
                 double y0 = c0CudaData[f].get(row)[2];
                 double mag = c0CudaData[f].get(row)[3];
@@ -108,19 +108,21 @@ public class GPU_Analyse extends Analyse_ {
                 double minDist = Double.MAX_VALUE;
                 int minIndex = -1;
                 int i = 0;
-                while (i < c1Size && (int) Math.round(c1CudaData[f].get(i)[0]) <= t) {
-                    if (!((int) Math.round(c1CudaData[f].get(i)[0]) < t)) {
+                int c1t = (int) Math.round(c1CudaData[f].get(i)[0]);
+                while (i < c1Size && c1t <= c0t) {
+                    c1t = (int) Math.round(c1CudaData[f].get(i)[0]);
+                    if (!(c1t < c0t)) {
                         double x1 = c1CudaData[f].get(i)[1];
                         double y1 = c1CudaData[f].get(i)[2];
                         double dist = Math.abs(x1 - x0) + Math.abs(y1 - y0);
-                        if (dist < minDist) {
+                        if (dist < minDist && c0t == c1t) {
                             minDist = dist;
                             minIndex = i;
                         }
                     }
                     i++;
                 }
-                if (minIndex > 0 && minDist < radius && c1CudaData[f].get(minIndex)[4] > UserVariables.getC2CurveFitTol()) {
+                if (minIndex >= 0 && minDist < radius && c1CudaData[f].get(minIndex)[4] > UserVariables.getC2CurveFitTol()) {
                     c2Gaussian = new IsoGaussian(c1CudaData[f].get(minIndex)[1],
                             c1CudaData[f].get(minIndex)[2],
                             c1CudaData[f].get(minIndex)[3],
@@ -129,8 +131,12 @@ public class GPU_Analyse extends Analyse_ {
                             c1CudaData[f].get(minIndex)[4]);
                 }
                 if (c1Gaussian.getFit() > UserVariables.getC1CurveFitTol()) {
-                    if (!(UserVariables.isColocal() && c2Gaussian == null)) {
-                        particles.addDetection(t - startSlice, new Particle(t, c1Gaussian, c2Gaussian, null, -1));
+                    if (UserVariables.isColocal()) {
+                        if (c2Gaussian != null) {
+                            particles.addDetection(c0t - startSlice, new Particle(c0t, c1Gaussian, c2Gaussian, null, -1));
+                        }
+                    } else {
+                        particles.addDetection(c0t - startSlice, new Particle(c0t, c1Gaussian, c2Gaussian, null, -1));
                     }
                 }
             }
