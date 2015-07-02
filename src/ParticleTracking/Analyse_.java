@@ -65,7 +65,7 @@ public class Analyse_ implements PlugIn {
     protected DecimalFormat floatFormat = new DecimalFormat("0.00");
     String title = "Particle Tracker", ext;
     protected static boolean msdPlot = false, intensPlot = false, trajPlot = false;
-    protected boolean monoChrome, useCals = false, extractsigs = false;
+    protected boolean monoChrome;
 //    private final double IMAGE_MAX = 255.0;
     protected final double SEARCH_SCALE = 1.0;
 //    private final double TRACK_LENGTH = 5.0;
@@ -169,7 +169,7 @@ public class Analyse_ implements PlugIn {
         parentDir = GenUtils.openResultsDirectory(outputDir + delimiter + title, delimiter);
         String sigc0Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C0", delimiter);
         String sigc1Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C1", delimiter);
-        if (!monoChrome && useCals) {
+        if (!monoChrome && UserVariables.isUseCals()) {
             calDir = Utilities.getFolder(outputDir, "Specify directory containing calibrations...", true);
         }
         if (stacks != null) {
@@ -238,7 +238,7 @@ public class Analyse_ implements PlugIn {
 //                        }
                         printData(i, resultSummary, count);
                         traj.printTrajectory(count, results, numFormat, title);
-                        if (extractsigs && type == ParticleTrajectory.COLOCAL) {
+                        if (UserVariables.isExtractsigs() && type == ParticleTrajectory.COLOCAL) {
                             ImageStack signals[] = extractTrajSignalValues(traj,
                                     (int) Math.round(UserVariables.getTrackLength() / UserVariables.getSpatialRes()),
                                     (int) Math.round(TRACK_WIDTH / UserVariables.getSpatialRes()),
@@ -795,7 +795,7 @@ public class Analyse_ implements PlugIn {
             for (int index = 1; index <= size && current != null; index++) {
                 double xg = current.getC1Gaussian().getX();
                 double yg = current.getC1Gaussian().getY();
-                if (useCals) {
+                if (UserVariables.isUseCals()) {
                     double x = current.getC1Gaussian().getX(), y = current.getC1Gaussian().getY();
                     int xi = 1 + (int) Math.floor(x / xdiv);
                     int yi = 1 + (int) Math.floor(y / ydiv);
@@ -856,7 +856,7 @@ public class Analyse_ implements PlugIn {
             progress.updateProgress(j, size);
             if (virTemps[j] != null && sigTemps[j] != null) {
                 Particle alignmentParticle = null;
-                if (useCals) {
+                if (UserVariables.isUseCals()) {
                     ImageStack virStack = new ImageStack(virTemps[j].getWidth(), virTemps[j].getHeight());
                     virStack.addSlice(virTemps[j]);
                     ParticleArray particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false, false, false, 0.0, false);
@@ -875,7 +875,7 @@ public class Analyse_ implements PlugIn {
                         alignmentParticle = detections.get(minindex);
                     }
                 }
-                if (!useCals || alignmentParticle != null) {
+                if (!UserVariables.isUseCals() || alignmentParticle != null) {
                     String label = Float.toString(virTemps[j].getPixelValue(0, 0))
                             + "-" + floatFormat.format(virTemps[j].getPixelValue(1, 0));
                     virTemps[j].setInterpolate(true);
@@ -884,7 +884,7 @@ public class Analyse_ implements PlugIn {
                     sigTemps[j].setInterpolationMethod(ImageProcessor.BICUBIC);
                     double xinc = 0.0;
                     double yinc = 0.0;
-                    if (useCals) {
+                    if (UserVariables.isUseCals()) {
                         xinc = alignmentParticle.getC1Gaussian().getX() / UserVariables.getSpatialRes() - xc;
                         yinc = alignmentParticle.getC1Gaussian().getY() / UserVariables.getSpatialRes() - yc;
                     }
@@ -908,7 +908,7 @@ public class Analyse_ implements PlugIn {
     ImageStack[] extractStaticSignalValues(ParticleTrajectory ptraj, int signalWidth) {
         TextReader reader = new TextReader();
         ImageProcessor xcoeffs = null, ycoeffs = null, coords = null;
-        if (useCals) {
+        if (UserVariables.isUseCals()) {
             xcoeffs = reader.open(calDir + delimiter + "xcoeffs.txt");
             ycoeffs = reader.open(calDir + delimiter + "ycoeffs.txt");
             coords = reader.open(calDir + delimiter + "coords.txt");
@@ -926,7 +926,7 @@ public class Analyse_ implements PlugIn {
             double yr = current.getY();
             double xg = xr;
             double yg = yr;
-            if (useCals) {
+            if (UserVariables.isUseCals()) {
                 xg = goshtasbyEval(xcoeffs, coords, xr, yr);
                 yg = goshtasbyEval(ycoeffs, coords, xr, yr);
             }
@@ -962,12 +962,12 @@ public class Analyse_ implements PlugIn {
         for (int j = 0; j < size; j++) {
             if (virTemps[j] != null && sigTemps[j] != null) {
                 ParticleArray particles = null;
-                if (useCals) {
+                if (UserVariables.isUseCals()) {
                     ImageStack virStack = new ImageStack(virTemps[j].getWidth(), virTemps[j].getHeight());
                     virStack.addSlice(virTemps[j]);
                     particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false, true, false, 0.0, false);
                 }
-                if (!useCals || !particles.getLevel(0).isEmpty()) {
+                if (!UserVariables.isUseCals() || !particles.getLevel(0).isEmpty()) {
                     String timepoint = Float.toString(virTemps[j].getPixelValue(0, 0));
                     virTemps[j].setInterpolate(true);
                     virTemps[j].setInterpolationMethod(ImageProcessor.BICUBIC);
@@ -975,7 +975,7 @@ public class Analyse_ implements PlugIn {
                     sigTemps[j].setInterpolationMethod(ImageProcessor.BICUBIC);
                     double xinc = 0.0;
                     double yinc = 0.0;
-                    if (useCals) {
+                    if (UserVariables.isUseCals()) {
                         Particle p = particles.getLevel(0).get(0);
                         xinc = p.getC1Gaussian().getX() / UserVariables.getSpatialRes() - xc;
                         yinc = p.getC1Gaussian().getY() / UserVariables.getSpatialRes() - yc;

@@ -53,6 +53,8 @@ public class UserInterface extends javax.swing.JDialog {
     private static final String colocalToggleText = "Co-Localised Only";
     private static final String preprocessToggleText = "Pre-Process Images";
     private static final String gpuToggleText = "Use GPU";
+    private static final String useCalToggleText = "Use Spatial Calibration";
+    private static final String extractSigsToggleText = "Extract Fluorescence Profiles";
     private static final String trackLengthText = "Track Length (" + IJ.micronSymbol + "m):";
     private static final String prevResToggleText = "Preview Results";
 
@@ -111,6 +113,8 @@ public class UserInterface extends javax.swing.JDialog {
         previewResultsToggleButton = new javax.swing.JToggleButton();
         c2CurveFitTolLabel = new javax.swing.JLabel();
         c2CurveFitTolTextField = new javax.swing.JTextField();
+        useCalsToggleButton = new javax.swing.JToggleButton();
+        extractSigsToggleButton = new javax.swing.JToggleButton();
         jPanel2 = new javax.swing.JPanel();
         canvas1 = new ImageCanvas(imp);
         previewScrollBar = new javax.swing.JScrollBar();
@@ -135,7 +139,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(10, 10, 0, 10);
         jPanel1.add(jLabel1, gridBagConstraints);
 
@@ -146,7 +150,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 0);
         jPanel1.add(c1Label, gridBagConstraints);
 
@@ -158,7 +162,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         jPanel1.add(c1ComboBox, gridBagConstraints);
 
@@ -169,7 +173,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 0);
         jPanel1.add(spatResLabel, gridBagConstraints);
 
@@ -180,7 +184,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 0);
         jPanel1.add(timeResLabel, gridBagConstraints);
 
@@ -191,7 +195,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 0);
         jPanel1.add(minTrajLengthLabel, gridBagConstraints);
 
@@ -202,7 +206,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 0);
         jPanel1.add(maxTrajStepLabel, gridBagConstraints);
 
@@ -213,7 +217,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 0);
         jPanel1.add(chan1MaxThreshLabel, gridBagConstraints);
 
@@ -224,7 +228,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 0);
         jPanel1.add(chan2MaxThreshLabel, gridBagConstraints);
 
@@ -235,7 +239,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         jPanel1.add(spatResTextField, gridBagConstraints);
 
@@ -246,7 +250,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         jPanel1.add(timeResTextField, gridBagConstraints);
 
@@ -257,7 +261,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         jPanel1.add(minTrajLengthTextField, gridBagConstraints);
 
@@ -268,7 +272,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         jPanel1.add(maxTrajStepTextField, gridBagConstraints);
 
@@ -279,7 +283,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         jPanel1.add(chan1MaxThreshTextField, gridBagConstraints);
 
@@ -290,7 +294,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         jPanel1.add(chan2MaxThreshTextField, gridBagConstraints);
 
@@ -303,7 +307,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         jPanel1.add(colocaliseToggleButton, gridBagConstraints);
 
@@ -315,7 +319,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         jPanel1.add(preprocessToggleButton, gridBagConstraints);
 
@@ -326,7 +330,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 0);
         jPanel1.add(c1CurveFitTolLabel, gridBagConstraints);
 
@@ -337,7 +341,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         jPanel1.add(c1CurveFitTolTextField, gridBagConstraints);
 
@@ -349,8 +353,8 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.weighty = 0.0625;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 10);
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         jPanel1.add(gpuToggleButton, gridBagConstraints);
 
         minTrajDistLabel.setText(minTrajDistLabelText);
@@ -360,7 +364,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 0);
         jPanel1.add(minTrajDistLabel, gridBagConstraints);
 
@@ -371,7 +375,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         jPanel1.add(minTrajDistTextField, gridBagConstraints);
 
@@ -382,7 +386,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 0);
         jPanel1.add(trackLengthLabel, gridBagConstraints);
 
@@ -393,7 +397,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         jPanel1.add(trackLengthTextField, gridBagConstraints);
 
@@ -405,7 +409,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         jPanel1.add(previewResultsToggleButton, gridBagConstraints);
 
@@ -416,7 +420,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 0);
         jPanel1.add(c2CurveFitTolLabel, gridBagConstraints);
 
@@ -427,9 +431,33 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 0.0625;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         jPanel1.add(c2CurveFitTolTextField, gridBagConstraints);
+
+        useCalsToggleButton.setText(useCalToggleText);
+        useCalsToggleButton.setSelected(UserVariables.isUseCals());
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 16;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        jPanel1.add(useCalsToggleButton, gridBagConstraints);
+
+        extractSigsToggleButton.setText(extractSigsToggleText);
+        extractSigsToggleButton.setSelected(UserVariables.isExtractsigs());
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 17;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 10);
+        jPanel1.add(extractSigsToggleButton, gridBagConstraints);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
@@ -592,6 +620,8 @@ public class UserInterface extends javax.swing.JDialog {
             UserVariables.setGpu(gpuToggleButton.isSelected());
             UserVariables.setTrackLength(Double.parseDouble(trackLengthTextField.getText()));
             UserVariables.setPrevRes(previewResultsToggleButton.isSelected());
+            UserVariables.setUseCals(useCalsToggleButton.isSelected());
+            UserVariables.setExtractsigs(extractSigsToggleButton.isSelected());
 //            printParams();
         } catch (NumberFormatException e) {
             IJ.error("Number formatting error " + e.toString());
@@ -730,6 +760,7 @@ public class UserInterface extends javax.swing.JDialog {
     private javax.swing.JLabel chan2MaxThreshLabel;
     private javax.swing.JTextField chan2MaxThreshTextField;
     private javax.swing.JToggleButton colocaliseToggleButton;
+    private javax.swing.JToggleButton extractSigsToggleButton;
     private javax.swing.JToggleButton gpuToggleButton;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel1;
@@ -753,5 +784,6 @@ public class UserInterface extends javax.swing.JDialog {
     private javax.swing.JTextField timeResTextField;
     private javax.swing.JLabel trackLengthLabel;
     private javax.swing.JTextField trackLengthTextField;
+    private javax.swing.JToggleButton useCalsToggleButton;
     // End of variables declaration//GEN-END:variables
 }
