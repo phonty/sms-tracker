@@ -88,6 +88,7 @@ public class Analyse_ implements PlugIn {
 ////        }
 //        System.exit(0);
 //    }
+
     public Analyse_(double spatialRes, double timeRes, double trajMaxStep, double chan1MaxThresh, boolean monoChrome, ImagePlus imp, double scale, double minTrajLength) {
         UserVariables.setSpatialRes(spatialRes);
         UserVariables.setTimeRes(timeRes);
@@ -854,7 +855,7 @@ public class Analyse_ implements PlugIn {
         progress.setVisible(true);
         for (int j = 0; j < size; j++) {
             progress.updateProgress(j, size);
-            if (virTemps[j] != null && sigTemps[j] != null) {
+            if (virTemps[j] != null && sigTemps[j] != null && sigTemps[j].getWidth() >= outputWidth) {
                 Particle alignmentParticle = null;
                 if (UserVariables.isUseCals()) {
                     ImageStack virStack = new ImageStack(virTemps[j].getWidth(), virTemps[j].getHeight());
