@@ -54,17 +54,17 @@ public class GPU_Analyse extends Analyse_ {
 
     protected ParticleArray findParticles() {
         if (UserVariables.isGpu()) {
-            return cudaFindParticles(SEARCH_SCALE, true, 0, stacks[0].getSize() - 1, stacks[1]);
+            return GPU_Analyse.this.cudaFindParticles1C(SEARCH_SCALE, true, 0, stacks[0].getSize() - 1, stacks[1]);
         } else {
             return findParticles(SEARCH_SCALE, true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], false, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], UserVariables.isColocal(), true, true, UserVariables.getC2CurveFitTol(), false);
         }
     }
 
-    public ParticleArray cudaFindParticles(boolean update, int startSlice, int endSlice, ImageStack channel2) {
-        return cudaFindParticles(SEARCH_SCALE, update, startSlice, endSlice, channel2);
+    public ParticleArray cudaFindParticles2C(boolean update, int startSlice, int endSlice, ImageStack channel2) {
+        return GPU_Analyse.this.cudaFindParticles2C(SEARCH_SCALE, update, startSlice, endSlice, channel2);
     }
 
-    public ParticleArray cudaFindParticles(double searchScale, boolean update, int startSlice, int endSlice, ImageStack channel2) {
+    public ParticleArray cudaFindParticles2C(double searchScale, boolean update, int startSlice, int endSlice, ImageStack channel2) {
         if (!cudaGaussFitter(c0Dir.getAbsolutePath(), ext, (float) UserVariables.getSpatialRes() * 1000.0f,
                 (float) (sigmas[UserVariables.getC1Index()] / UserVariables.getSpatialRes()), (float) UserVariables.getChan1MaxThresh(),
                 (float) UserVariables.getC1CurveFitTol(), startSlice, endSlice)) {
@@ -133,6 +133,49 @@ public class GPU_Analyse extends Analyse_ {
                 }
                 if (c1Gaussian.getFit() > UserVariables.getC1CurveFitTol()) {
                     particles.addDetection(c0t - startSlice, new Particle(c0t, c1Gaussian, c2Gaussian, null, -1));
+                }
+            }
+            progress.dispose();
+        }
+        if (update) {
+            TrajectoryBuilder.updateTrajectories(particles, UserVariables.getTimeRes(), UserVariables.getTrajMaxStep(), spatialRes, true, Utils.getStackMinMax(stacks[0])[1], trajectories);
+        }
+        return particles;
+    }
+
+    public ParticleArray cudaFindParticles1C(boolean update, int startSlice, int endSlice, ImageStack channel2) {
+        return GPU_Analyse.this.cudaFindParticles1C(SEARCH_SCALE, update, startSlice, endSlice, channel2);
+    }
+    
+    public ParticleArray cudaFindParticles1C(double searchScale, boolean update, int startSlice, int endSlice, ImageStack channel2) {
+        if (!cudaGaussFitter(c0Dir.getAbsolutePath(), ext, (float) UserVariables.getSpatialRes() * 1000.0f,
+                (float) (sigmas[UserVariables.getC1Index()] / UserVariables.getSpatialRes()), (float) UserVariables.getChan1MaxThresh(),
+                (float) UserVariables.getC1CurveFitTol(), startSlice, endSlice)) {
+            IJ.log("CUDA Error");
+            return null;
+        }
+        File cudaC0File = new File(c0Dir + delimiter + "cudadata.txt");
+        File c0FileList[] = {cudaC0File};
+        ArrayList<double[]>[] c0CudaData = GenUtils.readData(CUDA_FILE_COLS, c0FileList, delimiter);
+        int arraySize = endSlice - startSlice + 1;
+        double spatialRes = UserVariables.getSpatialRes();
+        ParticleArray particles = new ParticleArray(arraySize);
+        for (int f = 0; f < c0FileList.length; f++) {
+            ProgressDialog progress = new ProgressDialog(null,
+                    "Searching for colocalised particles...",
+                    false, title, false);
+            progress.setVisible(true);
+            int c0Size = c0CudaData[f].size();
+            for (int row = 0; row < c0Size; row++) {
+                progress.updateProgress(row, c0Size);
+                int c0t = (int) Math.round(c0CudaData[f].get(row)[0]);
+                double x0 = c0CudaData[f].get(row)[1];
+                double y0 = c0CudaData[f].get(row)[2];
+                double mag = c0CudaData[f].get(row)[3];
+                double fit = c0CudaData[f].get(row)[4];
+                IsoGaussian c1Gaussian = new IsoGaussian(x0, y0, mag, sigmas[UserVariables.getC1Index()], sigmas[UserVariables.getC1Index()], fit);
+                if (c1Gaussian.getFit() > UserVariables.getC1CurveFitTol()) {
+                    particles.addDetection(c0t - startSlice, new Particle(c0t, c1Gaussian, null, null, -1));
                 }
             }
             progress.dispose();

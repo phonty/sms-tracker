@@ -23,6 +23,8 @@ import ij.process.ByteProcessor;
 import ij.process.FloatBlitter;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
+import ij.process.StackConverter;
+import ij.process.StackStatistics;
 import ij.process.TypeConverter;
 import ij.text.TextWindow;
 import java.awt.Color;
@@ -33,6 +35,7 @@ import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Random;
+import org.apache.commons.io.FilenameUtils;
 
 /**
  * Timelapse_Analysis seeks to identify individual particles in a stack of
@@ -48,14 +51,15 @@ import java.util.Random;
 public class Analyse_ implements PlugIn {
 
 //    protected static double hystDiff = 1.25;
-    protected final double SIG_EST_RED = 0.132, SIG_EST_GREEN = 0.125;
-    protected final double sigmas[] = {SIG_EST_RED, SIG_EST_GREEN};
+//    protected final double SIG_EST_RED = 0.151, SIG_EST_GREEN = 0.129;
+    protected final double SIG_EST_RED = 0.146, SIG_EST_GREEN = 0.123;
+    protected final double sigmas[] = new double[]{SIG_EST_RED, SIG_EST_GREEN};
 //    protected int xyPartRad; //Radius over which to draw particles in visualisation
     public final int GOSHTASBY_M = 2, GOSHTASBY_N = 4;
     public static final int VERSION = 5;
 //    protected final double LAMBDA = 650.0, //Wavelength of light
 //            NUM_AP = 1.4; //Numerical aperture of system
-    protected static double colocalThresh = 0.1;
+    protected static double colocalThresh = 0.0;
     protected ArrayList<ParticleTrajectory> trajectories = new ArrayList(); //Trajectories of the detected particles
     protected ImagePlus imp; //The active image stack
     protected ImageStack stacks[];
@@ -72,9 +76,9 @@ public class Analyse_ implements PlugIn {
     private final double TRACK_WIDTH = 4.0;
     public static final float TRACK_EXT = 1.0f;
     public static final float TRACK_OFFSET = 0.75f;
-    protected static File inputDir = new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails"),
+    protected static File inputDir = new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails\\2015.08.06_Dualview"),
             c0Dir, c1Dir, outputDir,
-            calDir = new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails");
+            calDir = new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails\\2015.08.06_Dualview");
     private final String delimiter = GenUtils.getDelimiter();
     String parentDir;
     protected ImagePlus[] inputs;
@@ -88,7 +92,6 @@ public class Analyse_ implements PlugIn {
 ////        }
 //        System.exit(0);
 //    }
-
     public Analyse_(double spatialRes, double timeRes, double trajMaxStep, double chan1MaxThresh, boolean monoChrome, ImagePlus imp, double scale, double minTrajLength) {
         UserVariables.setSpatialRes(spatialRes);
         UserVariables.setTimeRes(timeRes);
@@ -126,7 +129,7 @@ public class Analyse_ implements PlugIn {
                 return;
             }
         } else {
-            inputDir = Utilities.getFolder(inputDir, null, true);
+            inputDir = new File(prepareInputs());
             if (inputDir == null) {
                 return;
             }
@@ -147,6 +150,54 @@ public class Analyse_ implements PlugIn {
         if (showDialog()) {
             analyse();
         }
+    }
+
+    String prepareInputs() {
+        ImagePlus cytoImp = IJ.openImage();
+        if (cytoImp == null) {
+            return null;
+        }
+        ImagePlus sigImp = IJ.openImage();
+        ImageStack cytoStack = cytoImp.getImageStack();
+        int cytoSize = cytoStack.getSize();
+        ImageStack sigStack = null;
+        if (sigImp != null) {
+            sigStack = sigImp.getImageStack();
+            if (sigStack.getSize() != cytoSize) {
+                IJ.error("Stacks must contain same number of slices.");
+                return null;
+            }
+        }
+        StackStatistics cytoStats = new StackStatistics(cytoImp);
+        double stackMin = cytoStats.min;
+        for (int i = 1; i <= cytoSize; i++) {
+            cytoStack.getProcessor(i).subtract(stackMin);
+        }
+        StackStatistics cytoStats2 = new StackStatistics(cytoImp);
+        int histogram[] = cytoStats2.histogram16;
+        double sum = 0.0;
+        int nPixels = cytoStats2.pixelCount;
+        int thresh = 0;
+        while (sum < nPixels * 0.9999 && thresh < histogram.length) {
+            sum += histogram[thresh++];
+        }
+        double normFactor = 1.0 / histogram[thresh];
+        (new StackConverter(cytoImp)).convertToGray32();
+        cytoStack = cytoImp.getImageStack();
+        for (int i = 1; i <= cytoSize; i++) {
+            cytoStack.getProcessor(i).multiply(normFactor);
+        }
+        String parent = IJ.getDirectory("current");
+        File seriesFolder = GenUtils.createDirectory(parent + FilenameUtils.getBaseName(cytoImp.getTitle()), false);
+        File c0Folder = GenUtils.createDirectory(seriesFolder.getAbsolutePath() + delimiter + "C0", false);
+        File c1Folder = GenUtils.createDirectory(seriesFolder.getAbsolutePath() + delimiter + "C1", false);
+        Utils.saveStackAsSeries(cytoStack, c0Folder.getAbsolutePath() + delimiter,
+                "TIF", intFormat);
+        if (sigStack != null) {
+            Utils.saveStackAsSeries(sigStack, c1Folder.getAbsolutePath() + delimiter,
+                    "TIF", intFormat);
+        }
+        return seriesFolder.getAbsolutePath();
     }
 
     public boolean showDialog() {
@@ -177,7 +228,7 @@ public class Analyse_ implements PlugIn {
             IJ.register(this.getClass());
             startTime = System.currentTimeMillis();
             //gaussianRadius = 0.139d / spatialRes; // IsoGaussian filter radius set to 139 nm
-            calcParticleRadius(UserVariables.getSpatialRes(), sigmas[UserVariables.getC1Index()]);
+//            calcParticleRadius(UserVariables.getSpatialRes(), sigmas[UserVariables.getC1Index()]);
             int i, count;
 //            int width = stacks[0].getWidth(), height = stacks[0].getHeight();
             findParticles();
@@ -239,7 +290,7 @@ public class Analyse_ implements PlugIn {
 //                        }
                         printData(i, resultSummary, count);
                         traj.printTrajectory(count, results, numFormat, title);
-                        if (UserVariables.isExtractsigs() && type == ParticleTrajectory.COLOCAL) {
+                        if (UserVariables.isExtractsigs()) {
                             ImageStack signals[] = extractTrajSignalValues(traj,
                                     (int) Math.round(UserVariables.getTrackLength() / UserVariables.getSpatialRes()),
                                     (int) Math.round(TRACK_WIDTH / UserVariables.getSpatialRes()),
@@ -362,7 +413,7 @@ public class Analyse_ implements PlugIn {
                         c1Fits.add(new IsoGaussian((c1X - fitRad + c1Fitter.getX0()) * spatialRes, (c1Y - fitRad + c1Fitter.getY0()) * spatialRes,
                                 c1Fitter.getMag(), c1Fitter.getXsig(), c1Fitter.getYsig(), c1Fitter.getRSquared()));
                         if (c2Points != null) {
-                            c2Gaussian = findC2Particle(c1X, c1Y, radius, pSize, c2Threshold, chan2Proc, fitC2Gaussian, sigEst2, fitRad, spatialRes, c2FloatingSigma);
+                            c2Gaussian = findC2Particle(pSize, chan2Proc, fitC2Gaussian, sigEst2, fitRad, spatialRes, c2FloatingSigma, c2Points);
                             if (c2Gaussian.getFit() < c2FitTol) {
                                 c2Gaussian = null;
                             }
@@ -396,12 +447,11 @@ public class Analyse_ implements PlugIn {
         return particles;
     }
 
-    IsoGaussian findC2Particle(int c1X, int c1Y, int radius, int pSize, double c2Threshold, FloatProcessor chan2Proc, boolean fitGaussian, double sigEst2, int fitRad, double spatialRes, boolean floatingSigma) {
+    IsoGaussian findC2Particle(int pSize, FloatProcessor chan2Proc, boolean fitGaussian, double sigEst2, int fitRad, double spatialRes, boolean floatingSigma, int[][] c2Points) {
         IsoGaussian c2Gaussian = null;
         double[] xCoords = new double[pSize];
         double[] yCoords = new double[pSize];
         double[][] pixValues = new double[pSize][pSize];
-        int c2Points[][] = Utils.searchNeighbourhood(c1X, c1Y, radius, c2Threshold, (ImageProcessor) chan2Proc);
         if (c2Points != null) {
             if (fitGaussian) {
                 Utils.extractValues(xCoords, yCoords, pixValues, c2Points[0][0], c2Points[0][1], chan2Proc);
@@ -767,6 +817,8 @@ public class Analyse_ implements PlugIn {
         Particle last = null, next;
         ProgressDialog progress = new ProgressDialog(null, "Extracting Signal Areas " + count + "...", false, title, false);
         progress.setVisible(true);
+        double radius = calcParticleRadius(UserVariables.getSpatialRes(),
+                sigmas[UserVariables.getC1Index()]) * UserVariables.getSpatialRes();
         for (int i = 0; i < size; i++) {
             progress.updateProgress(i, size);
             Particle current = sigStartP;
@@ -867,7 +919,7 @@ public class Analyse_ implements PlugIn {
                     for (int k = 0; k < detections.size(); k++) {
                         Particle p = detections.get(k);
                         double dist = Utils.calcDistance(p.getX(), p.getY(), xc * UserVariables.getSpatialRes(), yc * UserVariables.getSpatialRes());
-                        if (dist < mindist) {
+                        if (dist < mindist && dist < radius) {
                             mindist = dist;
                             minindex = k;
                         }

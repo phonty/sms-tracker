@@ -17,7 +17,6 @@
  */
 package ParticleTracking;
 
-import ParticleTracking.IsoGaussianFitter;
 import UtilClasses.Utilities;
 import ij.IJ;
 import ij.ImagePlus;
@@ -48,20 +47,20 @@ public class TailFitter extends IsoGaussianFitter {
     int minSlices = 20;
     private static final int GAUSSIAN = 0, EMG = 1, EMG_PLUS_GAUSSIAN = 2, C1 = 0, C2 = 1;
     private static String protein = "WIP";
-    private static boolean randomize = true, cellByCell = true;
+    private boolean randomize = true, cellByCell = true;
     private final String channelLabels[] = {"C0_Output", "C1_Output"};
     private final String eqLabels[] = {"Gaussian", "EMG", "Gaussian Plus EMG"};
     private final String checkBoxLabels[] = {"Randomize", "Cell by Cell"};
     private boolean checks[] = {randomize, cellByCell};
     private static int chanChoice, eqChoice, iterations = 100;
-    double minVersion = 5.011;
+    double minVersion = 5.017;
 
-//    public static void main(String args[]) {
-//        TailFitter tf = new TailFitter();
-//        tf.showDialog();
-//        tf.runCellByCell();
-//        System.exit(0);
-//    }
+    public static void main(String args[]) {
+        TailFitter tf = new TailFitter();
+        tf.showDialog();
+        tf.runCellByCell();
+        System.exit(0);
+    }
 
     public void runCellByCell() {
         File parentDir = Utilities.getFolder(new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails"), "Select input folder", true);
@@ -80,7 +79,7 @@ public class TailFitter extends IsoGaussianFitter {
             System.out.print(i + ",");
             ImageProcessor stackAverage;
             if (cellByCell) {
-                stackAverage = buildStackAverageTailByTail(stackWidth, stackHeight, selectedSubDirs, chan, randomize);
+                stackAverage = projectStack(buildStackAverageTailByTail(stackWidth, stackHeight, selectedSubDirs, chan, randomize));
             } else {
                 stackAverage = projectStack(buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, randomize));
             }
@@ -163,7 +162,7 @@ public class TailFitter extends IsoGaussianFitter {
         return selectedSubDirs;
     }
 
-    ImageProcessor buildStackAverageTailByTail(int stackwidth, int stackheight, ArrayList<File> subDirs, String channel, boolean randomize) {
+    ImageStack buildStackAverageTailByTail(int stackwidth, int stackheight, ArrayList<File> subDirs, String channel, boolean randomize) {
         ImageStack overallStack = new ImageStack(stackwidth, stackheight);
         int nDirs = subDirs.size();
         Random r = new Random();
@@ -193,11 +192,12 @@ public class TailFitter extends IsoGaussianFitter {
             }
         }
         System.out.println("Images: " + String.valueOf(count));
-        if (overallStack.getSize() > 0) {
-            return projectStack(overallStack);
-        } else {
-            return null;
-        }
+        return overallStack;
+//        if (overallStack.getSize() > 0) {
+//            return projectStack(overallStack);
+//        } else {
+//            return null;
+//        }
     }
 
     ImageStack buildStackAverageOverall(int stackwidth, int stackheight, ArrayList<File> subDirs, String channel, boolean randomize) {
@@ -205,23 +205,26 @@ public class TailFitter extends IsoGaussianFitter {
         int nDirs = subDirs.size();
         Random r = new Random();
         int count = 0;
+        ArrayList<File> allFiles = new ArrayList();
         for (int j = 0; j < nDirs; j++) {
-            int dirIndex = randomize ? r.nextInt(nDirs) : j;
-            File files[] = subDirs.get(dirIndex).listFiles();
+            File files[] = subDirs.get(j).listFiles();
             ArrayList<ArrayList> sortedFiles = sortFiles(files, channel);
             int n = sortedFiles.size();
             for (int i = 0; i < n; i++) {
-                int sortedFileIndex = randomize ? r.nextInt(n) : i;
-                ArrayList<File> theseFiles = sortedFiles.get(sortedFileIndex);
+                ArrayList<File> theseFiles = sortedFiles.get(i);
                 int m = theseFiles.size();
                 count += m;
                 for (int l = 0; l < m; l++) {
-                    int fileIndex = randomize ? r.nextInt(m) : l;
-                    ImagePlus imp = IJ.openImage(theseFiles.get(fileIndex).getAbsolutePath());
-                    output.addSlice(imp.getProcessor());
-                    imp.close();
+                    allFiles.add(theseFiles.get(l));
                 }
             }
+        }
+        int n = allFiles.size();
+        for (int k = 0; k < n; k++) {
+            int fileIndex = randomize ? r.nextInt(n) : k;
+            ImagePlus imp = IJ.openImage(allFiles.get(fileIndex).getAbsolutePath());
+            output.addSlice(imp.getProcessor());
+            imp.close();
         }
         System.out.println("Images: " + String.valueOf(count));
         return output;
@@ -253,12 +256,18 @@ public class TailFitter extends IsoGaussianFitter {
     }
 
     public void generateImages(ArrayList<File> selectedSubDirs, String chan, File directory, int stackWidth, int stackHeight) {
-        ImageStack stack = buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, false);
+        ImageStack stack;
+        if (cellByCell) {
+            stack = buildStackAverageTailByTail(stackWidth, stackHeight, selectedSubDirs, chan, false);
+        } else {
+            stack = buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, false);
+        }
+//        ImageStack stack = buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, false);
         ZProjector zproj = new ZProjector(new ImagePlus("", stack));
         zproj.setMethod(ZProjector.AVG_METHOD);
         zproj.doProjection();
         ImageProcessor stackAverage = zproj.getProjection().getProcessor();
-        String fileBaseName = directory + "/" + protein + "_" + channelLabels[chanChoice] + "_";
+        String fileBaseName = directory + "/" + protein + "_" + eqLabels[eqChoice] + "_" + "Randomize-" + randomize + "_" + "CellByCell-" + cellByCell + channelLabels[chanChoice] + "_";
         IJ.saveAs((new ImagePlus("", stackAverage)), "text image", fileBaseName + "Average.txt");
         zproj.setMethod(ZProjector.SD_METHOD);
         zproj.doProjection();

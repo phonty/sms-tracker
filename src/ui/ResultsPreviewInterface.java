@@ -16,17 +16,15 @@
  */
 package ui;
 
-import ParticleTracking.ParticleTrajectory;
-import ParticleTracking.Analyse_;
 import ParticleTracking.Analyse_;
 import ParticleTracking.ParticleTrajectory;
-import ParticleTracking.UserVariables;
 import ParticleTracking.UserVariables;
 import UIClasses.UIMethods;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.ImageCanvas;
 import ij.plugin.RGBStackMerge;
+import ij.process.ImageProcessor;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.InputMismatchException;
@@ -51,8 +49,8 @@ public class ResultsPreviewInterface extends javax.swing.JDialog {
         super(parent, modal);
         this.title = title;
         this.analyser = analyser;
-        ImageStack stacks[] = analyser.getStacks();
-        stack = (new RGBStackMerge()).mergeStacks(stacks[0].getWidth(),stacks[0].getHeight(),stacks[0].getSize(),stacks[0], stacks[1], null, true);
+        ImageStack stacks[] = getStacks();
+        stack = (new RGBStackMerge()).mergeStacks(stacks[0].getWidth(), stacks[0].getHeight(), stacks[0].getSize(), stacks[0], stacks[1], null, true);
         imp = new ImagePlus("", stack.getProcessor(1));
         trajectories = analyser.getTrajectories();
         initComponents();
@@ -227,8 +225,8 @@ public class ResultsPreviewInterface extends javax.swing.JDialog {
 
     private void trajScrollBarAdjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {//GEN-FIRST:event_trajScrollBarAdjustmentValueChanged
         updateTextField(trajTextField, trajScrollBar.getValue());
-        ImageStack stacks[] = analyser.getStacks();
-        stack = analyser.mapTrajectories((new RGBStackMerge()).mergeStacks(stacks[0].getWidth(),stacks[0].getHeight(),stacks[0].getSize(),stacks[0], stacks[1], null, true),
+        ImageStack stacks[] = getStacks();
+        stack = analyser.mapTrajectories((new RGBStackMerge()).mergeStacks(stacks[0].getWidth(), stacks[0].getHeight(), stacks[0].getSize(), stacks[0], stacks[1], null, true),
                 trajectories, UserVariables.getSpatialRes(), UserVariables.getMinTrajLength(),
                 UserVariables.getTimeRes(), true, trajScrollBar.getValue(), trajScrollBar.getValue(),
                 trajScrollBar.getValue(), true);
@@ -279,6 +277,29 @@ public class ResultsPreviewInterface extends javax.swing.JDialog {
 
     public ArrayList<Integer> getRemoveList() {
         return removeList;
+    }
+
+    ImageStack[] getStacks() {
+        ImageStack output[] = new ImageStack[2];
+        ImageStack stacks[] = analyser.getStacks();
+        int s = stacks[0].getSize();
+        for (int i = 1; i <= s; i++) {
+            ImageProcessor ip1 = stacks[0].getProcessor(i);
+            ip1.resetMinAndMax();
+            if (output[0] == null) {
+                output[0] = new ImageStack(stacks[0].getWidth(), stacks[0].getHeight());
+            }
+            output[0].addSlice(ip1);
+            if (stacks[1] != null) {
+                ImageProcessor ip2 = stacks[1].getProcessor(i);
+                ip2.resetMinAndMax();
+                if (output[1] == null) {
+                    output[1] = new ImageStack(stacks[1].getWidth(), stacks[1].getHeight());
+                }
+                output[1].addSlice(ip2);
+            }
+        }
+        return output;
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
