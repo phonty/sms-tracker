@@ -42,28 +42,31 @@ import org.apache.commons.math3.util.MathArrays;
 public class TailFitter extends IsoGaussianFitter {
 
     private static double spatialRes = 0.133333;
-    private static double sigmaEst = 0.158;
+    private static double sigmaEst = 0.120;
     double sqrt2 = Math.pow(2.0, 0.5);
     int minSlices = 20;
     private static final int GAUSSIAN = 0, EMG = 1, EMG_PLUS_GAUSSIAN = 2, C1 = 0, C2 = 1;
-    private static String protein = "WIP";
-    private boolean randomize = true, cellByCell = true;
+    private static String protein = "ALLSTARS";
+    private boolean randomize = false, cellByCell = false;
     private final String channelLabels[] = {"C0_Output", "C1_Output"};
     private final String eqLabels[] = {"Gaussian", "EMG", "Gaussian Plus EMG"};
     private final String checkBoxLabels[] = {"Randomize", "Cell by Cell"};
     private boolean checks[] = {randomize, cellByCell};
-    private static int chanChoice, eqChoice, iterations = 100;
+    private static int chanChoice = 1, eqChoice = 1, iterations = 1;
     double minVersion = 5.017;
 
     public static void main(String args[]) {
         TailFitter tf = new TailFitter();
         tf.showDialog();
-        tf.runCellByCell();
+        tf.run();
         System.exit(0);
     }
 
-    public void runCellByCell() {
+    public void run() {
         File parentDir = Utilities.getFolder(new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails"), "Select input folder", true);
+        if (parentDir == null) {
+            return;
+        }
         String channel = channelLabels[chanChoice];
         String chan = channel.substring(0, 2);
         ArrayList<File> subDirs = new ArrayList();
@@ -204,16 +207,16 @@ public class TailFitter extends IsoGaussianFitter {
         ImageStack output = new ImageStack(stackwidth, stackheight);
         int nDirs = subDirs.size();
         Random r = new Random();
-        int count = 0;
         ArrayList<File> allFiles = new ArrayList();
+        int nTails = 0;
         for (int j = 0; j < nDirs; j++) {
             File files[] = subDirs.get(j).listFiles();
             ArrayList<ArrayList> sortedFiles = sortFiles(files, channel);
             int n = sortedFiles.size();
+            nTails += n;
             for (int i = 0; i < n; i++) {
                 ArrayList<File> theseFiles = sortedFiles.get(i);
                 int m = theseFiles.size();
-                count += m;
                 for (int l = 0; l < m; l++) {
                     allFiles.add(theseFiles.get(l));
                 }
@@ -223,10 +226,16 @@ public class TailFitter extends IsoGaussianFitter {
         for (int k = 0; k < n; k++) {
             int fileIndex = randomize ? r.nextInt(n) : k;
             ImagePlus imp = IJ.openImage(allFiles.get(fileIndex).getAbsolutePath());
-            output.addSlice(imp.getProcessor());
+            ImageProcessor ip = imp.getProcessor();
+            ImageStatistics stats = ip.getStatistics();
+            double max = stats.max;
+            double min = stats.min;
+            ip.subtract(min);
+            ip.multiply(1.0 / (max - min));
+            output.addSlice(ip);
             imp.close();
         }
-        System.out.println("Images: " + String.valueOf(count));
+        System.out.println("Cells: " + nDirs + " Tails: " + nTails + " Images: " + String.valueOf(output.getSize()));
         return output;
     }
 
@@ -267,7 +276,7 @@ public class TailFitter extends IsoGaussianFitter {
         zproj.setMethod(ZProjector.AVG_METHOD);
         zproj.doProjection();
         ImageProcessor stackAverage = zproj.getProjection().getProcessor();
-        String fileBaseName = directory + "/" + protein + "_" + eqLabels[eqChoice] + "_" + "Randomize-" + randomize + "_" + "CellByCell-" + cellByCell + channelLabels[chanChoice] + "_";
+        String fileBaseName = directory + "/" + protein + "_" + eqLabels[eqChoice] + "_" + "Randomize-" + randomize + "_" + "CellByCell-" + cellByCell + "_" + channelLabels[chanChoice] + "_";
         IJ.saveAs((new ImagePlus("", stackAverage)), "text image", fileBaseName + "Average.txt");
         zproj.setMethod(ZProjector.SD_METHOD);
         zproj.doProjection();
@@ -517,8 +526,8 @@ public class TailFitter extends IsoGaussianFitter {
     public boolean showDialog() {
         GenericDialog gd = new GenericDialog("Tail Fitter");
         gd.addStringField("Protein Label:", protein, 5);
-        gd.addRadioButtonGroup("Select Channel:", channelLabels, 1, 2, channelLabels[1]);
-        gd.addChoice("Select Equation to Fit:", eqLabels, eqLabels[0]);
+        gd.addRadioButtonGroup("Select Channel:", channelLabels, 1, 2, channelLabels[chanChoice]);
+        gd.addChoice("Select Equation to Fit:", eqLabels, eqLabels[eqChoice]);
         gd.addCheckboxGroup(1, 2, checkBoxLabels, checks);
         gd.addNumericField("Iterations: ", iterations, 0);
         gd.addNumericField("Min Version: ", minVersion, 3);

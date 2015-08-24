@@ -51,8 +51,7 @@ import org.apache.commons.io.FilenameUtils;
 public class Analyse_ implements PlugIn {
 
 //    protected static double hystDiff = 1.25;
-//    protected final double SIG_EST_RED = 0.151, SIG_EST_GREEN = 0.129;
-    protected final double SIG_EST_RED = 0.146, SIG_EST_GREEN = 0.123;
+    protected final double SIG_EST_RED = 0.131, SIG_EST_GREEN = 0.120;
     protected final double sigmas[] = new double[]{SIG_EST_RED, SIG_EST_GREEN};
 //    protected int xyPartRad; //Radius over which to draw particles in visualisation
     public final int GOSHTASBY_M = 2, GOSHTASBY_N = 4;
@@ -60,6 +59,7 @@ public class Analyse_ implements PlugIn {
 //    protected final double LAMBDA = 650.0, //Wavelength of light
 //            NUM_AP = 1.4; //Numerical aperture of system
     protected static double colocalThresh = 0.0;
+    private double normVal = 0.9999;
     protected ArrayList<ParticleTrajectory> trajectories = new ArrayList(); //Trajectories of the detected particles
     protected ImagePlus imp; //The active image stack
     protected ImageStack stacks[];
@@ -178,7 +178,7 @@ public class Analyse_ implements PlugIn {
         double sum = 0.0;
         int nPixels = cytoStats2.pixelCount;
         int thresh = 0;
-        while (sum < nPixels * 0.9999 && thresh < histogram.length) {
+        while (sum < nPixels * normVal && thresh < histogram.length) {
             sum += histogram[thresh++];
         }
         double normFactor = 1.0 / histogram[thresh];
