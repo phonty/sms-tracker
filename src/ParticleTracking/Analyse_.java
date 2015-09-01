@@ -51,7 +51,7 @@ import org.apache.commons.io.FilenameUtils;
 public class Analyse_ implements PlugIn {
 
 //    protected static double hystDiff = 1.25;
-    protected final double SIG_EST_RED = 0.131, SIG_EST_GREEN = 0.120;
+    protected final static double SIG_EST_RED = 0.144, SIG_EST_GREEN = 0.132;
     protected final double sigmas[] = new double[]{SIG_EST_RED, SIG_EST_GREEN};
 //    protected int xyPartRad; //Radius over which to draw particles in visualisation
     public final int GOSHTASBY_M = 2, GOSHTASBY_N = 4;
