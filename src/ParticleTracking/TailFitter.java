@@ -17,7 +17,6 @@
  */
 package ParticleTracking;
 
-import UtilClasses.GenUtils;
 import UtilClasses.Utilities;
 import ij.IJ;
 import ij.ImagePlus;
@@ -32,6 +31,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.math3.analysis.function.Gaussian;
 import org.apache.commons.math3.special.Erf;
 import org.apache.commons.math3.util.MathArrays;
@@ -42,19 +42,21 @@ import org.apache.commons.math3.util.MathArrays;
  */
 public class TailFitter extends IsoGaussianFitter {
 
+    private final int VEL_BINS = 5;
+    private final double VEL_BIN_LIMITS[] = {0.05, 0.1, 0.15, 0.2, 0.25};
     private static double spatialRes = 0.133333;
     private static double sigmaEst = Analyse_.SIG_EST_GREEN;
     double sqrt2 = Math.pow(2.0, 0.5);
     int minSlices = 20;
     private static final int GAUSSIAN = 0, EMG = 1, EMG_PLUS_GAUSSIAN = 2, C1 = 0, C2 = 1;
-    private static String protein = "ALLSTARS";
+    private static String protein = "Lifeact";
     private boolean randomize = false, tailByTail = false;
     private final String channelLabels[] = {"C0_Output", "C1_Output"};
     private final String eqLabels[] = {"Gaussian", "EMG", "Gaussian Plus EMG"};
     private final String checkBoxLabels[] = {"Randomize", "Tail by Tail"};
     private boolean checks[] = {randomize, tailByTail};
     private static int chanChoice = 1, eqChoice = 1, iterations = 1;
-    double minVersion = 5.017;
+    double minVersion = 5.020;
 
     public static void main(String args[]) {
         TailFitter tf = new TailFitter();
@@ -84,26 +86,32 @@ public class TailFitter extends IsoGaussianFitter {
             if (tailByTail) {
                 for (int j = 0; j < selectedSubDirs.size(); j++) {
                     File files[] = selectedSubDirs.get(j).listFiles();
-                    ArrayList<ArrayList> sortedFiles = sortFiles(files, chan);
+                    ArrayList<ArrayList[]> sortedFiles = sortFiles(files, chan);
                     for (int n = 0; n < sortedFiles.size(); n++) {
-                        ArrayList<File> tailFiles = sortedFiles.get(n);
-                        System.out.print(j + ", " + n + " ");
-                        ImageProcessor stackAverage = projectStack(buildTailAverage(stackWidth, stackHeight, tailFiles, chan, randomize));
-                        if (stackAverage != null) {
-                            processStackAverage(stackAverage);
+                        ArrayList<File> tailFiles[] = sortedFiles.get(n);
+                        for (int m = 0; m < tailFiles.length; m++) {
+                            System.out.print(j + ", " + n + "," + VEL_BIN_LIMITS[m] + " ");
+                            ImageProcessor stackAverage = projectStack(buildTailAverage(stackWidth, stackHeight, tailFiles[m], chan, randomize));
+                            if (stackAverage != null) {
+                                processStackAverage(stackAverage);
+                            }
                         }
                     }
                 }
             } else {
-                ImageProcessor stackAverage = projectStack(buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, randomize));
-                processStackAverage(stackAverage);
+                ImageStack stacks[] = buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, randomize);
+                for (int j = 0; j < stacks.length; j++) {
+                    System.out.print("Vel:," + VEL_BIN_LIMITS[j] + ",");
+                    ImageProcessor stackAverage = projectStack(stacks[j]);
+                    processStackAverage(stackAverage);
+                }
             }
         }
         generateImages(selectedSubDirs, chan, parentDir, stackWidth, stackHeight);
     }
 
     void processStackAverage(ImageProcessor stackAverage) {
-        Rectangle cropRoi = new Rectangle(0, 15, stackAverage.getWidth(), 1);
+        Rectangle cropRoi = new Rectangle(0, 15, stackAverage.getWidth() - 1, 1);
         stackAverage.setRoi(cropRoi);
         stackAverage = stackAverage.crop();
         ImageStatistics stats = stackAverage.getStatistics();
@@ -180,77 +188,87 @@ public class TailFitter extends IsoGaussianFitter {
         return selectedSubDirs;
     }
 
-    ImageStack buildStackAverageTailByTail(int stackwidth, int stackheight, ArrayList<File> subDirs, String channel, boolean randomize) {
-        ImageStack overallStack = new ImageStack(stackwidth, stackheight);
-        int nDirs = subDirs.size();
-        Random r = new Random();
-        int count = 0;
-        for (int j = 0; j < nDirs; j++) {
-            File files[] = subDirs.get(j).listFiles();
-            ArrayList<ArrayList> sortedFiles = sortFiles(files, channel);
-            int n = sortedFiles.size();
-            ImageStack cellStack = new ImageStack(stackwidth, stackheight);
-            for (int i = 0; i < n; i++) {
-                ArrayList<File> theseFiles = sortedFiles.get(i);
-                int m = theseFiles.size();
-                count += m;
-                ImageStack tailStack = new ImageStack(stackwidth, stackheight);
-                for (int l = 0; l < m; l++) {
-                    int fileindex = randomize ? r.nextInt(m) : l;
-                    ImagePlus imp = IJ.openImage(theseFiles.get(fileindex).getAbsolutePath());
-                    tailStack.addSlice(imp.getProcessor());
-                    imp.close();
-                }
-                if (tailStack.getSize() > 0) {
-                    cellStack.addSlice(projectStack(tailStack));
-                }
-            }
-            if (cellStack.getSize() > 0) {
-                overallStack.addSlice(projectStack(cellStack));
-            }
-        }
-        System.out.println("Images: " + String.valueOf(count));
-        return overallStack;
-//        if (overallStack.getSize() > 0) {
-//            return projectStack(overallStack);
-//        } else {
-//            return null;
+//    ImageStack buildStackAverageTailByTail(int stackwidth, int stackheight, ArrayList<File> subDirs, String channel, boolean randomize) {
+//        ImageStack overallStack = new ImageStack(stackwidth, stackheight);
+//        int nDirs = subDirs.size();
+//        Random r = new Random();
+//        int count = 0;
+//        for (int j = 0; j < nDirs; j++) {
+//            File files[] = subDirs.get(j).listFiles();
+//            ArrayList<ArrayList[]> sortedFiles = sortFiles(files, channel);
+//            int n = sortedFiles.size();
+//            ImageStack cellStack = new ImageStack(stackwidth, stackheight);
+//            for (int i = 0; i < n; i++) {
+//                ArrayList<File> theseFiles[] = sortedFiles.get(i);
+//                int m = theseFiles.size();
+//                count += m;
+//                ImageStack tailStack = new ImageStack(stackwidth, stackheight);
+//                for (int l = 0; l < m; l++) {
+//                    int fileindex = randomize ? r.nextInt(m) : l;
+//                    ImagePlus imp = IJ.openImage(theseFiles.get(fileindex).getAbsolutePath());
+//                    tailStack.addSlice(imp.getProcessor());
+//                    imp.close();
+//                }
+//                if (tailStack.getSize() > 0) {
+//                    cellStack.addSlice(projectStack(tailStack));
+//                }
+//            }
+//            if (cellStack.getSize() > 0) {
+//                overallStack.addSlice(projectStack(cellStack));
+//            }
 //        }
-    }
-
-    ImageStack buildStackAverageOverall(int stackwidth, int stackheight, ArrayList<File> subDirs, String channel, boolean randomize) {
-        ImageStack output = new ImageStack(stackwidth, stackheight);
+//        System.out.println("Images: " + String.valueOf(count));
+//        return overallStack;
+////        if (overallStack.getSize() > 0) {
+////            return projectStack(overallStack);
+////        } else {
+////            return null;
+////        }
+//    }
+    ImageStack[] buildStackAverageOverall(int stackwidth, int stackheight, ArrayList<File> subDirs, String channel, boolean randomize) {
+        ImageStack output[] = new ImageStack[VEL_BINS];
         int nDirs = subDirs.size();
         Random r = new Random();
-        ArrayList<File> allFiles = new ArrayList();
+        ArrayList<File> allFiles[] = new ArrayList[VEL_BINS];
         int nTails = 0;
+        int imageCount = 0;
         for (int j = 0; j < nDirs; j++) {
             File files[] = subDirs.get(j).listFiles();
-            ArrayList<ArrayList> sortedFiles = sortFiles(files, channel);
+            ArrayList<ArrayList[]> sortedFiles = sortFiles(files, channel);
             int n = sortedFiles.size();
             nTails += n;
             for (int i = 0; i < n; i++) {
-                ArrayList<File> theseFiles = sortedFiles.get(i);
-                int m = theseFiles.size();
-                for (int l = 0; l < m; l++) {
-                    allFiles.add(theseFiles.get(l));
+                ArrayList<File> theseFiles[] = sortedFiles.get(i);
+                for (int k = 0; k < VEL_BIN_LIMITS.length; k++) {
+                    if (allFiles[k] == null) {
+                        allFiles[k] = new ArrayList();
+                    }
+                    int m = theseFiles[k].size();
+                    for (int l = 0; l < m; l++) {
+                        allFiles[k].add(theseFiles[k].get(l));
+                    }
                 }
             }
         }
-        int n = allFiles.size();
-        for (int k = 0; k < n; k++) {
-            int fileIndex = randomize ? r.nextInt(n) : k;
-            ImagePlus imp = IJ.openImage(allFiles.get(fileIndex).getAbsolutePath());
-            ImageProcessor ip = imp.getProcessor();
-            ImageStatistics stats = ip.getStatistics();
-            double max = stats.max;
-            double min = stats.min;
-            ip.subtract(min);
-            ip.multiply(1.0 / (max - min));
-            output.addSlice(ip);
-            imp.close();
+        for (int j = 0; j < VEL_BINS; j++) {
+            output[j] = new ImageStack(stackwidth, stackheight);
+            int n = allFiles[j].size();
+            for (int k = 0; k < n; k++) {
+                int fileIndex = randomize ? r.nextInt(n) : k;
+                ImagePlus imp = IJ.openImage(allFiles[j].get(fileIndex).getAbsolutePath());
+                ImageProcessor ip = imp.getProcessor();
+                ImageStatistics stats = ip.getStatistics();
+//            double max = stats.max;
+//            double min = stats.min;
+//            ip.subtract(min);
+//            ip.multiply(1.0 / (max - min));
+                ip.multiply(1.0 / stats.median);
+                output[j].addSlice(ip);
+                imp.close();
+            }
+            imageCount += output[j].getSize();
         }
-        System.out.println("Cells: " + nDirs + " Tails: " + nTails + " Images: " + String.valueOf(output.getSize()));
+        System.out.println("Cells: " + nDirs + " Tails: " + nTails + " Images: " + String.valueOf(imageCount));
         return output;
     }
 
@@ -285,51 +303,62 @@ public class TailFitter extends IsoGaussianFitter {
         }
     }
 
-    ArrayList<ArrayList> sortFiles(File[] unsorted, String channel) {
-        ArrayList<ArrayList> files = new ArrayList();
+    ArrayList<ArrayList[]> sortFiles(File[] unsorted, String channel) {
+        ArrayList<ArrayList[]> files = new ArrayList();
         int n = unsorted.length;
         for (int i = 0; i < n; i++) {
-            String name = unsorted[i].getName();
+            String name = FilenameUtils.getBaseName(unsorted[i].getName());
             Scanner scanner = new Scanner(name).useDelimiter("-");
             String thisChannel = scanner.next();
             if (channel.equalsIgnoreCase(thisChannel)) {
                 int index = Integer.parseInt(scanner.next());
+                double timepoint = Double.parseDouble(scanner.next());
+                double velocity = Double.parseDouble(scanner.next());
                 while (files.size() < index) {
-                    files.add(new ArrayList<File>());
+                    files.add(new ArrayList[VEL_BINS]);
+                    for (int j = 0; j < VEL_BINS; j++) {
+                        files.get(index - 1)[j] = new ArrayList();
+                    }
                 }
-                files.get(index - 1).add(unsorted[i]);
+                int velBinIndex = 0;
+                while (velocity > VEL_BIN_LIMITS[velBinIndex] && velBinIndex < VEL_BINS - 1) {
+                    velBinIndex++;
+                }
+                files.get(index - 1)[velBinIndex].add(unsorted[i]);
             }
         }
         return files;
     }
 
     public void generateImages(ArrayList<File> selectedSubDirs, String chan, File directory, int stackWidth, int stackHeight) {
-        ImageStack stack;
-        if (tailByTail) {
-            stack = buildStackAverageTailByTail(stackWidth, stackHeight, selectedSubDirs, chan, false);
-        } else {
-            stack = buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, false);
-        }
+//        ImageStack stack;
+//        if (tailByTail) {
+//            stack = buildStackAverageTailByTail(stackWidth, stackHeight, selectedSubDirs, chan, false);
+//        } else {
+        ImageStack stack[] = buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, false);
+//        }
 //        ImageStack stack = buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, false);
-        ZProjector zproj = new ZProjector(new ImagePlus("", stack));
-        zproj.setMethod(ZProjector.AVG_METHOD);
-        zproj.doProjection();
-        ImageProcessor stackAverage = zproj.getProjection().getProcessor();
-        String fileBaseName = directory + "/" + protein + "_" + eqLabels[eqChoice] + "_" + "Randomize-" + randomize + "_" + "CellByCell-" + tailByTail + "_" + channelLabels[chanChoice] + "_";
-        IJ.saveAs((new ImagePlus("", stackAverage)), "text image", fileBaseName + "Average.txt");
-        zproj.setMethod(ZProjector.SD_METHOD);
-        zproj.doProjection();
-        IJ.saveAs((new ImagePlus("", zproj.getProjection().getProcessor())), "text image", fileBaseName + "SD.txt");
-        Rectangle cropRoi = new Rectangle(0, 15, stackAverage.getWidth() - 2, 1);
-        stackAverage.setRoi(cropRoi);
-        stackAverage = stackAverage.crop();
-        ImageStatistics stats = stackAverage.getStatistics();
-        double max = stats.max;
-        double min = stats.min;
-        stackAverage.subtract(min);
-        stackAverage.multiply(1.0 / (max - min));
-        printImage(directory, fileBaseName);
-        IJ.saveAs((new ImagePlus("", stackAverage)), "text image", fileBaseName + "NormAverage.txt");
+        for (int i = 0; i < stack.length; i++) {
+            ZProjector zproj = new ZProjector(new ImagePlus("", stack[i]));
+            zproj.setMethod(ZProjector.AVG_METHOD);
+            zproj.doProjection();
+            ImageProcessor stackAverage = zproj.getProjection().getProcessor();
+            String fileBaseName = directory + "/" + protein + "_" + eqLabels[eqChoice] + "_" + "Randomize-" + randomize + "_" + VEL_BIN_LIMITS[i] + "_" + channelLabels[chanChoice] + "_";
+            IJ.saveAs((new ImagePlus("", stackAverage)), "text image", fileBaseName + "Average.txt");
+            zproj.setMethod(ZProjector.SD_METHOD);
+            zproj.doProjection();
+            IJ.saveAs((new ImagePlus("", zproj.getProjection().getProcessor())), "text image", fileBaseName + "SD.txt");
+//            Rectangle cropRoi = new Rectangle(0, 15, stackAverage.getWidth() - 2, 1);
+//            stackAverage.setRoi(cropRoi);
+//            stackAverage = stackAverage.crop();
+//            ImageStatistics stats = stackAverage.getStatistics();
+//            double max = stats.max;
+//            double min = stats.min;
+//            stackAverage.subtract(min);
+//            stackAverage.multiply(1.0 / (max - min));
+//            printImage(directory, fileBaseName);
+//            IJ.saveAs((new ImagePlus("", stackAverage)), "text image", fileBaseName + "NormAverage.txt");
+        }
     }
 
     public TailFitter() {

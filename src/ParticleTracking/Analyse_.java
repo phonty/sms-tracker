@@ -35,6 +35,7 @@ import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Random;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
 /**
@@ -51,7 +52,7 @@ import org.apache.commons.io.FilenameUtils;
 public class Analyse_ implements PlugIn {
 
 //    protected static double hystDiff = 1.25;
-    protected final static double SIG_EST_RED = 0.144, SIG_EST_GREEN = 0.132;
+    protected final static double SIG_EST_RED = 0.133, SIG_EST_GREEN = 0.123;
     protected final double sigmas[] = new double[]{SIG_EST_RED, SIG_EST_GREEN};
 //    protected int xyPartRad; //Radius over which to draw particles in visualisation
     public final int GOSHTASBY_M = 2, GOSHTASBY_N = 4;
@@ -59,7 +60,7 @@ public class Analyse_ implements PlugIn {
 //    protected final double LAMBDA = 650.0, //Wavelength of light
 //            NUM_AP = 1.4; //Numerical aperture of system
     protected static double colocalThresh = 0.0;
-    private double normVal = 0.9999;
+    private double normVal = 0.99999;
     protected ArrayList<ParticleTrajectory> trajectories = new ArrayList(); //Trajectories of the detected particles
     protected ImagePlus imp; //The active image stack
     protected ImageStack stacks[];
@@ -68,6 +69,7 @@ public class Analyse_ implements PlugIn {
     protected DecimalFormat intFormat = new DecimalFormat("000");
     protected DecimalFormat floatFormat = new DecimalFormat("0.00");
     String title = "Particle Tracker", ext;
+    private String c0 = "C0", c1 = "C1";
     protected static boolean msdPlot = false, intensPlot = false, trajPlot = false;
     protected boolean monoChrome;
 //    private final double IMAGE_MAX = 255.0;
@@ -129,16 +131,21 @@ public class Analyse_ implements PlugIn {
                 return;
             }
         } else {
-            inputDir = new File(prepareInputs());
+            String dirName = prepareInputs();
+            if (dirName != null) {
+                inputDir = new File(dirName);
+            } else {
+                return;
+            }
             if (inputDir == null) {
                 return;
             }
-            c0Dir = new File(inputDir.getAbsolutePath() + delimiter + "C0");
+            c0Dir = new File(inputDir.getAbsolutePath() + delimiter + c0);
             ImagePlus imp = Utils.buildStack(c0Dir);
             stacks[0] = imp.getImageStack();
 //        Utils.normaliseStack(stacks[0], IMAGE_MAX);
             this.ext = imp.getTitle();
-            c1Dir = new File(inputDir.getAbsolutePath() + delimiter + "C1");
+            c1Dir = new File(inputDir.getAbsolutePath() + delimiter + c1);
             if (c1Dir.exists()) {
                 stacks[1] = (Utils.buildStack(c1Dir)).getImageStack();
 //            Utils.normaliseStack(stacks[1], IMAGE_MAX);
@@ -149,6 +156,12 @@ public class Analyse_ implements PlugIn {
 //        }
         if (showDialog()) {
             analyse();
+        }
+        try {
+            FileUtils.deleteDirectory(c0Dir);
+            FileUtils.deleteDirectory(c1Dir);
+        } catch (Exception e) {
+            IJ.error(e.toString());
         }
     }
 
@@ -181,7 +194,7 @@ public class Analyse_ implements PlugIn {
         while (sum < nPixels * normVal && thresh < histogram.length) {
             sum += histogram[thresh++];
         }
-        double normFactor = 1.0 / histogram[thresh];
+        double normFactor = 100.0 / thresh;
         (new StackConverter(cytoImp)).convertToGray32();
         cytoStack = cytoImp.getImageStack();
         for (int i = 1; i <= cytoSize; i++) {
@@ -189,11 +202,11 @@ public class Analyse_ implements PlugIn {
         }
         String parent = IJ.getDirectory("current");
         File seriesFolder = GenUtils.createDirectory(parent + FilenameUtils.getBaseName(cytoImp.getTitle()), false);
-        File c0Folder = GenUtils.createDirectory(seriesFolder.getAbsolutePath() + delimiter + "C0", false);
-        File c1Folder = GenUtils.createDirectory(seriesFolder.getAbsolutePath() + delimiter + "C1", false);
+        File c0Folder = GenUtils.createDirectory(seriesFolder.getAbsolutePath() + delimiter + c0, true);
         Utils.saveStackAsSeries(cytoStack, c0Folder.getAbsolutePath() + delimiter,
                 "TIF", intFormat);
         if (sigStack != null) {
+            File c1Folder = GenUtils.createDirectory(seriesFolder.getAbsolutePath() + delimiter + c1, true);
             Utils.saveStackAsSeries(sigStack, c1Folder.getAbsolutePath() + delimiter,
                     "TIF", intFormat);
         }
@@ -273,43 +286,58 @@ public class Analyse_ implements PlugIn {
                 }
             }
             n = trajectories.size();
-            ImageStack maps = mapTrajectories((new RGBStackMerge()).mergeStacks(stacks[0].getWidth(), stacks[0].getHeight(), stacks[0].getSize(), stacks[0], stacks[1], null, true),
-                    trajectories, UserVariables.getSpatialRes(), UserVariables.getMinTrajLength(),
-                    UserVariables.getTimeRes(), true, 0, trajectories.size() - 1, 1, false);
-            for (i = 0, count = 1; i < n; i++) {
+            for (i = 0; i < n; i++) {
+                boolean remove = false;
                 ParticleTrajectory traj = (ParticleTrajectory) trajectories.get(i);
                 if (traj != null) {
-                    int type = traj.getType(colocalThresh);
-                    if (traj.getSize() > UserVariables.getMinTrajLength() && ((type == ParticleTrajectory.COLOCAL)
-                            || ((type == ParticleTrajectory.NON_COLOCAL) && !UserVariables.isColocal()))) {
+//                    int type = traj.getType(colocalThresh);
+//                    if (traj.getSize() > UserVariables.getMinTrajLength() && ((type == ParticleTrajectory.COLOCAL)
+//                            || ((type == ParticleTrajectory.NON_COLOCAL) && !UserVariables.isColocal()))) {
+                    traj.calcMSD(-1);
+                    if (traj.getDisplacement(traj.getEnd(), traj.getSize()) > UserVariables.getMinTrajDist()
+                            && traj.getDuration() > UserVariables.getMinTrajLength()
+                            && traj.getDiffCoeff() > UserVariables.getMsdThresh()) {
 //                        if (intensPlot) {
 //                            plotIntensity(i, count);
 //                        }
 //                        if (trajPlot) {
 //                            plotTrajectory(width, height, i, count);
 //                        }
-                        printData(i, resultSummary, count);
-                        traj.printTrajectory(count, results, numFormat, title);
+                        printData(i, resultSummary, i + 1);
+                        traj.printTrajectory(i + 1, results, numFormat, title);
                         if (UserVariables.isExtractsigs()) {
                             ImageStack signals[] = extractTrajSignalValues(traj,
                                     (int) Math.round(UserVariables.getTrackLength() / UserVariables.getSpatialRes()),
                                     (int) Math.round(TRACK_WIDTH / UserVariables.getSpatialRes()),
-                                    TRACK_EXT / ((float) UserVariables.getSpatialRes()), stacks[0].getWidth(), stacks[0].getHeight(), count);
+                                    TRACK_EXT / ((float) UserVariables.getSpatialRes()), stacks[0].getWidth(), stacks[0].getHeight(), i + 1);
                             if (signals[0].getSize() > 0) {
                                 for (int j = 1; j <= signals[0].getSize(); j++) {
                                     IJ.saveAs((new ImagePlus("", signals[0].getProcessor(j))),
-                                            "TIF", sigc0Dir + delimiter + "C0-" + String.valueOf(count)
+                                            "TIF", sigc0Dir + delimiter + "C0-" + String.valueOf(i + 1)
                                             + "-" + signals[0].getSliceLabel(j));
                                     IJ.saveAs((new ImagePlus("", signals[1].getProcessor(j))),
-                                            "TIF", sigc1Dir + delimiter + "C1-" + String.valueOf(count)
+                                            "TIF", sigc1Dir + delimiter + "C1-" + String.valueOf(i + 1)
                                             + "-" + signals[1].getSliceLabel(j));
                                 }
+                            } else {
+                                remove = true;
                             }
                         }
-                        count++;
+                    } else {
+                        remove = true;
                     }
+                } else {
+                    remove = true;
+                }
+                if (remove) {
+                    trajectories.remove(i);
+                    i--;
+                    n--;
                 }
             }
+            ImageStack maps = mapTrajectories((new RGBStackMerge()).mergeStacks(stacks[0].getWidth(), stacks[0].getHeight(), stacks[0].getSize(), stacks[0], stacks[1], null, true),
+                    trajectories, UserVariables.getSpatialRes(), UserVariables.getMinTrajLength(),
+                    UserVariables.getTimeRes(), true, 0, trajectories.size() - 1, 1, false, calcParticleRadius(UserVariables.getSpatialRes(), sigmas[UserVariables.getC1Index()]));
             resultSummary.append("\nAnalysis Time (s): " + numFormat.format((System.currentTimeMillis() - startTime) / 1000.0));
             results.append(toString());
             results.setVisible(true);
@@ -389,10 +417,10 @@ public class Analyse_ implements PlugIn {
 //                Utils.normalise(chan2Proc, 1.0);
             }
             double c1Threshold = Utils.getPercentileThresh(chan1Proc, UserVariables.getChan1MaxThresh());
-            ByteProcessor thisC1Max = Utils.findLocalMaxima(xyPartRad, xyPartRad, UserVariables.FOREGROUND, chan1Proc, c1Threshold, true);
+            ByteProcessor thisC1Max = Utils.findLocalMaxima(xyPartRad, xyPartRad, UserVariables.FOREGROUND, chan1Proc, c1Threshold, false);
 //            maxima.addSlice(thisC1Max);
             double c2Threshold = Utils.getPercentileThresh(chan2Proc, UserVariables.getChan2MaxThresh());
-            ByteProcessor thisC2Max = Utils.findLocalMaxima(xyPartRad, xyPartRad, UserVariables.FOREGROUND, chan2Proc, c2Threshold, true);
+            ByteProcessor thisC2Max = Utils.findLocalMaxima(xyPartRad, xyPartRad, UserVariables.FOREGROUND, chan2Proc, c2Threshold, false);
             for (c1X = 0; c1X < width; c1X++) {
                 for (c1Y = 0; c1Y < height; c1Y++) {
                     if (thisC1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
@@ -537,7 +565,7 @@ public class Analyse_ implements PlugIn {
         }
 //        traj.smooth();
         double points[][] = traj.getPoints();
-        traj.calcMSD(label, -1, msdPlot, points[0], points[1]);
+//        traj.calcMSD(label, -1, msdPlot, points[0], points[1]);
 //        traj.calcAngleSpread();
 //        traj.calcStepSpread();
         traj.calcDirectionality(points[0], points[1]);
@@ -628,11 +656,11 @@ public class Analyse_ implements PlugIn {
      * Constructed trajectories are drawn onto the original image sequence and
      * displayed as a stack sequence.
      */
-    public ImageStack mapTrajectories(ImageStack stack, ArrayList<ParticleTrajectory> trajectories, double spatialRes, double minTrajLength, double timeRes, boolean tracks, int startT, int endT, int index, boolean preview) {
+    public ImageStack mapTrajectories(ImageStack stack, ArrayList<ParticleTrajectory> trajectories, double spatialRes, double minTrajLength, double timeRes, boolean tracks, int startT, int endT, int index, boolean preview, int radius) {
         if (stack == null) {
             return null;
         }
-        int radius = calcParticleRadius(spatialRes, sigmas[UserVariables.getC1Index()]);
+//        int radius = calcParticleRadius(spatialRes, sigmas[UserVariables.getC1Index()]);
         int i, j, width = stack.getWidth(), height = stack.getHeight(),
                 type, frames = stack.getSize();
         double lastX, lastY;
@@ -827,24 +855,31 @@ public class Analyse_ implements PlugIn {
             ySigPoints = new ArrayList();
             xVirPoints = new ArrayList();
             yVirPoints = new ArrayList();
-            double x1, y1, x2, y2, t = 2.0 / UserVariables.getTimeRes();
+            double x1, y1, x2, y2, t1, t2;
             if (last != null) {
                 x1 = last.getX();
                 y1 = last.getY();
+                t1 = last.getTimePoint() / UserVariables.getTimeRes();
             } else {
                 x1 = sigStartP.getX();
                 y1 = sigStartP.getY();
-                t /= 2.0;
+                t1 = sigStartP.getTimePoint() / UserVariables.getTimeRes();
             }
             if (next != null) {
                 x2 = next.getX();
                 y2 = next.getY();
+                t2 = next.getTimePoint() / UserVariables.getTimeRes();
             } else {
                 x2 = sigStartP.getX();
                 y2 = sigStartP.getY();
-                t /= 2.0;
+                t2 = sigStartP.getTimePoint() / UserVariables.getTimeRes();
             }
-            double vel = Utils.calcDistance(x1, y1, x2, y2) / t;
+            double vel;
+            if (t1 - t2 > 0.0) {
+                vel = Utils.calcDistance(x1, y1, x2, y2) / (t1 - t2);
+            } else {
+                vel = 0.0;
+            }
             for (int index = 1; index <= size && current != null; index++) {
                 double xg = current.getC1Gaussian().getX();
                 double yg = current.getC1Gaussian().getY();
@@ -1183,9 +1218,9 @@ public class Analyse_ implements PlugIn {
         paramStream.println(UserInterface.getMaxLinkDistLabelText() + "," + UserVariables.getTrajMaxStep());
         paramStream.println(UserInterface.getTrackLengthText() + "," + UserVariables.getTrackLength());
         paramStream.println(UserInterface.getChan1MaxThreshLabelText() + "," + UserVariables.getChan1MaxThresh());
-        paramStream.println(UserInterface.getChan2MaxThreshLabelText() + "," + UserVariables.getChan2MaxThresh());
+//        paramStream.println(UserInterface.getChan2MaxThreshLabelText() + "," + UserVariables.getChan2MaxThresh());
         paramStream.println(UserInterface.getCurveFitTolLabelText() + "," + UserVariables.getC1CurveFitTol());
-        paramStream.println(UserInterface.getC2CurveFitTolLabelText() + "," + UserVariables.getC2CurveFitTol());
+//        paramStream.println(UserInterface.getC2CurveFitTolLabelText() + "," + UserVariables.getC2CurveFitTol());
         paramStream.println(UserInterface.getColocalToggleText() + "," + UserVariables.isColocal());
         paramStream.println(UserInterface.getPreprocessToggleText() + "," + UserVariables.isPreProcess());
         paramStream.println(UserInterface.getGpuToggleText() + "," + UserVariables.isGpu());

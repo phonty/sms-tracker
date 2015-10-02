@@ -46,7 +46,6 @@ public class GPU_Analyse extends Analyse_ {
 //        instance.run(null);
 //        System.exit(0);
 //    }
-
     public GPU_Analyse() {
         super();
         gpuEnabled = true;
@@ -146,7 +145,7 @@ public class GPU_Analyse extends Analyse_ {
     public ParticleArray cudaFindParticles1C(boolean update, int startSlice, int endSlice, ImageStack channel2) {
         return GPU_Analyse.this.cudaFindParticles1C(SEARCH_SCALE, update, startSlice, endSlice, channel2);
     }
-    
+
     public ParticleArray cudaFindParticles1C(double searchScale, boolean update, int startSlice, int endSlice, ImageStack channel2) {
         if (!cudaGaussFitter(c0Dir.getAbsolutePath(), ext, (float) UserVariables.getSpatialRes() * 1000.0f,
                 (float) (sigmas[UserVariables.getC1Index()] / UserVariables.getSpatialRes()), (float) UserVariables.getChan1MaxThresh(),

@@ -229,7 +229,7 @@ public class ResultsPreviewInterface extends javax.swing.JDialog {
         stack = analyser.mapTrajectories((new RGBStackMerge()).mergeStacks(stacks[0].getWidth(), stacks[0].getHeight(), stacks[0].getSize(), stacks[0], stacks[1], null, true),
                 trajectories, UserVariables.getSpatialRes(), UserVariables.getMinTrajLength(),
                 UserVariables.getTimeRes(), true, trajScrollBar.getValue(), trajScrollBar.getValue(),
-                trajScrollBar.getValue(), true);
+                trajScrollBar.getValue(), true, 5);
         imageScrollBar.setValue((trajectories.get(trajScrollBar.getValue())).getStartTimeIndex() + 1);
         imageScrollBarAdjustmentValueChanged(null);
     }//GEN-LAST:event_trajScrollBarAdjustmentValueChanged

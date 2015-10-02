@@ -101,7 +101,7 @@ public class VolumeAnalysis extends Analyse_ {
                 }
             }
             n = trajectories.size();
-            mapTrajectories(stacks[0], trajectories, spatialRes, minTrajLength, timeRes, true, 0, trajectories.size() - 1, 1, false);
+            mapTrajectories(stacks[0], trajectories, spatialRes, minTrajLength, timeRes, true, 0, trajectories.size() - 1, 1, false, calcParticleRadius(spatialRes, sigmas[UserVariables.getC1Index()]));
             ArrayList distributions = new ArrayList();
             xyPartRad = calcParticleRadius(spatialRes, SIG_EST_RED);
             int cropRad = 4 * xyPartRad + 1;
@@ -269,7 +269,7 @@ public class VolumeAnalysis extends Analyse_ {
             return false;
         }
         traj.smooth();
-        traj.calcMSD(label, -1, msdPlot, traj.getPoints()[0], traj.getPoints()[1]);
+        traj.calcMSD(-1);
         traj.calcAngleSpread();
         traj.calcStepSpread();
         traj.calcDirectionality(traj.getPoints()[0], traj.getPoints()[1]);
