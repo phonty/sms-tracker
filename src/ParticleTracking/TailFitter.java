@@ -24,6 +24,7 @@ import ij.ImageStack;
 import ij.gui.GenericDialog;
 import ij.plugin.ZProjector;
 import ij.process.FloatProcessor;
+import ij.process.FloatStatistics;
 import ij.process.ImageProcessor;
 import ij.process.ImageStatistics;
 import java.awt.Rectangle;
@@ -257,7 +258,8 @@ public class TailFitter extends IsoGaussianFitter {
                 int fileIndex = randomize ? r.nextInt(n) : k;
                 ImagePlus imp = IJ.openImage(allFiles[j].get(fileIndex).getAbsolutePath());
                 ImageProcessor ip = imp.getProcessor();
-                ImageStatistics stats = ip.getStatistics();
+//                ImageStatistics stats = ip.getStatistics();
+                FloatStatistics stats = new FloatStatistics(ip, ImageStatistics.MEDIAN, null);
 //            double max = stats.max;
 //            double min = stats.min;
 //            ip.subtract(min);
