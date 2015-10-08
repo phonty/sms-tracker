@@ -44,7 +44,7 @@ import org.apache.commons.math3.util.MathArrays;
 public class TailFitter extends IsoGaussianFitter {
 
     private final int VEL_BINS = 5;
-    private final double VEL_BIN_LIMITS[] = {0.05, 0.1, 0.15, 0.2, 0.25};
+    private final double VEL_BIN_LIMITS[] = {0.025, 0.05, 0.1, 0.15, 0.2};
     private static double spatialRes = 0.133333;
     private static double sigmaEst = Analyse_.SIG_EST_GREEN;
     double sqrt2 = Math.pow(2.0, 0.5);
@@ -57,7 +57,7 @@ public class TailFitter extends IsoGaussianFitter {
     private final String checkBoxLabels[] = {"Randomize", "Tail by Tail"};
     private boolean checks[] = {randomize, tailByTail};
     private static int chanChoice = 1, eqChoice = 1, iterations = 1;
-    double minVersion = 5.020;
+    double minVersion = 5.022;
 
     public static void main(String args[]) {
         TailFitter tf = new TailFitter();
@@ -269,6 +269,7 @@ public class TailFitter extends IsoGaussianFitter {
                 imp.close();
             }
             imageCount += output[j].getSize();
+            System.out.println("Images: " + output[j].getSize());
         }
         System.out.println("Cells: " + nDirs + " Tails: " + nTails + " Images: " + String.valueOf(imageCount));
         return output;
@@ -290,7 +291,7 @@ public class TailFitter extends IsoGaussianFitter {
             output.addSlice(ip);
             imp.close();
         }
-        System.out.println(" Images: " + String.valueOf(output.getSize()));
+//        System.out.println(" Images: " + String.valueOf(output.getSize()));
         return output;
     }
 
@@ -319,7 +320,7 @@ public class TailFitter extends IsoGaussianFitter {
                 while (files.size() < index) {
                     files.add(new ArrayList[VEL_BINS]);
                     for (int j = 0; j < VEL_BINS; j++) {
-                        files.get(index - 1)[j] = new ArrayList();
+                        files.get(files.size() - 1)[j] = new ArrayList();
                     }
                 }
                 int velBinIndex = 0;

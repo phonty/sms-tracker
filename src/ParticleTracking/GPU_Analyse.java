@@ -46,6 +46,7 @@ public class GPU_Analyse extends Analyse_ {
 //        instance.run(null);
 //        System.exit(0);
 //    }
+
     public GPU_Analyse() {
         super();
         gpuEnabled = true;

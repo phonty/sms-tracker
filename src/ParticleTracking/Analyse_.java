@@ -10,6 +10,7 @@ import UtilClasses.Utilities;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.gui.GenericDialog;
 import ij.gui.Plot;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
@@ -52,7 +53,7 @@ import org.apache.commons.io.FilenameUtils;
 public class Analyse_ implements PlugIn {
 
 //    protected static double hystDiff = 1.25;
-    protected final static double SIG_EST_RED = 0.133, SIG_EST_GREEN = 0.123;
+    protected static double SIG_EST_RED = 0.135, SIG_EST_GREEN = 0.124;
     protected final double sigmas[] = new double[]{SIG_EST_RED, SIG_EST_GREEN};
 //    protected int xyPartRad; //Radius over which to draw particles in visualisation
     public final int GOSHTASBY_M = 2, GOSHTASBY_N = 4;
@@ -94,6 +95,7 @@ public class Analyse_ implements PlugIn {
 ////        }
 //        System.exit(0);
 //    }
+
     public Analyse_(double spatialRes, double timeRes, double trajMaxStep, double chan1MaxThresh, boolean monoChrome, ImagePlus imp, double scale, double minTrajLength) {
         UserVariables.setSpatialRes(spatialRes);
         UserVariables.setTimeRes(timeRes);
@@ -123,8 +125,16 @@ public class Analyse_ implements PlugIn {
      * Implements run method from {@link PlugIn}.
      */
     public void run(String arg) {
-//        Utilities.setLookAndFeel(UserInterface.class);
+//        Utilities.setLookAndFeel(UserInterface.class);        
         title = title + "_v" + VERSION + "." + intFormat.format(Revision.Revision.revisionNumber);
+        GenericDialog gd = new GenericDialog(title);
+        gd.addNumericField("SIG_EST_RED:", SIG_EST_RED, 3);
+        gd.addNumericField("SIG_EST_GREEN:", SIG_EST_GREEN, 3);
+        gd.showDialog();
+        if (gd.wasOKed()) {
+            SIG_EST_RED = gd.getNextNumber();
+            SIG_EST_GREEN = gd.getNextNumber();
+        }
         stacks = new ImageStack[2];
         if (IJ.getInstance() != null) {
             if (!getActiveImages()) {
@@ -242,7 +252,7 @@ public class Analyse_ implements PlugIn {
             startTime = System.currentTimeMillis();
             //gaussianRadius = 0.139d / spatialRes; // IsoGaussian filter radius set to 139 nm
 //            calcParticleRadius(UserVariables.getSpatialRes(), sigmas[UserVariables.getC1Index()]);
-            int i, count;
+            int i;
 //            int width = stacks[0].getWidth(), height = stacks[0].getHeight();
             findParticles();
             TextWindow results = new TextWindow(title + " Results", "X\tY\tFrame\tChannel 1 ("
@@ -252,23 +262,19 @@ public class Analyse_ implements PlugIn {
                     new String(), 1000, 500);
 //            results.append(imp.getTitle() + "\n\n");
             TextWindow resultSummary = new TextWindow(title + " Results Summary",
-                    "Particle\tType\t% Colocalisation\tDuration (s)\tDisplacement (" + IJ.micronSymbol
+                    "Particle\tDuration (s)\tDisplacement (" + IJ.micronSymbol
                     + "m)\tVelocity (" + IJ.micronSymbol + "m/s)\tDirectionality\tDiffusion Coefficient ("
-                    + IJ.micronSymbol + "m^2/s)" + "\tFractal Dimension"
-                    + "\tFluorescence Ratio ("
-                    + UserVariables.channels[UserVariables.getC2Index()] + "/"
-                    + UserVariables.channels[UserVariables.getC1Index()]
-                    + ")\tAngle Spread\tStep Spread\tDC\tCurvature\tC2 Fluor Area\tC2 Fluor Skew",
+                    + IJ.micronSymbol + "m^2/s)" + "\tAngle Spread\tStep Spread",
                     new String(), 1200, 500);
 //            resultSummary.append(imp.getTitle() + "\n\n");
 
             int n = trajectories.size();
             for (i = 0; i < n; i++) {
                 ParticleTrajectory traj = (ParticleTrajectory) trajectories.get(i);
-                if (!(traj.getSize() / UserVariables.getTimeRes() >= UserVariables.getMinTrajLength()
-                        && traj.getDisplacement(traj.getEnd(), traj.getSize()) >= UserVariables.getMinTrajDist()
-                        && ((traj.getType(colocalThresh) == ParticleTrajectory.COLOCAL)
-                        || ((traj.getType(colocalThresh) == ParticleTrajectory.NON_COLOCAL) && !UserVariables.isColocal())))) {
+                traj.calcMSD(-1);
+                if (!(traj.getDisplacement(traj.getEnd(), traj.getSize()) > UserVariables.getMinTrajDist()
+                        && traj.getDuration() > UserVariables.getMinTrajLength()
+                        && traj.getDiffCoeff() > UserVariables.getMsdThresh())) {
                     trajectories.remove(i);
                     i--;
                     n--;
@@ -293,39 +299,39 @@ public class Analyse_ implements PlugIn {
 //                    int type = traj.getType(colocalThresh);
 //                    if (traj.getSize() > UserVariables.getMinTrajLength() && ((type == ParticleTrajectory.COLOCAL)
 //                            || ((type == ParticleTrajectory.NON_COLOCAL) && !UserVariables.isColocal()))) {
-                    traj.calcMSD(-1);
-                    if (traj.getDisplacement(traj.getEnd(), traj.getSize()) > UserVariables.getMinTrajDist()
-                            && traj.getDuration() > UserVariables.getMinTrajLength()
-                            && traj.getDiffCoeff() > UserVariables.getMsdThresh()) {
+//                    traj.calcMSD(-1);
+//                    if (traj.getDisplacement(traj.getEnd(), traj.getSize()) > UserVariables.getMinTrajDist()
+//                            && traj.getDuration() > UserVariables.getMinTrajLength()
+//                            && traj.getDiffCoeff() > UserVariables.getMsdThresh()) {
 //                        if (intensPlot) {
 //                            plotIntensity(i, count);
 //                        }
 //                        if (trajPlot) {
 //                            plotTrajectory(width, height, i, count);
 //                        }
-                        printData(i, resultSummary, i + 1);
-                        traj.printTrajectory(i + 1, results, numFormat, title);
-                        if (UserVariables.isExtractsigs()) {
-                            ImageStack signals[] = extractTrajSignalValues(traj,
-                                    (int) Math.round(UserVariables.getTrackLength() / UserVariables.getSpatialRes()),
-                                    (int) Math.round(TRACK_WIDTH / UserVariables.getSpatialRes()),
-                                    TRACK_EXT / ((float) UserVariables.getSpatialRes()), stacks[0].getWidth(), stacks[0].getHeight(), i + 1);
-                            if (signals[0].getSize() > 0) {
-                                for (int j = 1; j <= signals[0].getSize(); j++) {
-                                    IJ.saveAs((new ImagePlus("", signals[0].getProcessor(j))),
-                                            "TIF", sigc0Dir + delimiter + "C0-" + String.valueOf(i + 1)
-                                            + "-" + signals[0].getSliceLabel(j));
-                                    IJ.saveAs((new ImagePlus("", signals[1].getProcessor(j))),
-                                            "TIF", sigc1Dir + delimiter + "C1-" + String.valueOf(i + 1)
-                                            + "-" + signals[1].getSliceLabel(j));
-                                }
-                            } else {
-                                remove = true;
+                    printData(i, resultSummary, i + 1);
+                    traj.printTrajectory(i + 1, results, numFormat, title);
+                    if (UserVariables.isExtractsigs()) {
+                        ImageStack signals[] = extractTrajSignalValues(traj,
+                                (int) Math.round(UserVariables.getTrackLength() / UserVariables.getSpatialRes()),
+                                (int) Math.round(TRACK_WIDTH / UserVariables.getSpatialRes()),
+                                TRACK_EXT / ((float) UserVariables.getSpatialRes()), stacks[0].getWidth(), stacks[0].getHeight(), i + 1);
+                        if (signals[0].getSize() > 0) {
+                            for (int j = 1; j <= signals[0].getSize(); j++) {
+                                IJ.saveAs((new ImagePlus("", signals[0].getProcessor(j))),
+                                        "TIF", sigc0Dir + delimiter + "C0-" + String.valueOf(i + 1)
+                                        + "-" + signals[0].getSliceLabel(j));
+                                IJ.saveAs((new ImagePlus("", signals[1].getProcessor(j))),
+                                        "TIF", sigc1Dir + delimiter + "C1-" + String.valueOf(i + 1)
+                                        + "-" + signals[1].getSliceLabel(j));
                             }
+                        } else {
+                            remove = true;
                         }
-                    } else {
-                        remove = true;
                     }
+//                    } else {
+//                        remove = true;
+//                    }
                 } else {
                     remove = true;
                 }
@@ -571,31 +577,39 @@ public class Analyse_ implements PlugIn {
         traj.calcDirectionality(points[0], points[1]);
         double displacement = traj.getDisplacement(traj.getEnd(), traj.getSize());
         double duration = traj.getDuration();
-        int type = traj.getType(colocalThresh);
-        String trajType = null;
-        switch (type) {
-            case ParticleTrajectory.COLOCAL:
-                trajType = "Colocalised";
-                break;
-            case ParticleTrajectory.NON_COLOCAL:
-                trajType = "Non-Colocalised";
-                break;
-            case ParticleTrajectory.UNKNOWN:
-                trajType = "Unknown";
-        }
-        output.append(label + "\t" + trajType + "\t"
-                + decFormat.format(traj.getDualScore() * 100.0 / traj.getSize()) + "\t"
+//        int type = traj.getType(colocalThresh);
+//        String trajType = null;
+//        switch (type) {
+//            case ParticleTrajectory.COLOCAL:
+//                trajType = "Colocalised";
+//                break;
+//            case ParticleTrajectory.NON_COLOCAL:
+//                trajType = "Non-Colocalised";
+//                break;
+//            case ParticleTrajectory.UNKNOWN:
+//                trajType = "Unknown";
+//        }
+//        output.append(label + "\t" + trajType + "\t"
+//                + decFormat.format(traj.getDualScore() * 100.0 / traj.getSize()) + "\t"
+//                + decFormat.format(duration) + "\t"
+//                + decFormat.format(displacement)
+//                + "\t" + decFormat.format(displacement / duration) + "\t"
+//                + decFormat.format(traj.getDirectionality()) + "\t"
+//                + msdFormat.format(traj.getDiffCoeff()) + "\t"
+//                + decFormat.format(traj.getBoxCountFD()) + "\t"
+//                + decFormat.format(traj.getFluorRatio()) + "\t"
+//                + decFormat.format(traj.getAngleSpread()) + "\t"
+//                + decFormat.format(traj.getStepSpread()) + "\t"
+//                + decFormat.format(traj.getLogDC()) + "\t"
+//                + decFormat.format(traj.getMeanKappa()) + "\t");
+        output.append(label + "\t"
                 + decFormat.format(duration) + "\t"
                 + decFormat.format(displacement)
                 + "\t" + decFormat.format(displacement / duration) + "\t"
                 + decFormat.format(traj.getDirectionality()) + "\t"
                 + msdFormat.format(traj.getDiffCoeff()) + "\t"
-                + decFormat.format(traj.getBoxCountFD()) + "\t"
-                + decFormat.format(traj.getFluorRatio()) + "\t"
                 + decFormat.format(traj.getAngleSpread()) + "\t"
-                + decFormat.format(traj.getStepSpread()) + "\t"
-                + decFormat.format(traj.getLogDC()) + "\t"
-                + decFormat.format(traj.getMeanKappa()) + "\t");
+                + decFormat.format(traj.getStepSpread()));
         return true;
     }
 
@@ -893,8 +907,13 @@ public class Analyse_ implements PlugIn {
                             + delimiter + GOSHTASBY_M + "_" + GOSHTASBY_N + delimiter + "ycoeffs" + xi + "_" + yi + ".txt");
                     ImageProcessor coords = reader.open(calDir + delimiter + "goshtasby"
                             + delimiter + GOSHTASBY_M + "_" + GOSHTASBY_N + delimiter + "coords" + xi + "_" + yi + ".txt");
-                    xg = goshtasbyEval(xcoeffs, coords, x, y);
-                    yg = goshtasbyEval(ycoeffs, coords, x, y);
+                    if (xcoeffs == null || ycoeffs == null || coords == null) {
+                        GenUtils.error("Incomplete calibration parameters - proceeding without.");
+                        UserVariables.setUseCals(false);
+                    } else {
+                        xg = goshtasbyEval(xcoeffs, coords, x, y);
+                        yg = goshtasbyEval(ycoeffs, coords, x, y);
+                    }
                 }
                 xSigPoints.add((float) (xg / UserVariables.getSpatialRes()));
                 ySigPoints.add((float) (yg / UserVariables.getSpatialRes()));

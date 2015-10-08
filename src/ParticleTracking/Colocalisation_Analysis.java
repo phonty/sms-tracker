@@ -27,7 +27,7 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
 //    protected ImageStack[] stacks = new ImageStack[2];
     protected String title = "Colocaliser";
     protected String resultsHeadings = "Image\tChannel 1 Detections\tColocalised Channel 2 Detections\t% Colocalisation\t"
-            + "\u0394 (nm)", coordHeadings = "C0_X\tC0_Y\tC1_X\tC1_Y\tC0_\u03c3\tC1_\u03c3\tC0 Fit\tC1 Fit";
+            + "\u0394 (nm)", C0, C1, coordHeadings;
     protected static double coFactor = 1.0;
     public static final int RED = 0, GREEN = 1, BLUE = 2;
     protected DecimalFormat numFormat = new DecimalFormat("0.0");
@@ -76,6 +76,9 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
             GenUtils.error("Not enough stacks open.");
             return;
         }
+        C0 = stacks[0].getSliceLabel(1);
+        C1 = stacks[1].getSliceLabel(1);
+        coordHeadings = C0 + "_X\t" + C0 + "_Y\t" + C1 + "_X\t" + C1 + "_Y\t" + C0 + "_\u03c3\t" + C1 + "_\u03c3\t" + C0 + " Fit\t" + C1 + " Fit";
         if (showDialog()) {
             UserVariables.setPreProcess(true);
             Analyse_ analyser = new Analyse_(stacks);
