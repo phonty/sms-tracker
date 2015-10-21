@@ -53,14 +53,14 @@ import org.apache.commons.io.FilenameUtils;
 public class Analyse_ implements PlugIn {
 
 //    protected static double hystDiff = 1.25;
-    protected static double SIG_EST_RED = 0.135, SIG_EST_GREEN = 0.124;
+    protected static double SIG_EST_RED = 0.137, SIG_EST_GREEN = 0.122;
     protected final double sigmas[] = new double[]{SIG_EST_RED, SIG_EST_GREEN};
 //    protected int xyPartRad; //Radius over which to draw particles in visualisation
     public final int GOSHTASBY_M = 2, GOSHTASBY_N = 4;
     public static final int VERSION = 5;
 //    protected final double LAMBDA = 650.0, //Wavelength of light
 //            NUM_AP = 1.4; //Numerical aperture of system
-    protected static double colocalThresh = 0.0;
+//    protected static double colocalThresh = 0.0;
     private double normVal = 0.99999;
     protected ArrayList<ParticleTrajectory> trajectories = new ArrayList(); //Trajectories of the detected particles
     protected ImagePlus imp; //The active image stack
@@ -95,7 +95,6 @@ public class Analyse_ implements PlugIn {
 ////        }
 //        System.exit(0);
 //    }
-
     public Analyse_(double spatialRes, double timeRes, double trajMaxStep, double chan1MaxThresh, boolean monoChrome, ImagePlus imp, double scale, double minTrajLength) {
         UserVariables.setSpatialRes(spatialRes);
         UserVariables.setTimeRes(timeRes);
@@ -712,14 +711,15 @@ public class Analyse_ implements PlugIn {
             if (traj != null) {
                 Color thiscolor = new Color(r.nextInt(256), r.nextInt(256), r.nextInt(256));
                 length = traj.getSize();
-                type = traj.getType(colocalThresh);
+//                type = traj.getType(colocalThresh);
 //                bounds = traj.getBounds();
 //                trajImage = new ByteProcessor(bounds.width, bounds.height);
 //                trajImage.setColor(Color.white);
 //                trajImage.fill();
 //                trajImage.setColor(Color.black);
-                if (length > minTrajLength && ((type == ParticleTrajectory.COLOCAL)
-                        || ((type == ParticleTrajectory.NON_COLOCAL) && !UserVariables.isColocal()))) {
+//                if (length > minTrajLength && ((type == ParticleTrajectory.COLOCAL)
+//                        || ((type == ParticleTrajectory.NON_COLOCAL) && !UserVariables.isColocal()))) {
+                if (length > minTrajLength) {
                     current = traj.getEnd();
                     lastX = current.getX();
                     lastY = current.getY();
