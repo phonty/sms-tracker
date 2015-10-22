@@ -5,12 +5,14 @@
  */
 package ParticleTracking;
 
+import IAClasses.CrossCorrelation;
 import UtilClasses.Utilities;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
 import ij.plugin.ZProjector;
+import ij.process.FloatProcessor;
 import ij.process.FloatStatistics;
 import ij.process.ImageProcessor;
 import ij.process.ImageStatistics;
@@ -29,12 +31,13 @@ import org.apache.commons.io.FilenameUtils;
 public class TailAnalyser {
 
     protected DecimalFormat numFormat = new DecimalFormat("0.000");
-    private final int VEL_BINS = 5;
-    private final double VEL_BIN_LIMITS[] = {0.025, 0.05, 0.1, 0.15, 0.2};
+//    private final int VEL_BINS = 5;
+//    private final double VEL_BIN_LIMITS[] = {0.025, 0.05, 0.1, 0.15, 0.2};
+    private final double VEL_BINS[] = {100.0};
     private static double spatialRes = 0.133333;
     int minSlices = 20;
     private static final int C1 = 0, C2 = 1;
-    private static String protein = "Coronin";
+    private static String protein = "Lifeact";
     private boolean randomize = false, tailByTail = false;
     private final String channelLabels[] = {"C0_Output", "C1_Output"};
     private final String checkBoxLabels[] = {"Randomize", "Tail by Tail"};
@@ -94,9 +97,9 @@ public class TailAnalyser {
                     File files[] = selectedSubDirs.get(j).listFiles();
                     ArrayList<ArrayList[]> sortedFiles = sortFiles(files, chan);
                     for (int n = 0; n < sortedFiles.size(); n++) {
-                        ArrayList<File> tailFiles[] = sortedFiles.get(n);
+                        ArrayList<FileWrapper> tailFiles[] = sortedFiles.get(n);
                         for (int m = 0; m < tailFiles.length; m++) {
-                            System.out.print(j + ", " + n + "," + numFormat.format(VEL_BIN_LIMITS[m]) + " ");
+                            System.out.print(j + ", " + n + "," + numFormat.format(VEL_BINS[m]) + " ");
                             ImageProcessor stackAverage = projectStack(buildTailAverage(stackWidth, stackHeight, tailFiles[m], chan, randomize));
                             if (stackAverage != null) {
                                 processStackAverage(stackAverage);
@@ -105,9 +108,9 @@ public class TailAnalyser {
                     }
                 }
             } else {
-                ImageStack stacks[] = buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, randomize);
+                ImageStack stacks[] = buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, randomize, parentDir);
                 for (int j = 0; j < stacks.length; j++) {
-                    System.out.print("Vel:," + numFormat.format(VEL_BIN_LIMITS[j]) + ",");
+                    System.out.print("Vel:," + numFormat.format(VEL_BINS[j]) + ",");
                     ImageProcessor stackAverage = projectStack(stacks[j]);
                     processStackAverage(stackAverage);
                 }
@@ -195,11 +198,11 @@ public class TailAnalyser {
         return selectedSubDirs;
     }
 
-    ImageStack[] buildStackAverageOverall(int stackwidth, int stackheight, ArrayList<File> subDirs, String channel, boolean randomize) {
-        ImageStack output[] = new ImageStack[VEL_BINS];
+    ImageStack[] buildStackAverageOverall(int width, int height, ArrayList<File> subDirs, String channel, boolean randomize, File parentDir) {
+        ImageStack output[] = new ImageStack[VEL_BINS.length];
         int nDirs = subDirs.size();
         Random r = new Random();
-        ArrayList<File> allFiles[] = new ArrayList[VEL_BINS];
+        ArrayList<FileWrapper> allFiles[] = new ArrayList[VEL_BINS.length];
         int nTails = 0;
         int imageCount = 0;
         for (int j = 0; j < nDirs; j++) {
@@ -208,8 +211,11 @@ public class TailAnalyser {
             int n = sortedFiles.size();
             nTails += n;
             for (int i = 0; i < n; i++) {
-                ArrayList<File> theseFiles[] = sortedFiles.get(i);
-                for (int k = 0; k < VEL_BIN_LIMITS.length; k++) {
+                ArrayList<FileWrapper> theseFiles[] = sortedFiles.get(i);
+                for (int k = 0; k < VEL_BINS.length; k++) {
+                    if (parentDir != null) {
+                        buildCorrelationMaps(theseFiles[k], width, height, parentDir);
+                    }
                     if (allFiles[k] == null) {
                         allFiles[k] = new ArrayList();
                     }
@@ -220,12 +226,12 @@ public class TailAnalyser {
                 }
             }
         }
-        for (int j = 0; j < VEL_BINS; j++) {
-            output[j] = new ImageStack(stackwidth, stackheight);
+        for (int j = 0; j < VEL_BINS.length; j++) {
+            output[j] = new ImageStack(width, height);
             int n = allFiles[j].size();
             for (int k = 0; k < n; k++) {
                 int fileIndex = randomize ? r.nextInt(n) : k;
-                ImagePlus imp = IJ.openImage(allFiles[j].get(fileIndex).getAbsolutePath());
+                ImagePlus imp = IJ.openImage(allFiles[j].get(fileIndex).getFile().getAbsolutePath());
                 ImageProcessor ip = imp.getProcessor();
                 FloatStatistics stats = new FloatStatistics(ip, ImageStatistics.MEDIAN, null);
                 ip.multiply(1.0 / stats.median);
@@ -239,13 +245,49 @@ public class TailAnalyser {
         return output;
     }
 
-    ImageStack buildTailAverage(int stackwidth, int stackheight, ArrayList<File> subDirs, String channel, boolean randomize) {
+    void buildCorrelationMaps(ArrayList<FileWrapper> files, int width, int height, File parentDir) {
+        int s = files.size();
+        if (s < minSlices) {
+            return;
+        }
+        ImageProcessor originalImages[] = new ImageProcessor[s];
+        for (int i = 0; i < s; i++) {
+            originalImages[i] = IJ.openImage(files.get(i).getFile().getAbsolutePath()).getProcessor();
+        }
+        FloatProcessor accel = new FloatProcessor(s - 2, 1);
+        FloatProcessor crossCorrelation = new FloatProcessor(width, height);
+        for (int i = 1; i < s - 1; i++) {
+            double v1 = files.get(i - 1).getVelocity();
+            double v2 = files.get(i + 1).getVelocity();
+            double t1 = files.get(i - 1).getTimepoint();
+            double t2 = files.get(i + 1).getTimepoint();
+            accel.putPixelValue(i - 1, 0, (v2 - v1) / (t2 - t1));
+        }
+        double meanAccel = (new FloatStatistics(accel)).mean;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                FloatProcessor sigChange = new FloatProcessor(s - 2, 1);
+                for (int i = 1; i < s - 1; i++) {
+                    double s1 = originalImages[i - 1].getPixelValue(x, y);
+                    double s2 = originalImages[i + 1].getPixelValue(x, y);
+                    double t1 = files.get(i - 1).getTimepoint();
+                    double t2 = files.get(i + 1).getTimepoint();
+                    sigChange.putPixelValue(i - 1, 0, (s2 - s1) / (t2 - t1));
+                }
+                double meanSig = (new FloatStatistics(sigChange)).mean;
+                crossCorrelation.putPixelValue(x, y, CrossCorrelation.crossCorrelation(accel, sigChange, 0, 0, meanAccel, meanSig));
+            }
+        }
+        IJ.saveAs(new ImagePlus("", crossCorrelation), "TIF", parentDir + "/" + files.get(0).getFile().getName() + "_CC.tif");
+    }
+
+    ImageStack buildTailAverage(int stackwidth, int stackheight, ArrayList<FileWrapper> subDirs, String channel, boolean randomize) {
         ImageStack output = new ImageStack(stackwidth, stackheight);
         Random r = new Random();
         int n = subDirs.size();
         for (int k = 0; k < n; k++) {
             int fileIndex = randomize ? r.nextInt(n) : k;
-            ImagePlus imp = IJ.openImage(subDirs.get(fileIndex).getAbsolutePath());
+            ImagePlus imp = IJ.openImage(subDirs.get(fileIndex).getFile().getAbsolutePath());
             ImageProcessor ip = imp.getProcessor();
             ImageStatistics stats = ip.getStatistics();
             double max = stats.max;
@@ -281,16 +323,17 @@ public class TailAnalyser {
                 double timepoint = Double.parseDouble(scanner.next());
                 double velocity = Double.parseDouble(scanner.next());
                 while (files.size() < index) {
-                    files.add(new ArrayList[VEL_BINS]);
-                    for (int j = 0; j < VEL_BINS; j++) {
+                    files.add(new ArrayList[VEL_BINS.length]);
+                    for (int j = 0; j < VEL_BINS.length; j++) {
                         files.get(files.size() - 1)[j] = new ArrayList();
                     }
                 }
                 int velBinIndex = 0;
-                while (velocity > VEL_BIN_LIMITS[velBinIndex] && velBinIndex < VEL_BINS - 1) {
+                while (velocity > VEL_BINS[velBinIndex] && velBinIndex < VEL_BINS.length - 1) {
                     velBinIndex++;
                 }
-                files.get(index - 1)[velBinIndex].add(unsorted[i]);
+                FileWrapper sorted = new FileWrapper(unsorted[i], velocity, timepoint);
+                files.get(index - 1)[velBinIndex].add(sorted);
             }
         }
         return files;
@@ -301,7 +344,7 @@ public class TailAnalyser {
 //        if (tailByTail) {
 //            stack = buildStackAverageTailByTail(stackWidth, stackHeight, selectedSubDirs, chan, false);
 //        } else {
-        ImageStack stack[] = buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, false);
+        ImageStack stack[] = buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, false, null);
 //        }
 //        ImageStack stack = buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, false);
         for (int i = 0; i < stack.length; i++) {
@@ -309,7 +352,7 @@ public class TailAnalyser {
             zproj.setMethod(ZProjector.AVG_METHOD);
             zproj.doProjection();
             ImageProcessor stackAverage = zproj.getProjection().getProcessor();
-            String fileBaseName = directory + "/" + protein + "_" + TailFitter.eqLabels[eqChoice] + "_" + "Randomize-" + randomize + "_" + numFormat.format(VEL_BIN_LIMITS[i]) + "_" + channelLabels[chanChoice] + "_";
+            String fileBaseName = directory + "/" + protein + "_" + TailFitter.eqLabels[eqChoice] + "_" + "Randomize-" + randomize + "_" + numFormat.format(VEL_BINS[i]) + "_" + channelLabels[chanChoice] + "_";
             IJ.saveAs((new ImagePlus("", stackAverage)), "text image", fileBaseName + "Average.txt");
             zproj.setMethod(ZProjector.SD_METHOD);
             zproj.doProjection();
@@ -324,6 +367,31 @@ public class TailAnalyser {
 //            stackAverage.multiply(1.0 / (max - min));
 //            printImage(directory, fileBaseName);
 //            IJ.saveAs((new ImagePlus("", stackAverage)), "text image", fileBaseName + "NormAverage.txt");
+        }
+    }
+
+    private class FileWrapper {
+
+        private final File file;
+        private final double timepoint;
+        private final double velocity;
+
+        FileWrapper(File file, double velocity, double timepoint) {
+            this.file = file;
+            this.timepoint = timepoint;
+            this.velocity = velocity;
+        }
+
+        public File getFile() {
+            return file;
+        }
+
+        public double getTimepoint() {
+            return timepoint;
+        }
+
+        public double getVelocity() {
+            return velocity;
         }
     }
 
