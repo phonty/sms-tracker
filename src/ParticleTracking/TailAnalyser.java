@@ -46,12 +46,12 @@ public class TailAnalyser {
     private static int chanChoice = 1, eqChoice = 1, iterations = 1;
     double minVersion = 5.022;
 
-    public static void main(String args[]) {
-        TailAnalyser ta = new TailAnalyser();
-        ta.showDialog();
-        ta.run();
-        System.exit(0);
-    }
+//    public static void main(String args[]) {
+//        TailAnalyser ta = new TailAnalyser();
+//        ta.showDialog();
+//        ta.run();
+//        System.exit(0);
+//    }
 
     public boolean showDialog() {
         GenericDialog gd = new GenericDialog("Tail Fitter");

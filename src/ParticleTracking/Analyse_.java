@@ -921,11 +921,11 @@ public class Analyse_ implements PlugIn {
                 yVirPoints.add((float) (current.getC1Gaussian().getY() / UserVariables.getSpatialRes()));
                 current = current.getLink();
             }
-            xSigArray = new float[xSigPoints.size() + 1];
-            ySigArray = new float[ySigPoints.size() + 1];
-            xVirArray = new float[xVirPoints.size() + 1];
-            yVirArray = new float[yVirPoints.size() + 1];
-            for (int j = 1; j <= xSigPoints.size(); j++) {
+            xSigArray = new float[xSigPoints.size() + 2];
+            ySigArray = new float[ySigPoints.size() + 2];
+            xVirArray = new float[xVirPoints.size() + 2];
+            yVirArray = new float[yVirPoints.size() + 2];
+            for (int j = 1; j < xSigPoints.size(); j++) {
                 xSigArray[j] = xSigPoints.get(j - 1);
                 ySigArray[j] = ySigPoints.get(j - 1);
                 xVirArray[j] = xVirPoints.get(j - 1);
@@ -1104,15 +1104,33 @@ public class Analyse_ implements PlugIn {
     }
 
     void extendSignalArea(float[] xpoints, float[] ypoints, float dist, int window) {
-        float xdiff = 0.0f, ydiff = 0.0f;
         xpoints[0] = xpoints[1];
         ypoints[0] = ypoints[1];
+        int l = xpoints.length;
+        xpoints[l - 1] = xpoints[l - 2];
+        ypoints[l - 1] = ypoints[l - 2];
         if (xpoints.length - 1 <= window || ypoints.length - 1 <= window) {
             return;
         }
-        for (int i = 1; i <= window; i++) {
-            xdiff += xpoints[i] - xpoints[i + 1];
-            ydiff += ypoints[i] - ypoints[i + 1];
+        getExtension(xpoints, ypoints, dist, window, 0, 1);
+        getExtension(xpoints, ypoints, dist, window, l - 1, l - 2);
+    }
+
+    void getExtension(float[] xpoints, float[] ypoints, float dist, int window, int index1, int index2) {
+        float xdiff = 0.0f, ydiff = 0.0f;
+        int a, b, inc;
+        if (index1 < index2) {
+            a = 1;
+            b = a + window;
+            inc = 1;
+        } else {
+            b = xpoints.length;
+            a = xpoints.length - window;
+            inc = -1;
+        }
+        for (int i = a; i < b; i++) {
+            xdiff += xpoints[i] - xpoints[i + inc];
+            ydiff += ypoints[i] - ypoints[i + inc];
         }
         float newX, newY;
         if (xdiff != 0.0) {
@@ -1124,14 +1142,14 @@ public class Analyse_ implements PlugIn {
             newY = ydiff;
         }
         if (xdiff < 0.0) {
-            xpoints[0] = xpoints[1] - newX;
+            xpoints[index1] = xpoints[index2] - newX;
         } else if (xdiff > 0.0) {
-            xpoints[0] = xpoints[1] + newX;
+            xpoints[index1] = xpoints[index2] + newX;
         }
         if (ydiff < 0.0) {
-            ypoints[0] = ypoints[1] - newY;
+            ypoints[index1] = ypoints[index2] - newY;
         } else if (ydiff > 0.0) {
-            ypoints[0] = ypoints[1] + newY;
+            ypoints[index1] = ypoints[index2] + newY;
         }
     }
 
