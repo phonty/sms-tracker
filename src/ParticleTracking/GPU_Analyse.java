@@ -40,7 +40,8 @@ public class GPU_Analyse extends Analyse_ {
 
     private final String delimiter = GenUtils.getDelimiter();
     private final int CUDA_FILE_COLS = 5;
-    private final double MEDIAN_THRESH = 1.1;
+    private final double MEDIAN_THRESH = 1.5;
+    private final boolean TWO_CHAN = true;
 
     static {
         System.loadLibrary("cuda_gauss_tracker"); // Load native library at runtime
@@ -183,28 +184,34 @@ public class GPU_Analyse extends Analyse_ {
                 int c0t = (int) Math.round(c0CudaData[f].get(row)[0]);
                 if (c0t > currentT) {
                     currentT = c0t;
-                    ip2 = new TypeConverter(channel2.getProcessor(currentT + 1), false).convertToFloat(null);
-                    (new GaussianBlur()).blurGaussian(ip2, c2sigma, c2sigma, 0.1);
+                    if (TWO_CHAN) {
+                        ip2 = new TypeConverter(channel2.getProcessor(currentT + 1), false).convertToFloat(null);
+                        (new GaussianBlur()).blurGaussian(ip2, c2sigma, c2sigma, 0.1);
+                    }
                 }
                 double x0 = c0CudaData[f].get(row)[1];
                 double y0 = c0CudaData[f].get(row)[2];
+                double mag = c0CudaData[f].get(row)[3];
+                double fit = c0CudaData[f].get(row)[4];
+                IsoGaussian c1Gaussian = new IsoGaussian(x0, y0, mag, sigmas[UserVariables.getC1Index()], sigmas[UserVariables.getC1Index()], fit);
+                IsoGaussian c2Gaussian = null;
                 int rx = (int) Math.round(x0 / UserVariables.getSpatialRes());
                 int ry = (int) Math.round(y0 / UserVariables.getSpatialRes());
                 Rectangle r = new Rectangle(rx - rwidth, ry - rwidth, rwidth2, rwidth2);
-                if (ip2 != null) {
+                double statsMax = Double.MAX_VALUE;
+                if (TWO_CHAN && ip2 != null) {
                     ip2.setRoi(r);
                     ImageProcessor ip3 = ip2.crop();
                     FloatStatistics stats1 = new FloatStatistics(ip3, ImageStatistics.MEDIAN, null);
-                    ip3.multiply(1.0/stats1.median);
+                    ip3.multiply(1.0 / stats1.median);
                     FloatStatistics stats2 = new FloatStatistics(ip3, ImageStatistics.MIN_MAX, null);
                     if (stats2.max > MEDIAN_THRESH) {
-                        double mag = c0CudaData[f].get(row)[3];
-                        double fit = c0CudaData[f].get(row)[4];
-                        IsoGaussian c1Gaussian = new IsoGaussian(x0, y0, mag, sigmas[UserVariables.getC1Index()], sigmas[UserVariables.getC1Index()], fit);
-                        if (c1Gaussian.getFit() > UserVariables.getC1CurveFitTol()) {
-                            particles.addDetection(c0t - startSlice, new Particle(c0t, c1Gaussian, null, null, -1));
-                        }
+                        c2Gaussian = new IsoGaussian(x0, y0, statsMax, sigmas[UserVariables.getC2Index()], sigmas[UserVariables.getC2Index()], 0.0);
                     }
+                }
+                if (c1Gaussian.getFit() > UserVariables.getC1CurveFitTol()) {
+                    particles.addDetection(c0t - startSlice, new Particle(c0t, c1Gaussian, c2Gaussian, null, -1));
+
                 }
             }
             progress.dispose();

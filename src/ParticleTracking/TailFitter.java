@@ -227,12 +227,25 @@ public class TailFitter extends IsoGaussianFitter {
         double tail1d[] = buildTail(x);
         for (int i = 0; i < xData.length; i++) {
             for (int j = 0; j < yData.length; j++) {
-                e = tail1d[i + xData.length / 2] - zData[j * xData.length + i];
-//                e = tail1d[i] - zData[j * xData.length + i];
+//                e = tail1d[i + xData.length / 2] - zData[j * xData.length + i];
+                e = tail1d[i] - zData[j * xData.length + i];
                 x[numParams] = x[numParams] + (e * e);
             }
         }
         return true;
+    }
+
+    public double evaluate(double p[], int x) {
+        switch (eqChoice) {
+            case (TailFitter.EMG_PLUS_GAUSSIAN):
+                return evaluate1DGaussianPlusEMG(p, xData[x]);
+            case (TailFitter.GAUSSIAN):
+                return evaluate1DGaussian(p, xData[x]);
+            case (TailFitter.EMG):
+                return evaluate1DEMG(p, xData[x]);
+            default:
+                return Double.NaN;
+        }
     }
 
     double[] buildTail(double[] p) {
@@ -253,8 +266,8 @@ public class TailFitter extends IsoGaussianFitter {
                     break;
             }
         }
-        return MathArrays.convolve(emg, gaussian);
-//        return emg;
+//        return MathArrays.convolve(emg, gaussian);
+        return emg;
     }
 
     public void printParams() {

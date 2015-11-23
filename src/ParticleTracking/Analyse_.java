@@ -53,14 +53,13 @@ import org.apache.commons.io.FilenameUtils;
 public class Analyse_ implements PlugIn {
 
 //    protected static double hystDiff = 1.25;
-    protected static double SIG_EST_RED = 0.137, SIG_EST_GREEN = 0.122;
+    protected static double SIG_EST_RED = 0.128, SIG_EST_GREEN = 0.126;
     protected final double sigmas[] = new double[]{SIG_EST_RED, SIG_EST_GREEN};
 //    protected int xyPartRad; //Radius over which to draw particles in visualisation
     public final int GOSHTASBY_M = 2, GOSHTASBY_N = 4;
     public static final int VERSION = 5;
 //    protected final double LAMBDA = 650.0, //Wavelength of light
 //            NUM_AP = 1.4; //Numerical aperture of system
-//    protected static double colocalThresh = 0.0;
     private double normVal = 0.99999;
     protected ArrayList<ParticleTrajectory> trajectories = new ArrayList(); //Trajectories of the detected particles
     protected ImagePlus imp; //The active image stack
@@ -273,7 +272,8 @@ public class Analyse_ implements PlugIn {
                 traj.calcMSD(-1);
                 if (!(traj.getDisplacement(traj.getEnd(), traj.getSize()) > UserVariables.getMinTrajDist()
                         && traj.getDuration() > UserVariables.getMinTrajLength()
-                        && traj.getDiffCoeff() > UserVariables.getMsdThresh())) {
+                        && traj.getDiffCoeff() > UserVariables.getMsdThresh()
+                        && checkTrajColocalisation(traj, UserVariables.getColocalThresh(), UserVariables.isColocal()))) {
                     trajectories.remove(i);
                     i--;
                     n--;
@@ -719,52 +719,52 @@ public class Analyse_ implements PlugIn {
 //                trajImage.setColor(Color.black);
 //                if (length > minTrajLength && ((type == ParticleTrajectory.COLOCAL)
 //                        || ((type == ParticleTrajectory.NON_COLOCAL) && !UserVariables.isColocal()))) {
-                if (length > minTrajLength) {
-                    current = traj.getEnd();
-                    lastX = current.getX();
-                    lastY = current.getY();
-                    lastTP = current.getTimePoint();
-                    current = current.getLink();
-                    while (current != null) {
-                        for (j = frames - 1; j >= lastTP; j--) {
-                            processor = outputStack.getProcessor(j + 1);
-                            if (!monoChrome && !preview) {
-                                processor.setColor(thiscolor);
-                            } else {
-                                processor.setColor(Color.white);
-                            }
-                            if (j - 1 < lastTP) {
-                                markParticle(processor, (int) Math.round(lastX / spatialRes) - radius,
-                                        (int) Math.round(lastY / spatialRes) - radius, radius, true, "" + index);
-                            }
-                            if (tracks && j <= lastTP + tLength) {
-                                int x = (int) (Math.round(current.getX() / spatialRes));
-                                int y = (int) (Math.round(current.getY() / spatialRes));
-                                processor.drawLine(x, y, (int) Math.round(lastX / spatialRes),
-                                        (int) Math.round(lastY / spatialRes));
-                            }
+//                if (length > minTrajLength) {
+                current = traj.getEnd();
+                lastX = current.getX();
+                lastY = current.getY();
+                lastTP = current.getTimePoint();
+                current = current.getLink();
+                while (current != null) {
+                    for (j = frames - 1; j >= lastTP; j--) {
+                        processor = outputStack.getProcessor(j + 1);
+                        if (!monoChrome && !preview) {
+                            processor.setColor(thiscolor);
+                        } else {
+                            processor.setColor(Color.white);
                         }
+                        if (j - 1 < lastTP) {
+                            markParticle(processor, (int) Math.round(lastX / spatialRes) - radius,
+                                    (int) Math.round(lastY / spatialRes) - radius, radius, true, "" + index);
+                        }
+                        if (tracks && j <= lastTP + tLength) {
+                            int x = (int) (Math.round(current.getX() / spatialRes));
+                            int y = (int) (Math.round(current.getY() / spatialRes));
+                            processor.drawLine(x, y, (int) Math.round(lastX / spatialRes),
+                                    (int) Math.round(lastY / spatialRes));
+                        }
+                    }
 //                        if (tracks) {
 //                            trajImage.drawLine((int) Math.round(ptScale * current.getX() - traj.getBounds().x),
 //                                    (int) Math.round(ptScale * current.getY() - traj.getBounds().y),
 //                                    (int) Math.round(ptScale * lastX - traj.getBounds().x),
 //                                    (int) Math.round(ptScale * lastY - traj.getBounds().y));
 //                        }
-                        lastX = current.getX();
-                        lastY = current.getY();
-                        lastTP = current.getTimePoint();
-                        current = current.getLink();
-                    }
-                    processor = outputStack.getProcessor(lastTP + 1);
-                    if (!monoChrome && !preview) {
-                        processor.setColor(thiscolor);
-                    } else {
-                        processor.setColor(Color.white);
-                    }
-                    markParticle(processor, (int) Math.round(lastX / spatialRes) - radius,
-                            (int) Math.round(lastY / spatialRes) - radius, radius, true, "" + index);
-                    index++;
+                    lastX = current.getX();
+                    lastY = current.getY();
+                    lastTP = current.getTimePoint();
+                    current = current.getLink();
                 }
+                processor = outputStack.getProcessor(lastTP + 1);
+                if (!monoChrome && !preview) {
+                    processor.setColor(thiscolor);
+                } else {
+                    processor.setColor(Color.white);
+                }
+                markParticle(processor, (int) Math.round(lastX / spatialRes) - radius,
+                        (int) Math.round(lastY / spatialRes) - radius, radius, true, "" + index);
+                index++;
+//                }
             }
         }
         progress.dispose();
@@ -1271,6 +1271,16 @@ public class Analyse_ implements PlugIn {
 
     public boolean isGpuEnabled() {
         return gpuEnabled;
+    }
+
+    boolean checkTrajColocalisation(ParticleTrajectory traj, double thresh, boolean colocal) {
+        if (!colocal) {
+            return true;
+        } else if (traj.getType(thresh) == ParticleTrajectory.COLOCAL) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
 //    public double getSigEst() {

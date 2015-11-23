@@ -58,6 +58,7 @@ public class UserInterface extends javax.swing.JDialog {
     private static final String extractSigsToggleText = "Extract Fluorescence Profiles";
     private static final String trackLengthText = "Track Length (" + IJ.micronSymbol + "m):";
     private static final String prevResToggleText = "Preview Results";
+    private static final String colocalThreshText = "Colocalisation Threshold:";
 
     /**
      * Creates new form UserInterface
@@ -113,6 +114,9 @@ public class UserInterface extends javax.swing.JDialog {
         extractSigsToggleButton = new javax.swing.JToggleButton();
         minTrajMSDLabel = new javax.swing.JLabel();
         minTrajMSDTextField = new javax.swing.JTextField();
+        colocalToggleButton = new javax.swing.JToggleButton();
+        colocalThreshLabel = new javax.swing.JLabel();
+        colocalThreshTextField = new javax.swing.JTextField();
         jPanel2 = new javax.swing.JPanel();
         canvas1 = new ImageCanvas(imp);
         previewScrollBar = new javax.swing.JScrollBar();
@@ -278,7 +282,7 @@ public class UserInterface extends javax.swing.JDialog {
         preprocessToggleButton.setSelected(UserVariables.isPreProcess());
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 11;
+        gridBagConstraints.gridy = 13;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
@@ -312,7 +316,7 @@ public class UserInterface extends javax.swing.JDialog {
         gpuToggleButton.setEnabled(analyser.isGpuEnabled());
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 13;
+        gridBagConstraints.gridy = 15;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
@@ -368,7 +372,7 @@ public class UserInterface extends javax.swing.JDialog {
         previewResultsToggleButton.setSelected(UserVariables.isPrevRes());
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 12;
+        gridBagConstraints.gridy = 14;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
@@ -380,7 +384,7 @@ public class UserInterface extends javax.swing.JDialog {
         useCalsToggleButton.setSelected(UserVariables.isUseCals());
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 14;
+        gridBagConstraints.gridy = 16;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
@@ -392,7 +396,7 @@ public class UserInterface extends javax.swing.JDialog {
         extractSigsToggleButton.setSelected(UserVariables.isExtractsigs());
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 15;
+        gridBagConstraints.gridy = 17;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
@@ -421,6 +425,38 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         jPanel1.add(minTrajMSDTextField, gridBagConstraints);
+
+        colocalToggleButton.setText(colocalToggleText);
+        colocalToggleButton.setSelected(UserVariables.isColocal());
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 12;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        jPanel1.add(colocalToggleButton, gridBagConstraints);
+
+        colocalThreshLabel.setText(colocalThreshText);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 11;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        jPanel1.add(colocalThreshLabel, gridBagConstraints);
+
+        colocalThreshTextField.setText(String.valueOf(UserVariables.getColocalThresh()));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 11;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        jPanel1.add(colocalThreshTextField, gridBagConstraints);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
@@ -577,7 +613,7 @@ public class UserInterface extends javax.swing.JDialog {
             UserVariables.setTrajMaxStep(Double.parseDouble(maxTrajStepTextField.getText()));
             UserVariables.setCurveFitTol(Double.parseDouble(c1CurveFitTolTextField.getText()));
 //            UserVariables.setC2CurveFitTol(Double.parseDouble(c2CurveFitTolTextField.getText()));
-//            UserVariables.setColocal(colocaliseToggleButton.isSelected());
+            UserVariables.setColocal(colocalToggleButton.isSelected());
             UserVariables.setPreProcess(preprocessToggleButton.isSelected());
             UserVariables.setC1Index(c1ComboBox.getSelectedIndex());
 //            UserVariables.setC2Index(c2ComboBox.getSelectedIndex());
@@ -586,6 +622,7 @@ public class UserInterface extends javax.swing.JDialog {
             UserVariables.setPrevRes(previewResultsToggleButton.isSelected());
             UserVariables.setUseCals(useCalsToggleButton.isSelected());
             UserVariables.setExtractsigs(extractSigsToggleButton.isSelected());
+            UserVariables.setColocalThresh(Double.parseDouble(colocalThreshTextField.getText()));
 //            printParams();
         } catch (NumberFormatException e) {
             IJ.error("Number formatting error " + e.toString());
@@ -719,6 +756,9 @@ public class UserInterface extends javax.swing.JDialog {
     private java.awt.Canvas canvas1;
     private javax.swing.JLabel chan1MaxThreshLabel;
     private javax.swing.JTextField chan1MaxThreshTextField;
+    private javax.swing.JLabel colocalThreshLabel;
+    private javax.swing.JTextField colocalThreshTextField;
+    private javax.swing.JToggleButton colocalToggleButton;
     private javax.swing.JToggleButton extractSigsToggleButton;
     private javax.swing.JToggleButton gpuToggleButton;
     private javax.swing.JLabel jLabel1;
