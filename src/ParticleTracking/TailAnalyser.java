@@ -318,7 +318,10 @@ public class TailAnalyser {
                     sigChange.putPixelValue(i - step, 0, sdiff / tdiff);
                 }
                 double meanSig = (new FloatStatistics(sigChange)).mean;
-                crossCorrelation.putPixelValue(x, y, CrossCorrelation.crossCorrelation(accel, sigChange, 0, 0, meanAccel, meanSig));
+                crossCorrelation.putPixelValue(x, y,
+                        CrossCorrelation.crossCorrelation((float[]) accel.getPixels(),
+                                (float[]) sigChange.getPixels(), 0, 0, meanAccel, meanSig,
+                                accel.getWidth(), accel.getHeight()));
             }
         }
         IJ.saveAs(new ImagePlus("", crossCorrelation), "TIF", parentDir + "/"
@@ -331,10 +334,28 @@ public class TailAnalyser {
         if (s < minSlices) {
             return;
         }
+        ArrayList<FileWrapper> sortedFiles = new ArrayList();
+        for (int i = 0; i < s; i++) {
+            double t = files.get(i).getTimepoint();
+            if (sortedFiles.size() < 1) {
+                sortedFiles.add(files.get(i));
+            } else {
+                int s2 = sortedFiles.size();
+                int j = 0;
+                while (j < s2 && sortedFiles.get(j).getTimepoint() < t) {
+                    j++;
+                }
+                if (j < s2) {
+                    sortedFiles.add(j, files.get(i));
+                } else {
+                    sortedFiles.add(files.get(i));
+                }
+            }
+        }
         ImageProcessor originalImages[] = new ImageProcessor[s];
         double sigma = Analyse_.SIG_EST_GREEN / UserVariables.getSpatialRes();
         for (int i = 0; i < s; i++) {
-            originalImages[i] = IJ.openImage(files.get(i).getFile().getAbsolutePath()).getProcessor();
+            originalImages[i] = IJ.openImage(sortedFiles.get(i).getFile().getAbsolutePath()).getProcessor();
             (new GaussianBlur()).blurGaussian(originalImages[i], sigma, sigma, 0.01);
             FloatStatistics stats = new FloatStatistics(originalImages[i], ImageStatistics.MEDIAN + ImageStatistics.MIN_MAX, null);
             double median = stats.median;
@@ -357,16 +378,20 @@ public class TailAnalyser {
 //            while (files.get(i).getVelocity() > VEL_BINS[index] && index < VEL_BINS.length - 1) {
 //                index++;
 //            }
-            int index = (int) Math.round(files.get(i).getVelocity() * 100.0);
-            if (index < sigSums.length) {
-                if (sigSums[index] == null) {
-                    sigSums[index] = new ArrayList();
-                    sigStacks[index] = new ImageStack(originalImages[i].getWidth() - 1, 1);
-                }
-                sigSums[index].add(sum);
-                sigStacks[index].addSlice(fp);
+            int index = (int) Math.round(sortedFiles.get(i).getVelocity() * 100.0);
+            int index1 = i > 0 ? i - 1 : 0;
+            int index2 = i < s - 1 ? i + 1 : s - 1;
+            if (sortedFiles.get(index2).getVelocity() >= sortedFiles.get(index1).getVelocity()) {
+                if (index < sigSums.length) {
+                    if (sigSums[index] == null) {
+                        sigSums[index] = new ArrayList();
+                        sigStacks[index] = new ImageStack(originalImages[i].getWidth() - 1, 1);
+                    }
+                    sigSums[index].add(sum);
+                    sigStacks[index].addSlice(fp);
 //                sigSums[index] += sum;
 //                sigCounts[index]++;
+                }
             }
 //            System.out.println(files.get(i).getVelocity() + "," + sum);
         }
@@ -396,7 +421,6 @@ public class TailAnalyser {
 //            sigStacks[i].addSlice(fp);
 //        }
 //    }
-
     ImageStack buildTailAverage(int stackwidth, int stackheight, ArrayList<FileWrapper> subDirs, String channel, boolean randomize) {
         ImageStack output = new ImageStack(stackwidth, stackheight);
         Random r = new Random();

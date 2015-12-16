@@ -215,7 +215,7 @@ public class VolumeAnalysis extends Analyse_ {
                 c1Pix = (byte[]) (new TypeConverter(stack.getProcessor(i + 1).duplicate(), true).convertToByte().getPixels());
                 c2Pix = null;
             }
-            FloatProcessor chan1Proc = preProcess(new ByteProcessor(width, height, c1Pix, null));
+            FloatProcessor chan1Proc = (FloatProcessor)preProcess(new ByteProcessor(width, height, c1Pix, null), SIG_EST_RED);
             ByteProcessor thisC1Max = Utils.findLocalMaxima(xyPartRad, xyPartRad, UserVariables.FOREGROUND, chan1Proc, chan1MaxThresh, true);
             for (c1X = 0; c1X < width; c1X++) {
                 for (c1Y = 0; c1Y < height; c1Y++) {
