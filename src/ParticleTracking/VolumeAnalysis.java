@@ -71,7 +71,7 @@ public class VolumeAnalysis extends Analyse_ {
             int i, count;
             int width = stacks[0].getWidth(), height = stacks[0].getHeight();
 
-            findParticles(1.0, true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], monoChrome);
+            findParticles(1.0, true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1] == null);
 
             TextWindow results = new TextWindow(title + " Results", "X\tY\tFrame\tChannel 1 ("
                     + UserVariables.channels[UserVariables.getC1Index()]
@@ -215,7 +215,7 @@ public class VolumeAnalysis extends Analyse_ {
                 c1Pix = (byte[]) (new TypeConverter(stack.getProcessor(i + 1).duplicate(), true).convertToByte().getPixels());
                 c2Pix = null;
             }
-            FloatProcessor chan1Proc = (FloatProcessor)preProcess(new ByteProcessor(width, height, c1Pix, null), SIG_EST_RED);
+            FloatProcessor chan1Proc = (FloatProcessor) preProcess(new ByteProcessor(width, height, c1Pix, null), SIG_EST_RED);
             ByteProcessor thisC1Max = Utils.findLocalMaxima(xyPartRad, xyPartRad, UserVariables.FOREGROUND, chan1Proc, chan1MaxThresh, true);
             for (c1X = 0; c1X < width; c1X++) {
                 for (c1Y = 0; c1Y < height; c1Y++) {
@@ -229,7 +229,7 @@ public class VolumeAnalysis extends Analyse_ {
                         /*
                          * Remove adjacent Gaussians
                          */
-                        IsoGaussianFitter c1GF = new IsoGaussianFitter(xCoords, yCoords, pixValues,false);
+                        IsoGaussianFitter c1GF = new IsoGaussianFitter(xCoords, yCoords, pixValues, false);
                         c1GF.doFit(SIG_EST_RED);
                         //if (c1GF.getXsig() < (c1SigmaTol * xySigEst)) {
                         if (c1GF.getRSquared() > c1CurveFitTol) {

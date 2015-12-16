@@ -32,7 +32,6 @@ import java.util.ArrayList;
  */
 public class GPU_Analyse extends Analyse_ {
 
-    private final String delimiter = GenUtils.getDelimiter();
     private final int CUDA_FILE_COLS = 5;
 
     static {
@@ -41,11 +40,11 @@ public class GPU_Analyse extends Analyse_ {
 
     private native boolean cudaGaussFitter(String folder, String ext, float spatialRes, float sigmaEst, float maxthresh, float fitTol, int startSlice, int endSlice);
 
-//    public static void main(String args[]) {
-//        GPU_Analyse instance = new GPU_Analyse();
-//        instance.run(null);
-//        System.exit(0);
-//    }
+    public static void main(String args[]) {
+        GPU_Analyse instance = new GPU_Analyse();
+        instance.run(null);
+        System.exit(0);
+    }
 
     public GPU_Analyse() {
         super();
@@ -91,9 +90,8 @@ public class GPU_Analyse extends Analyse_ {
                 int c0t = (int) Math.round(c0CudaData[f].get(row)[0]);
                 if (c0t > currentT) {
                     currentT = c0t;
-                    if (TWO_CHAN) {
+                    if (channel2 != null) {
                         ip2 = preProcess(channel2.getProcessor(currentT + 1), c2sigma);
-//                        (new GaussianBlur()).blurGaussian(ip2, c2sigma, c2sigma, 0.1);
                     }
                 }
                 double x0 = c0CudaData[f].get(row)[1];

@@ -55,14 +55,10 @@ import org.apache.commons.io.FilenameUtils;
  */
 public class Analyse_ implements PlugIn {
 
-//    protected static double hystDiff = 1.25;
     protected static double SIG_EST_RED = 0.128, SIG_EST_GREEN = 0.126;
     protected final double sigmas[] = new double[]{SIG_EST_RED, SIG_EST_GREEN};
-//    protected int xyPartRad; //Radius over which to draw particles in visualisation
     public final int GOSHTASBY_M = 2, GOSHTASBY_N = 4;
     public static final int VERSION = 5;
-//    protected final double LAMBDA = 650.0, //Wavelength of light
-//            NUM_AP = 1.4; //Numerical aperture of system
     private double normVal = 0.99999;
     protected ArrayList<ParticleTrajectory> trajectories = new ArrayList(); //Trajectories of the detected particles
     protected ImagePlus imp; //The active image stack
@@ -73,44 +69,27 @@ public class Analyse_ implements PlugIn {
     protected DecimalFormat floatFormat = new DecimalFormat("0.00");
     String title = "Particle Tracker", ext;
     private String c0 = "C0", c1 = "C1";
-    protected static boolean msdPlot = false, intensPlot = false, trajPlot = false;
-    protected boolean monoChrome;
-//    private final double IMAGE_MAX = 255.0;
     protected final double SEARCH_SCALE = 1.0;
-//    private final double TRACK_LENGTH = 5.0;
     private final double TRACK_WIDTH = 4.0;
     public static final float TRACK_EXT = 1.0f;
     public static final float TRACK_OFFSET = 0.75f;
     protected static File inputDir = new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails\\2015.08.06_Dualview"),
             c0Dir, c1Dir, outputDir,
             calDir = new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails\\2015.08.06_Dualview");
-    private final String delimiter = GenUtils.getDelimiter();
+    protected final String delimiter = GenUtils.getDelimiter();
     String parentDir;
     protected ImagePlus[] inputs;
     protected final String labels[] = {"Channel 1", "Channel 2"};
     protected boolean gpuEnabled = false;
     protected final double MEDIAN_THRESH = 1.5;
-    protected final boolean TWO_CHAN = false;
 
-    public static void main(String args[]) {
-//        if (imp != null) {
-        Analyse_ instance = new Analyse_();
-        instance.run(null);
-//        }
-        System.exit(0);
-    }
-
-    public Analyse_(double spatialRes, double timeRes, double trajMaxStep, double chan1MaxThresh, boolean monoChrome, ImagePlus imp, double scale, double minTrajLength) {
-        UserVariables.setSpatialRes(spatialRes);
-        UserVariables.setTimeRes(timeRes);
-        UserVariables.setTrajMaxStep(trajMaxStep);
-        UserVariables.setChan1MaxThresh(chan1MaxThresh);
-//        Timelapse_Analysis.hystDiff = hystDiff;
-        UserVariables.setMinTrajLength(minTrajLength);
-        this.monoChrome = monoChrome;
-//        this.imp = imp;
-//        this.stacks = imp.getStack();
-    }
+//    public static void main(String args[]) {
+////        if (imp != null) {
+//        Analyse_ instance = new Analyse_();
+//        instance.run(null);
+////        }
+//        System.exit(0);
+//    }
 
     public Analyse_() {
     }
@@ -184,7 +163,7 @@ public class Analyse_ implements PlugIn {
         if (cytoImp == null) {
             return null;
         }
-        ImagePlus sigImp = IJ.openImage();
+        ImagePlus sigImp = null;
         ImageStack cytoStack = cytoImp.getImageStack();
         int cytoSize = cytoStack.getSize();
         ImageStack sigStack = null;
@@ -234,7 +213,6 @@ public class Analyse_ implements PlugIn {
 //            return false;
 //        }
 //        stack = imp.getImageStack();
-        monoChrome = (stacks[1] == null);
         UserInterface ui = new UserInterface(null, true, title, this);
         ui.setVisible(true);
         return ui.isWasOKed();
@@ -248,7 +226,7 @@ public class Analyse_ implements PlugIn {
         parentDir = GenUtils.openResultsDirectory(outputDir + delimiter + title, delimiter);
         String sigc0Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C0", delimiter);
         String sigc1Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C1", delimiter);
-        if (!monoChrome && UserVariables.isUseCals()) {
+        if (!(stacks[1] == null) && UserVariables.isUseCals()) {
             calDir = Utilities.getFolder(outputDir, "Specify directory containing calibrations...", true);
         }
         if (stacks != null) {
@@ -316,7 +294,7 @@ public class Analyse_ implements PlugIn {
 //                        }
                     printData(i, resultSummary, i + 1);
                     traj.printTrajectory(i + 1, results, numFormat, title);
-                    if (stacks[1]!=null && UserVariables.isExtractsigs()) {
+                    if (stacks[1] != null && UserVariables.isExtractsigs()) {
                         ImageStack signals[] = extractTrajSignalValues(traj,
                                 (int) Math.round(UserVariables.getTrackLength() / UserVariables.getSpatialRes()),
                                 (int) Math.round(TRACK_WIDTH / UserVariables.getSpatialRes()),
@@ -485,26 +463,6 @@ public class Analyse_ implements PlugIn {
         if (update) {
             TrajectoryBuilder.updateTrajectories(particles, UserVariables.getTimeRes(), UserVariables.getTrajMaxStep(), spatialRes, true, Utils.getStackMinMax(stacks[0])[1], trajectories);
         }
-    }
-
-    IsoGaussian findC2Particle(int pSize, FloatProcessor chan2Proc, boolean fitGaussian, double sigEst2, int fitRad, double spatialRes, boolean floatingSigma, int[][] c2Points) {
-        IsoGaussian c2Gaussian = null;
-        double[] xCoords = new double[pSize];
-        double[] yCoords = new double[pSize];
-        double[][] pixValues = new double[pSize][pSize];
-        if (c2Points != null) {
-            if (fitGaussian) {
-                Utils.extractValues(xCoords, yCoords, pixValues, c2Points[0][0], c2Points[0][1], chan2Proc);
-                IsoGaussianFitter c2Fitter = new IsoGaussianFitter(xCoords, yCoords, pixValues, floatingSigma);
-                c2Fitter.doFit(sigEst2 / UserVariables.getSpatialRes());
-                c2Gaussian = new IsoGaussian((c2Points[0][0] - fitRad + c2Fitter.getX0()) * spatialRes, (c2Points[0][1] - fitRad + c2Fitter.getY0()) * spatialRes,
-                        c2Fitter.getMag(), c2Fitter.getXsig(), c2Fitter.getYsig(), c2Fitter.getRSquared());
-            } else {
-                c2Gaussian = new IsoGaussian(c2Points[0][0] * spatialRes, c2Points[0][1] * spatialRes,
-                        chan2Proc.getPixelValue(c2Points[0][0], c2Points[0][1]), sigEst2, sigEst2, 0.0);
-            }
-        }
-        return c2Gaussian;
     }
 
     /**
@@ -699,7 +657,7 @@ public class Analyse_ implements PlugIn {
         }
 
         for (i = 0; i < frames; i++) {
-            if (monoChrome) {
+            if (stacks[1] == null) {
                 processor = (new TypeConverter(stack.getProcessor(i + 1).duplicate(), true).convertToByte());
             } else {
                 processor = (new TypeConverter(stack.getProcessor(i + 1).duplicate(), true).convertToRGB());
@@ -735,7 +693,7 @@ public class Analyse_ implements PlugIn {
                 while (current != null) {
                     for (j = frames - 1; j >= lastTP; j--) {
                         processor = outputStack.getProcessor(j + 1);
-                        if (!monoChrome && !preview) {
+                        if (!(stacks[1] == null) && !preview) {
                             processor.setColor(thiscolor);
                         } else {
                             processor.setColor(Color.white);
@@ -763,7 +721,7 @@ public class Analyse_ implements PlugIn {
                     current = current.getLink();
                 }
                 processor = outputStack.getProcessor(lastTP + 1);
-                if (!monoChrome && !preview) {
+                if (!(stacks[1] == null) && !preview) {
                     processor.setColor(thiscolor);
                 } else {
                     processor.setColor(Color.white);
@@ -832,7 +790,7 @@ public class Analyse_ implements PlugIn {
     }
 
     public boolean isMonoChrome() {
-        return monoChrome;
+        return stacks[1] == null;
     }
 
     /**
@@ -1291,15 +1249,13 @@ public class Analyse_ implements PlugIn {
         Rectangle r = new Rectangle(rx - width, ry - width, width2, width2);
         double statsMax = Double.MAX_VALUE;
         IsoGaussian c2Gaussian = null;
-        if (TWO_CHAN && ip2 != null) {
-            ip2.setRoi(r);
-            ImageProcessor ip3 = ip2.crop();
-            FloatStatistics stats1 = new FloatStatistics(ip3, ImageStatistics.MEDIAN, null);
-            ip3.multiply(1.0 / stats1.median);
-            FloatStatistics stats2 = new FloatStatistics(ip3, ImageStatistics.MIN_MAX, null);
-            if (stats2.max > MEDIAN_THRESH) {
-                c2Gaussian = new IsoGaussian(x0, y0, statsMax, sigmas[UserVariables.getC2Index()], sigmas[UserVariables.getC2Index()], 0.0);
-            }
+        ip2.setRoi(r);
+        ImageProcessor ip3 = ip2.crop();
+        FloatStatistics stats1 = new FloatStatistics(ip3, ImageStatistics.MEDIAN, null);
+        ip3.multiply(1.0 / stats1.median);
+        FloatStatistics stats2 = new FloatStatistics(ip3, ImageStatistics.MIN_MAX, null);
+        if (stats2.max > MEDIAN_THRESH) {
+            c2Gaussian = new IsoGaussian(x0, y0, statsMax, sigmas[UserVariables.getC2Index()], sigmas[UserVariables.getC2Index()], 0.0);
         }
         return c2Gaussian;
     }
@@ -1314,9 +1270,6 @@ public class Analyse_ implements PlugIn {
         }
     }
 
-//    public double getSigEst() {
-//        return sigEst;
-//    }
     protected boolean getActiveImages() {
         if (IJ.getInstance() != null) {
             inputs = GenUtils.specifyInputs(labels);
@@ -1325,16 +1278,15 @@ public class Analyse_ implements PlugIn {
             }
             stacks[0] = inputs[0].getImageStack();
             if (inputs[1] == null) {
-                monoChrome = true;
             } else {
                 stacks[1] = inputs[1].getImageStack();
             }
         }
-        if (stacks[0].getProcessor(1).getNChannels() > 1 || (!monoChrome && stacks[1].getProcessor(1).getNChannels() > 1)) {
+        if (stacks[0].getProcessor(1).getNChannels() > 1 || (!(stacks[1] == null) && stacks[1].getProcessor(1).getNChannels() > 1)) {
             GenUtils.error("Monochrome images required.");
             return false;
         }
-        if (!monoChrome && stacks[0].getSize() != stacks[1].getSize()) {
+        if (!(stacks[1] == null) && stacks[0].getSize() != stacks[1].getSize()) {
             GenUtils.error("Stacks must have same number of slices.");
             return false;
         }

@@ -61,7 +61,7 @@ public class PSFEstimator extends Analyse_ {
                     new String(), 1000, 500);
             results.append(imp.getTitle() + "\n\n");
             UserVariables.setnMax(1);
-            ParticleArray particles = findParticles(1.0, true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], monoChrome);
+            ParticleArray particles = findParticles(1.0, true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1] == null);
             for (int i = 0; i < particles.getDepth(); i++) {
                 ArrayList detections = particles.getLevel(i);
                 for (int j = 0; j < detections.size(); j++) {
