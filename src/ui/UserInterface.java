@@ -636,9 +636,9 @@ public class UserInterface extends javax.swing.JDialog {
         ImageStack stacks[] = analyser.getStacks();
         ParticleArray detections;
         if (analyser instanceof GPU_Analyse && UserVariables.isGpu()) {
-            detections = ((GPU_Analyse) analyser).cudaFindParticles1C(true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, stacks[1]);
+            detections = ((GPU_Analyse) analyser).cudaFindParticles(true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, stacks[1]);
         } else {
-            detections = analyser.findParticles(true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], true, UserVariables.isColocal(), true, UserVariables.getC2CurveFitTol());
+            detections = analyser.findParticles(true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1]);
         }
         if (detections != null) {
             ImageProcessor output = Utils.updateImage(stacks[0], stacks[1], previewScrollBar.getValue());

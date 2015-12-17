@@ -6,11 +6,6 @@ package ParticleTracking;
 
 import IAClasses.IsoGaussian;
 import IAClasses.Utils;
-import ParticleTracking.IsoGaussianFitter;
-import ParticleTracking.Particle;
-import ParticleTracking.ParticleArray;
-import ParticleTracking.ParticleTrajectory;
-import ParticleTracking.UserVariables;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -22,6 +17,7 @@ import ij.process.ImageProcessor;
 import ij.process.TypeConverter;
 import ij.text.TextWindow;
 import java.awt.Rectangle;
+import java.io.File;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,6 +36,7 @@ public class VolumeAnalysis extends Analyse_ {
     double c1CurveFitTol = UserVariables.getC1CurveFitTol();
     boolean colocal = UserVariables.isColocal();
     private int xyPartRad;
+    ImagePlus imp;
 
 //    public static void main(String args[]) {
 //        File image = Utilities.getFolder(new File("C:\\Users\\barry05\\Desktop\\Tracking Test Sequences"), null);
@@ -65,7 +62,7 @@ public class VolumeAnalysis extends Analyse_ {
         this.stacks[0] = imp.getImageStack();
     }
 
-    public void analyse() {
+    public void analyse(File inputDir) {
         if (stacks[0] != null) {
             IJ.register(this.getClass());
             int i, count;
@@ -101,7 +98,7 @@ public class VolumeAnalysis extends Analyse_ {
                 }
             }
             n = trajectories.size();
-            mapTrajectories(stacks[0], trajectories, spatialRes, minTrajLength, timeRes, true, 0, trajectories.size() - 1, 1, false, calcParticleRadius(spatialRes, sigmas[UserVariables.getC1Index()]));
+            mapTrajectories(stacks[0], trajectories, spatialRes, minTrajLength, timeRes, true, 0, trajectories.size() - 1, 1, false, calcParticleRadius(spatialRes, SIGMAS[UserVariables.getC1Index()]));
             ArrayList distributions = new ArrayList();
             xyPartRad = calcParticleRadius(spatialRes, SIG_EST_RED);
             int cropRad = 4 * xyPartRad + 1;

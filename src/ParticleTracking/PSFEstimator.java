@@ -7,11 +7,6 @@ package ParticleTracking;
 import IAClasses.IsoGaussian;
 import IAClasses.ProgressDialog;
 import IAClasses.Utils;
-import ParticleTracking.FloatingMultiGaussFitter;
-import ParticleTracking.Particle;
-import ParticleTracking.ParticleArray;
-import ParticleTracking.UserVariables;
-import UtilClasses.Utilities;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -32,6 +27,7 @@ public class PSFEstimator extends Analyse_ {
 
     private TextWindow results;
     private String psfTitle = "PSF Estimator v1.0";
+    ImagePlus imp;
 
 //    public static void main(String args[]) {
 //        File image = Utilities.getFolder(new File("C:\\Users\\barry05\\Desktop\\Test Data Sets\\PSF Estimator\\Test 1"), null, true);
@@ -51,7 +47,7 @@ public class PSFEstimator extends Analyse_ {
         this.imp = imp;
     }
 
-    public void analyse() {
+    public void analyse(File inputDir) {
         stacks = new ImageStack[2];
         stacks[0] = imp.getImageStack();
         if (stacks[0] != null) {

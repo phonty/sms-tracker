@@ -171,9 +171,8 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
             colocalisation = 0;
             count = 0;
             sepsum = 0.0;
-            ParticleArray curves = analyser.findParticles(coFactor, false, i, i,
-                    UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], true, SIG_EST_RED,
-                    SIG_EST_GREEN, UserVariables.isColocal(), true, floatingSigma, UserVariables.getC1CurveFitTol(), floatingSigma);
+            ParticleArray curves = analyser.findParticles(false, i, i,
+                    UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], SIG_EST_RED, true, floatingSigma);
             FloatProcessor ch1proc = new FloatProcessor(width, height);
             FloatProcessor ch2proc = new FloatProcessor(width, height);
             ArrayList detections = curves.getLevel(0);

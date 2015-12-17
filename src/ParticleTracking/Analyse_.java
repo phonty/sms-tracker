@@ -56,28 +56,23 @@ import org.apache.commons.io.FilenameUtils;
 public class Analyse_ implements PlugIn {
 
     protected static double SIG_EST_RED = 0.128, SIG_EST_GREEN = 0.126;
-    protected final double sigmas[] = new double[]{SIG_EST_RED, SIG_EST_GREEN};
+    protected final double[] SIGMAS = new double[]{SIG_EST_RED, SIG_EST_GREEN};
     public final int GOSHTASBY_M = 2, GOSHTASBY_N = 4;
     public static final int VERSION = 5;
-    private double normVal = 0.99999;
+    private final double NORM_VAL = 0.99999;
     protected ArrayList<ParticleTrajectory> trajectories = new ArrayList(); //Trajectories of the detected particles
-    protected ImagePlus imp; //The active image stack
     protected ImageStack stacks[];
     private long startTime;
     protected DecimalFormat numFormat = new DecimalFormat("0.000");
     protected DecimalFormat intFormat = new DecimalFormat("000");
-    protected DecimalFormat floatFormat = new DecimalFormat("0.00");
-    String title = "Particle Tracker", ext;
-    private String c0 = "C0", c1 = "C1";
-    protected final double SEARCH_SCALE = 1.0;
+    protected String title = "Particle Tracker", ext;
+    private final String C_0 = "C0", C_1 = "C1";
     private final double TRACK_WIDTH = 4.0;
-    public static final float TRACK_EXT = 1.0f;
-    public static final float TRACK_OFFSET = 0.75f;
-    protected static File inputDir = new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails\\2015.08.06_Dualview"),
-            c0Dir, c1Dir, outputDir,
+    public final float TRACK_EXT = 1.0f;
+    public final float TRACK_OFFSET = 0.75f;
+    protected static File c0Dir, c1Dir,
             calDir = new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails\\2015.08.06_Dualview");
     protected final String delimiter = GenUtils.getDelimiter();
-    String parentDir;
     protected ImagePlus[] inputs;
     protected final String labels[] = {"Channel 1", "Channel 2"};
     protected boolean gpuEnabled = false;
@@ -90,7 +85,6 @@ public class Analyse_ implements PlugIn {
 ////        }
 //        System.exit(0);
 //    }
-
     public Analyse_() {
     }
 
@@ -108,7 +102,7 @@ public class Analyse_ implements PlugIn {
      * Implements run method from {@link PlugIn}.
      */
     public void run(String arg) {
-//        Utilities.setLookAndFeel(UserInterface.class);        
+        File inputDir=null;
         title = title + "_v" + VERSION + "." + intFormat.format(Revision.Revision.revisionNumber);
         GenericDialog gd = new GenericDialog(title);
         gd.addNumericField("SIG_EST_RED:", SIG_EST_RED, 3);
@@ -130,15 +124,12 @@ public class Analyse_ implements PlugIn {
             } else {
                 return;
             }
-            if (inputDir == null) {
-                return;
-            }
-            c0Dir = new File(inputDir.getAbsolutePath() + delimiter + c0);
+            c0Dir = new File(inputDir.getAbsolutePath() + delimiter + C_0);
             ImagePlus imp = Utils.buildStack(c0Dir);
             stacks[0] = imp.getImageStack();
 //        Utils.normaliseStack(stacks[0], IMAGE_MAX);
             this.ext = imp.getTitle();
-            c1Dir = new File(inputDir.getAbsolutePath() + delimiter + c1);
+            c1Dir = new File(inputDir.getAbsolutePath() + delimiter + C_1);
             if (c1Dir.exists()) {
                 stacks[1] = (Utils.buildStack(c1Dir)).getImageStack();
 //            Utils.normaliseStack(stacks[1], IMAGE_MAX);
@@ -148,7 +139,7 @@ public class Analyse_ implements PlugIn {
 //            imp = WindowManager.getCurrentImage();
 //        }
         if (showDialog()) {
-            analyse();
+            analyse(inputDir);
         }
         try {
             FileUtils.deleteDirectory(c0Dir);
@@ -163,7 +154,7 @@ public class Analyse_ implements PlugIn {
         if (cytoImp == null) {
             return null;
         }
-        ImagePlus sigImp = null;
+        ImagePlus sigImp = IJ.openImage();
         ImageStack cytoStack = cytoImp.getImageStack();
         int cytoSize = cytoStack.getSize();
         ImageStack sigStack = null;
@@ -184,7 +175,7 @@ public class Analyse_ implements PlugIn {
         double sum = 0.0;
         int nPixels = cytoStats2.pixelCount;
         int thresh = 0;
-        while (sum < nPixels * normVal && thresh < histogram.length) {
+        while (sum < nPixels * NORM_VAL && thresh < histogram.length) {
             sum += histogram[thresh++];
         }
         double normFactor = 100.0 / thresh;
@@ -195,11 +186,11 @@ public class Analyse_ implements PlugIn {
         }
         String parent = IJ.getDirectory("current");
         File seriesFolder = GenUtils.createDirectory(parent + FilenameUtils.getBaseName(cytoImp.getTitle()), false);
-        File c0Folder = GenUtils.createDirectory(seriesFolder.getAbsolutePath() + delimiter + c0, true);
+        File c0Folder = GenUtils.createDirectory(seriesFolder.getAbsolutePath() + delimiter + C_0, true);
         Utils.saveStackAsSeries(cytoStack, c0Folder.getAbsolutePath() + delimiter,
                 "TIF", intFormat);
         if (sigStack != null) {
-            File c1Folder = GenUtils.createDirectory(seriesFolder.getAbsolutePath() + delimiter + c1, true);
+            File c1Folder = GenUtils.createDirectory(seriesFolder.getAbsolutePath() + delimiter + C_1, true);
             Utils.saveStackAsSeries(sigStack, c1Folder.getAbsolutePath() + delimiter,
                     "TIF", intFormat);
         }
@@ -221,9 +212,9 @@ public class Analyse_ implements PlugIn {
     /**
      * Analyses the {@link ImageStack} specified by <code>stack</code>.
      */
-    public void analyse() {
-        outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
-        parentDir = GenUtils.openResultsDirectory(outputDir + delimiter + title, delimiter);
+    public void analyse(File inputDir) {
+        File outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
+        String parentDir = GenUtils.openResultsDirectory(outputDir + delimiter + title, delimiter);
         String sigc0Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C0", delimiter);
         String sigc1Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C1", delimiter);
         if (!(stacks[1] == null) && UserVariables.isUseCals()) {
@@ -326,7 +317,7 @@ public class Analyse_ implements PlugIn {
             }
             ImageStack maps = mapTrajectories((new RGBStackMerge()).mergeStacks(stacks[0].getWidth(), stacks[0].getHeight(), stacks[0].getSize(), stacks[0], stacks[1], null, true),
                     trajectories, UserVariables.getSpatialRes(), UserVariables.getMinTrajLength(),
-                    UserVariables.getTimeRes(), true, 0, trajectories.size() - 1, 1, false, calcParticleRadius(UserVariables.getSpatialRes(), sigmas[UserVariables.getC1Index()]));
+                    UserVariables.getTimeRes(), true, 0, trajectories.size() - 1, 1, false, calcParticleRadius(UserVariables.getSpatialRes(), SIGMAS[UserVariables.getC1Index()]));
             resultSummary.append("\nAnalysis Time (s): " + numFormat.format((System.currentTimeMillis() - startTime) / 1000.0));
             results.append(toString());
             results.setVisible(true);
@@ -342,7 +333,7 @@ public class Analyse_ implements PlugIn {
     }
 
     protected ParticleArray findParticles() {
-        return findParticles(SEARCH_SCALE, true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], false, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], UserVariables.isColocal(), true, true, UserVariables.getC2CurveFitTol(), false);
+        return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], SIGMAS[UserVariables.getC1Index()], true, false);
     }
 
     /**
@@ -362,12 +353,12 @@ public class Analyse_ implements PlugIn {
         return fp;
     }
 
-    public ParticleArray findParticles(boolean update, int startSlice, int endSlice, double c1FitTol, ImageStack channel1, ImageStack channel2, boolean fitC2Gaussian, boolean colocal, boolean floatingSigma, double c2FitTol) {
-        return findParticles(SEARCH_SCALE, update, startSlice, endSlice, c1FitTol,
-                channel1, channel2, fitC2Gaussian, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], colocal, true, floatingSigma, c2FitTol, false);
+    public ParticleArray findParticles(boolean update, int startSlice, int endSlice, double c1FitTol, ImageStack channel1, ImageStack channel2) {
+        return findParticles(update, startSlice, endSlice, c1FitTol,
+                channel1, channel2, SIGMAS[UserVariables.getC1Index()], true, false);
     }
 
-    public ParticleArray findParticles(double searchScale, boolean update, int startSlice, int endSlice, double c1FitTol, ImageStack channel1, ImageStack channel2, boolean fitC2Gaussian, double sigEst1, double sigEst2, boolean colocal, boolean showProgress, boolean c2FloatingSigma, double c2FitTol, boolean c1FloatingSigma) {
+    public ParticleArray findParticles(boolean update, int startSlice, int endSlice, double c1FitTol, ImageStack channel1, ImageStack channel2, double sigEst1, boolean showProgress, boolean c1FloatingSigma) {
         if (channel1 == null) {
             return null;
         }
@@ -394,9 +385,9 @@ public class Analyse_ implements PlugIn {
 //            ByteProcessor oslice = new ByteProcessor(detect_output.getWidth(), detect_output.getHeight());
             IJ.freeMemory();
             progress.updateProgress(i - startSlice, arraySize);
-            FloatProcessor chan1Proc = (FloatProcessor) preProcess(channel1.getProcessor(i + 1).duplicate(), sigmas[UserVariables.getC1Index()]);
+            FloatProcessor chan1Proc = (FloatProcessor) preProcess(channel1.getProcessor(i + 1).duplicate(), SIGMAS[UserVariables.getC1Index()]);
 //            Utils.normalise(chan1Proc, 1.0);
-            FloatProcessor chan2Proc = (channel2 != null) ? (FloatProcessor) preProcess(channel2.getProcessor(i + 1).duplicate(), sigmas[UserVariables.getC2Index()]) : null;
+            FloatProcessor chan2Proc = (channel2 != null) ? (FloatProcessor) preProcess(channel2.getProcessor(i + 1).duplicate(), SIGMAS[UserVariables.getC2Index()]) : null;
             if (chan2Proc != null) {
 //                Utils.normalise(chan2Proc, 1.0);
             }
@@ -745,7 +736,7 @@ public class Analyse_ implements PlugIn {
     }
 
     public int calcParticleRadius(double spatialRes) {
-        return calcParticleRadius(spatialRes, sigmas[UserVariables.getC1Index()]);
+        return calcParticleRadius(spatialRes, SIGMAS[UserVariables.getC1Index()]);
     }
 
     public int calcParticleRadius(double spatialRes, double sigEst) {
@@ -825,7 +816,7 @@ public class Analyse_ implements PlugIn {
         ProgressDialog progress = new ProgressDialog(null, "Extracting Signal Areas " + count + "...", false, title, false);
         progress.setVisible(true);
         double radius = calcParticleRadius(UserVariables.getSpatialRes(),
-                sigmas[UserVariables.getC1Index()]) * UserVariables.getSpatialRes();
+                SIGMAS[UserVariables.getC1Index()]) * UserVariables.getSpatialRes();
         for (int i = 0; i < size; i++) {
             progress.updateProgress(i, size);
             Particle current = sigStartP;
@@ -931,7 +922,7 @@ public class Analyse_ implements PlugIn {
                 if (UserVariables.isUseCals()) {
                     ImageStack virStack = new ImageStack(virTemps[j].getWidth(), virTemps[j].getHeight());
                     virStack.addSlice(virTemps[j]);
-                    ParticleArray particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false, false, false, 0.0, false);
+                    ParticleArray particles = findParticles(false, 0, 0, 0.0, virStack, null, SIGMAS[UserVariables.getC1Index()], false, false);
                     ArrayList<Particle> detections = particles.getLevel(0);
                     double mindist = Double.MAX_VALUE;
                     int minindex = -1;
@@ -949,7 +940,7 @@ public class Analyse_ implements PlugIn {
                 }
                 if (!UserVariables.isUseCals() || alignmentParticle != null) {
                     String label = Float.toString(virTemps[j].getPixelValue(0, 0))
-                            + "-" + floatFormat.format(virTemps[j].getPixelValue(1, 0));
+                            + "-" + numFormat.format(virTemps[j].getPixelValue(1, 0));
                     virTemps[j].setInterpolate(true);
                     virTemps[j].setInterpolationMethod(ImageProcessor.BICUBIC);
                     sigTemps[j].setInterpolate(true);
@@ -974,97 +965,6 @@ public class Analyse_ implements PlugIn {
             }
         }
         progress.dispose();
-        return output;
-    }
-
-    ImageStack[] extractStaticSignalValues(ParticleTrajectory ptraj, int signalWidth) {
-        TextReader reader = new TextReader();
-        ImageProcessor xcoeffs = null, ycoeffs = null, coords = null;
-        if (UserVariables.isUseCals()) {
-            xcoeffs = reader.open(calDir + delimiter + "xcoeffs.txt");
-            ycoeffs = reader.open(calDir + delimiter + "ycoeffs.txt");
-            coords = reader.open(calDir + delimiter + "coords.txt");
-        }
-        Particle sigStartP = ptraj.getEnd();
-        if (signalWidth % 2 == 0) {
-            signalWidth++;
-        }
-        int size = ptraj.getSize();
-        ImageProcessor[] sigTemps = new ImageProcessor[size];
-        ImageProcessor[] virTemps = new ImageProcessor[size];
-        Particle current = sigStartP;
-        for (int f = size - 1; f >= 0; f--) {
-            double xr = current.getX();
-            double yr = current.getY();
-            double xg = xr;
-            double yg = yr;
-            if (UserVariables.isUseCals()) {
-                xg = goshtasbyEval(xcoeffs, coords, xr, yr);
-                yg = goshtasbyEval(ycoeffs, coords, xr, yr);
-            }
-            ImageProcessor sigIP = stacks[1].getProcessor(current.getTimePoint() + 1);
-            ImageProcessor virIP = stacks[0].getProcessor(current.getTimePoint() + 1);
-            FloatProcessor sigRegion = new FloatProcessor(2 * signalWidth + 1, 2 * signalWidth + 1);
-            FloatProcessor virRegion = new FloatProcessor(2 * signalWidth + 1, 2 * signalWidth + 1);
-            sigIP.setInterpolate(true);
-            sigIP.setInterpolationMethod(ImageProcessor.BICUBIC);
-            virIP.setInterpolate(true);
-            virIP.setInterpolationMethod(ImageProcessor.BICUBIC);
-            for (int j = 0; j < sigRegion.getHeight(); j++) {
-                for (int i = 0; i < sigRegion.getWidth(); i++) {
-                    sigRegion.putPixelValue(i, j, sigIP.getInterpolatedValue(xg / UserVariables.getSpatialRes() - signalWidth + i,
-                            yg / UserVariables.getSpatialRes() - signalWidth + j));
-                    virRegion.putPixelValue(i, j, virIP.getInterpolatedValue(xr / UserVariables.getSpatialRes() - signalWidth + i,
-                            yr / UserVariables.getSpatialRes() - signalWidth + j));
-                }
-            }
-            sigTemps[f] = sigRegion;
-            virTemps[f] = virRegion;
-            IJ.saveAs(new ImagePlus("", virRegion), "TIF", "C:\\Users\\barry05\\Desktop\\virRegions\\" + current.getTimePoint() + ".tif");
-            if (virTemps[f] != null) {
-                virTemps[f].putPixelValue(0, 0, current.getTimePoint());
-            }
-            current = current.getLink();
-        }
-        int xc = signalWidth;
-        int yc = signalWidth;
-        ImageStack output[] = new ImageStack[2];
-        output[0] = new ImageStack(2 * signalWidth + 1, 2 * signalWidth + 1);
-        output[1] = new ImageStack(2 * signalWidth + 1, 2 * signalWidth + 1);
-        for (int j = 0; j < size; j++) {
-            if (virTemps[j] != null && sigTemps[j] != null) {
-                ParticleArray particles = null;
-                if (UserVariables.isUseCals()) {
-                    ImageStack virStack = new ImageStack(virTemps[j].getWidth(), virTemps[j].getHeight());
-                    virStack.addSlice(virTemps[j]);
-                    particles = findParticles(0.0, false, 0, 0, 0.0, virStack, null, true, sigmas[UserVariables.getC1Index()], sigmas[1 - UserVariables.getC1Index()], false, true, false, 0.0, false);
-                }
-                if (!UserVariables.isUseCals() || !particles.getLevel(0).isEmpty()) {
-                    String timepoint = Float.toString(virTemps[j].getPixelValue(0, 0));
-                    virTemps[j].setInterpolate(true);
-                    virTemps[j].setInterpolationMethod(ImageProcessor.BICUBIC);
-                    sigTemps[j].setInterpolate(true);
-                    sigTemps[j].setInterpolationMethod(ImageProcessor.BICUBIC);
-                    double xinc = 0.0;
-                    double yinc = 0.0;
-                    if (UserVariables.isUseCals()) {
-                        Particle p = particles.getLevel(0).get(0);
-                        xinc = p.getC1Gaussian().getX() / UserVariables.getSpatialRes() - xc;
-                        yinc = p.getC1Gaussian().getY() / UserVariables.getSpatialRes() - yc;
-                    }
-                    virTemps[j].translate(-xinc, -yinc);
-                    sigTemps[j].translate(-xinc, -yinc);
-                    FloatProcessor sigSlice = new FloatProcessor(2 * signalWidth + 1, 2 * signalWidth + 1);
-                    FloatBlitter sigBlitter = new FloatBlitter(sigSlice);
-                    sigBlitter.copyBits(sigTemps[j], 0, 0, Blitter.COPY);
-                    output[1].addSlice(timepoint, sigSlice);
-                    FloatProcessor virSlice = new FloatProcessor(2 * signalWidth + 1, 2 * signalWidth + 1);
-                    FloatBlitter virBlitter = new FloatBlitter(virSlice);
-                    virBlitter.copyBits(virTemps[j], 0, 0, Blitter.COPY);
-                    output[0].addSlice(timepoint, virSlice);
-                }
-            }
-        }
         return output;
     }
 
@@ -1230,10 +1130,6 @@ public class Analyse_ implements PlugIn {
         paramStream.close();
     }
 
-    public static File getDirectory() {
-        return outputDir;
-    }
-
     public boolean isGpuEnabled() {
         return gpuEnabled;
     }
@@ -1255,7 +1151,7 @@ public class Analyse_ implements PlugIn {
         ip3.multiply(1.0 / stats1.median);
         FloatStatistics stats2 = new FloatStatistics(ip3, ImageStatistics.MIN_MAX, null);
         if (stats2.max > MEDIAN_THRESH) {
-            c2Gaussian = new IsoGaussian(x0, y0, statsMax, sigmas[UserVariables.getC2Index()], sigmas[UserVariables.getC2Index()], 0.0);
+            c2Gaussian = new IsoGaussian(x0, y0, statsMax, SIGMAS[UserVariables.getC2Index()], SIGMAS[UserVariables.getC2Index()], 0.0);
         }
         return c2Gaussian;
     }
