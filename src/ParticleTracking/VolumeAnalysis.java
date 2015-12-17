@@ -70,20 +70,14 @@ public class VolumeAnalysis extends Analyse_ {
 
             findParticles(1.0, true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1] == null);
 
-            TextWindow results = new TextWindow(title + " Results", "X\tY\tFrame\tChannel 1 ("
-                    + UserVariables.channels[UserVariables.getC1Index()]
-                    + ")\tChannel 2 (" + UserVariables.channels[UserVariables.getC2Index()]
-                    + ")\tChannel 2 " + '\u03C3' + "x\tChannel 2 " + '\u03C3' + "y\t" + '\u03B8',
+            TextWindow results = new TextWindow(title + " Results", "X\tY\tFrame\tChannel 1\tChannel 2\tChannel 2 " + '\u03C3' + "x\tChannel 2 " + '\u03C3' + "y\t" + '\u03B8',
                     new String(), 1000, 500);
             results.append(imp.getTitle() + "\n\n");
             TextWindow resultSummary = new TextWindow(title + " Results Summary",
                     "Particle\tType\t% Colocalisation\tDuration (s)\tDisplacement (" + IJ.micronSymbol
                     + "m)\tVelocity (" + IJ.micronSymbol + "m/s)\tDirectionality\tDiffusion Coefficient ("
                     + IJ.micronSymbol + "m^2/s)" + "\tFractal Dimension"
-                    + "\tFluorescence Ratio ("
-                    + UserVariables.channels[UserVariables.getC2Index()] + "/"
-                    + UserVariables.channels[UserVariables.getC1Index()]
-                    + ")\tAngle Spread\tStep Spread\tDC\tCurvature\tC2 Fluor Area\tC2 Fluor Skew",
+                    + "\tFluorescence Ratio\tAngle Spread\tStep Spread\tDC\tCurvature\tC2 Fluor Area\tC2 Fluor Skew",
                     new String(), 1200, 500);
             resultSummary.append(imp.getTitle() + "\n\n");
 
@@ -98,9 +92,9 @@ public class VolumeAnalysis extends Analyse_ {
                 }
             }
             n = trajectories.size();
-            mapTrajectories(stacks[0], trajectories, spatialRes, minTrajLength, timeRes, true, 0, trajectories.size() - 1, 1, false, calcParticleRadius(spatialRes, SIGMAS[UserVariables.getC1Index()]));
+            mapTrajectories(stacks[0], trajectories, spatialRes, minTrajLength, timeRes, true, 0, trajectories.size() - 1, 1, false, calcParticleRadius(spatialRes, UserVariables.getSigEstRed() ));
             ArrayList distributions = new ArrayList();
-            xyPartRad = calcParticleRadius(spatialRes, SIG_EST_RED);
+            xyPartRad = calcParticleRadius(spatialRes, UserVariables.getSigEstRed());
             int cropRad = 4 * xyPartRad + 1;
             for (i = 0, count = 1; i < n; i++) {
                 ParticleTrajectory traj = (ParticleTrajectory) trajectories.get(i);
@@ -189,7 +183,7 @@ public class VolumeAnalysis extends Analyse_ {
             return null;
         }
 //        SIG_EST_RED = (0.21 * 650.0 / 1.4) / (spatialRes * 1000.0);
-        xyPartRad = (int) Math.round(2.0 * SIG_EST_RED / 0.95);
+        xyPartRad = (int) Math.round(2.0 * UserVariables.getSigEstRed() / 0.95);
         int i, noOfImages = stack.getSize(), width = stack.getWidth(), height = stack.getHeight(),
                 size = width * height, arraySize = endSlice - startSlice + 1;
         byte c1Pix[] = new byte[size], c2Pix[] = new byte[size],
@@ -206,13 +200,13 @@ public class VolumeAnalysis extends Analyse_ {
             if (!monoChrome) {
                 byte[][] tempPix = new byte[3][size];
                 ((ColorProcessor) stack.getProcessor(i + 1)).getRGB(tempPix[0], tempPix[1], tempPix[2]);
-                c1Pix = tempPix[UserVariables.getC1Index()];
-                c2Pix = tempPix[UserVariables.getC2Index()];
+                c1Pix = tempPix[0];
+                c2Pix = tempPix[1];
             } else {
                 c1Pix = (byte[]) (new TypeConverter(stack.getProcessor(i + 1).duplicate(), true).convertToByte().getPixels());
                 c2Pix = null;
             }
-            FloatProcessor chan1Proc = (FloatProcessor) preProcess(new ByteProcessor(width, height, c1Pix, null), SIG_EST_RED);
+            FloatProcessor chan1Proc = (FloatProcessor) preProcess(new ByteProcessor(width, height, c1Pix, null), UserVariables.getSigEstRed());
             ByteProcessor thisC1Max = Utils.findLocalMaxima(xyPartRad, xyPartRad, UserVariables.FOREGROUND, chan1Proc, chan1MaxThresh, true);
             for (c1X = 0; c1X < width; c1X++) {
                 for (c1Y = 0; c1Y < height; c1Y++) {
@@ -227,15 +221,14 @@ public class VolumeAnalysis extends Analyse_ {
                          * Remove adjacent Gaussians
                          */
                         IsoGaussianFitter c1GF = new IsoGaussianFitter(xCoords, yCoords, pixValues, false);
-                        c1GF.doFit(SIG_EST_RED);
+                        c1GF.doFit(UserVariables.getSigEstRed());
                         //if (c1GF.getXsig() < (c1SigmaTol * xySigEst)) {
                         if (c1GF.getRSquared() > c1CurveFitTol) {
                             c1Gaussian = new IsoGaussian((c1GF.getX0() + c1X - xyPartRad) * spatialRes,
                                     (c1GF.getY0() + c1Y - xyPartRad) * spatialRes, c1GF.getMag(),
                                     c1GF.getXsig(), c1GF.getYsig(), c1GF.getRSquared() - c1CurveFitTol);
                         } else {
-                            c1Gaussian = new IsoGaussian(c1X * spatialRes, c1Y * spatialRes, chan1Proc.getPixelValue(c1X, c1Y),
-                                    SIG_EST_RED, SIG_EST_RED, c1GF.getRSquared() - c1CurveFitTol);
+                            c1Gaussian = new IsoGaussian(c1X * spatialRes, c1Y * spatialRes, chan1Proc.getPixelValue(c1X, c1Y), UserVariables.getSigEstRed(), UserVariables.getSigEstRed(), c1GF.getRSquared() - c1CurveFitTol);
                         }
                         /*
                          * A particle has been isolated - trajectories need to

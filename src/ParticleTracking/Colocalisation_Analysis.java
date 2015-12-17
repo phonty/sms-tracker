@@ -44,7 +44,6 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
 //        inputs[1] = IJ.openImage();
 //        (new Colocalisation_Analysis(inputs)).run(null);
 //    }
-
     public Colocalisation_Analysis() {
     }
 
@@ -82,7 +81,7 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
         if (showDialog()) {
             UserVariables.setPreProcess(true);
             Analyse_ analyser = new Analyse_(stacks);
-            analyser.calcParticleRadius(UserVariables.getSpatialRes(), SIG_EST_RED);
+            analyser.calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
             UserVariables.setnMax(1);
             (buildOutput(analyser)).show();
         }
@@ -111,8 +110,8 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
 //            dialog.addCheckbox("Include Partial Detections", partialDetect);
             dialog.showDialog();
             if (!dialog.wasCanceled()) {
-                UserVariables.setC1Index(0);
-                UserVariables.setC2Index(1);
+//                UserVariables.setC1Index(0);
+//                UserVariables.setC2Index(1);
                 UserVariables.setSpatialRes(dialog.getNextNumber() / 1000.0);
                 UserVariables.setChan1MaxThresh(dialog.getNextNumber());
                 UserVariables.setChan2MaxThresh(dialog.getNextNumber());
@@ -137,20 +136,19 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
         return true;
     }
 
-    byte[] outPix(ImageProcessor ch1, ImageProcessor ch2, int colour) {
-        ImageProcessor fch1 = (new TypeConverter(ch1, true)).convertToByte();
-        ImageProcessor fch2 = (new TypeConverter(ch2, true)).convertToByte();
-        if (fch1 == null || fch2 == null) {
-            return null;
-        } else if (UserVariables.getC1Index() == colour) {
-            return (byte[]) fch1.getPixels();
-        } else if (UserVariables.getC2Index() == colour) {
-            return (byte[]) fch2.getPixels();
-        } else {
-            return (byte[]) (new ByteProcessor(fch1.getWidth(), fch1.getHeight())).getPixels();
-        }
-    }
-
+//    byte[] outPix(ImageProcessor ch1, ImageProcessor ch2, int colour) {
+//        ImageProcessor fch1 = (new TypeConverter(ch1, true)).convertToByte();
+//        ImageProcessor fch2 = (new TypeConverter(ch2, true)).convertToByte();
+//        if (fch1 == null || fch2 == null) {
+//            return null;
+//        } else if (UserVariables.getC1Index() == colour) {
+//            return (byte[]) fch1.getPixels();
+//        } else if (UserVariables.getC2Index() == colour) {
+//            return (byte[]) fch2.getPixels();
+//        } else {
+//            return (byte[]) (new ByteProcessor(fch1.getWidth(), fch1.getHeight())).getPixels();
+//        }
+//    }
     ImagePlus buildOutput(Analyse_ analyser) {
         if (stacks == null) {
             return null;
@@ -172,7 +170,7 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
             count = 0;
             sepsum = 0.0;
             ParticleArray curves = analyser.findParticles(false, i, i,
-                    UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], SIG_EST_RED, true, floatingSigma);
+                    UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], UserVariables.getSigEstRed(), true, floatingSigma);
             FloatProcessor ch1proc = new FloatProcessor(width, height);
             FloatProcessor ch2proc = new FloatProcessor(width, height);
             ArrayList detections = curves.getLevel(0);
@@ -217,8 +215,8 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
                     + "\t" + numFormat.format(1000.0 * sepsum / count));
 
             ColorProcessor output = new ColorProcessor(width, height);
-            output.setRGB(outPix(ch1proc, ch2proc, RED), outPix(ch1proc, ch2proc, GREEN),
-                    outPix(ch1proc, ch2proc, BLUE));
+            output.setRGB((byte[]) ch1proc.getPixels(), (byte[]) ch2proc.getPixels(),
+                    null);
             outStack.addSlice("" + i, output);
         }
         progress.dispose();

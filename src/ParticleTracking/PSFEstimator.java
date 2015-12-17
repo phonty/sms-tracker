@@ -51,7 +51,7 @@ public class PSFEstimator extends Analyse_ {
         stacks = new ImageStack[2];
         stacks[0] = imp.getImageStack();
         if (stacks[0] != null) {
-            calcParticleRadius(UserVariables.getSpatialRes(), SIG_EST_RED);
+            calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
             IJ.register(this.getClass());
             results = new TextWindow(psfTitle + " Results", "frame\tx (" + IJ.micronSymbol + "m)\ty (" + IJ.micronSymbol + "m)\tA\tsigma (nm)\tR^2",
                     new String(), 1000, 500);
@@ -98,7 +98,7 @@ public class PSFEstimator extends Analyse_ {
         int i, noOfImages = stack.getSize(), width = stack.getWidth(), height = stack.getHeight(),
                 arraySize = endSlice - startSlice + 1;
         byte c1Pix[];
-        int xyPartRad = calcParticleRadius(UserVariables.getSpatialRes(), SIG_EST_RED);
+        int xyPartRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
         int fitRad = (int) Math.ceil(xyPartRad * 4.0 / 3.0);
         int c1X, c1Y, pSize = 2 * fitRad + 1;
         double[] xCoords = new double[pSize];
@@ -112,7 +112,7 @@ public class PSFEstimator extends Analyse_ {
             IJ.freeMemory();
             progress.updateProgress(i - startSlice, arraySize);
             c1Pix = (byte[]) (new TypeConverter(stack.getProcessor(i + 1).duplicate(), true).convertToByte().getPixels());
-            FloatProcessor chan1Proc = (FloatProcessor) preProcess(new ByteProcessor(width, height, c1Pix, null), SIG_EST_RED);
+            FloatProcessor chan1Proc = (FloatProcessor) preProcess(new ByteProcessor(width, height, c1Pix, null), UserVariables.getSigEstRed());
             double c1Threshold = Utils.getPercentileThresh(chan1Proc, UserVariables.getChan1MaxThresh());
             ByteProcessor thisC1Max = Utils.findLocalMaxima(xyPartRad, xyPartRad, UserVariables.FOREGROUND, chan1Proc, c1Threshold, true);
             for (c1X = 0; c1X < width; c1X++) {
@@ -124,7 +124,7 @@ public class PSFEstimator extends Analyse_ {
                          */
                         Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan1Proc);
                         FloatingMultiGaussFitter c1Fitter = new FloatingMultiGaussFitter(UserVariables.getnMax(), fitRad, pSize);
-                        c1Fitter.fit(pixValues, SIG_EST_RED / UserVariables.getSpatialRes());
+                        c1Fitter.fit(pixValues, UserVariables.getSigEstRed() / UserVariables.getSpatialRes());
                         ArrayList<IsoGaussian> c1Fits = c1Fitter.getFits(spatialRes, c1X - fitRad, c1Y - fitRad, c1Threshold, fitTol);
                         if (c1Fits != null) {
                             for (IsoGaussian c1Fit : c1Fits) {

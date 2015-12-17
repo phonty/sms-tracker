@@ -40,11 +40,11 @@ public class GPU_Analyse extends Analyse_ {
 
     private native boolean cudaGaussFitter(String folder, String ext, float spatialRes, float sigmaEst, float maxthresh, float fitTol, int startSlice, int endSlice);
 
-    public static void main(String args[]) {
-        GPU_Analyse instance = new GPU_Analyse();
-        instance.run(null);
-        System.exit(0);
-    }
+//    public static void main(String args[]) {
+//        GPU_Analyse instance = new GPU_Analyse();
+//        instance.run(null);
+//        System.exit(0);
+//    }
 
     public GPU_Analyse() {
         super();
@@ -55,18 +55,18 @@ public class GPU_Analyse extends Analyse_ {
         if (UserVariables.isGpu()) {
             return GPU_Analyse.this.cudaFindParticles(true, 0, stacks[0].getSize() - 1, stacks[1]);
         } else {
-            return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], SIGMAS[UserVariables.getC1Index()], true, false);
+            return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], UserVariables.getSigEstRed(), true, false);
         }
     }
 
     public ParticleArray cudaFindParticles(boolean update, int startSlice, int endSlice, ImageStack channel2) {
         if (!cudaGaussFitter(c0Dir.getAbsolutePath(), ext, (float) UserVariables.getSpatialRes() * 1000.0f,
-                (float) (SIGMAS[UserVariables.getC1Index()] / UserVariables.getSpatialRes()), (float) UserVariables.getChan1MaxThresh(),
+                (float) (UserVariables.getSigEstRed() / UserVariables.getSpatialRes()), (float) UserVariables.getChan1MaxThresh(),
                 (float) UserVariables.getC1CurveFitTol(), startSlice, endSlice)) {
             IJ.log("CUDA Error");
             return null;
         }
-        double c2sigma = (SIGMAS[UserVariables.getC2Index()] / UserVariables.getSpatialRes());
+        double c2sigma = (UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
         File cudaC0File = new File(c0Dir + delimiter + "cudadata.txt");
         File c0FileList[] = {cudaC0File};
         ArrayList<double[]>[] c0CudaData = GenUtils.readData(CUDA_FILE_COLS, c0FileList, delimiter);
@@ -94,7 +94,7 @@ public class GPU_Analyse extends Analyse_ {
                 double y0 = c0CudaData[f].get(row)[2];
                 double mag = c0CudaData[f].get(row)[3];
                 double fit = c0CudaData[f].get(row)[4];
-                IsoGaussian c1Gaussian = new IsoGaussian(x0, y0, mag, SIGMAS[UserVariables.getC1Index()], SIGMAS[UserVariables.getC1Index()], fit);
+                IsoGaussian c1Gaussian = new IsoGaussian(x0, y0, mag, UserVariables.getSigEstRed(), UserVariables.getSigEstRed(), fit);
                 IsoGaussian c2Gaussian = getC2Gaussian(x0, y0, ip2);
                 if (c1Gaussian.getFit() > UserVariables.getC1CurveFitTol()) {
                     particles.addDetection(c0t - startSlice, new Particle(c0t, c1Gaussian, c2Gaussian, null, -1));

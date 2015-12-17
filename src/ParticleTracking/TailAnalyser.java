@@ -171,9 +171,9 @@ public class TailAnalyser {
                 zVals[x][y] = stackAverage.getPixelValue(x, y);
             }
         }
-        TailFitter tf = new TailFitter(eqChoice, spatialRes, Analyse_.SIG_EST_GREEN);
+        TailFitter tf = new TailFitter(eqChoice, spatialRes, UserVariables.getSigEstGreen());
         tf.loadData(xVals, yVals, zVals);
-        tf.doFit(Analyse_.SIG_EST_GREEN);
+        tf.doFit(UserVariables.getSigEstGreen());
         return tf;
     }
 
@@ -293,7 +293,7 @@ public class TailAnalyser {
         ImageProcessor originalImages[] = new ImageProcessor[s];
         for (int i = 0; i < s; i++) {
             originalImages[i] = IJ.openImage(files.get(i).getFile().getAbsolutePath()).getProcessor();
-            (new GaussianBlur()).blurGaussian(originalImages[i], Analyse_.SIG_EST_GREEN, Analyse_.SIG_EST_GREEN, 0.01);
+            (new GaussianBlur()).blurGaussian(originalImages[i], UserVariables.getSigEstGreen(), UserVariables.getSigEstGreen(), 0.01);
         }
         FloatProcessor accel = new FloatProcessor(s - 2 * step, step);
         FloatProcessor crossCorrelation = new FloatProcessor(width, height);
@@ -353,7 +353,7 @@ public class TailAnalyser {
             }
         }
         ImageProcessor originalImages[] = new ImageProcessor[s];
-        double sigma = Analyse_.SIG_EST_GREEN / UserVariables.getSpatialRes();
+        double sigma = UserVariables.getSigEstGreen() / UserVariables.getSpatialRes();
         for (int i = 0; i < s; i++) {
             originalImages[i] = IJ.openImage(sortedFiles.get(i).getFile().getAbsolutePath()).getProcessor();
             (new GaussianBlur()).blurGaussian(originalImages[i], sigma, sigma, 0.01);
