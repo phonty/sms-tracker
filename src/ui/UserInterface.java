@@ -244,7 +244,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         detectionPanel.add(c1CurveFitTolLabel, gridBagConstraints);
 
-        c1CurveFitTolTextField.setText(String.valueOf(UserVariables.getC1CurveFitTol()));
+        c1CurveFitTolTextField.setText(String.valueOf(UserVariables.getCurveFitTol()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 4;
@@ -645,7 +645,7 @@ public class UserInterface extends javax.swing.JDialog {
         if (analyser instanceof GPU_Analyse && UserVariables.isGpu()) {
             detections = ((GPU_Analyse) analyser).cudaFindParticles(true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, stacks[1]);
         } else {
-            detections = analyser.findParticles(true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1]);
+            detections = analyser.findParticles(true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1]);
         }
         if (detections != null) {
             ImageProcessor output = Utils.updateImage(stacks[0], stacks[1], previewScrollBar.getValue());

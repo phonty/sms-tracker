@@ -33,7 +33,7 @@ public class VolumeAnalysis extends Analyse_ {
     double timeRes = UserVariables.getTimeRes();
     double chan1MaxThresh = UserVariables.getChan1MaxThresh();
     double minTrajLength = UserVariables.getMinTrajLength();
-    double c1CurveFitTol = UserVariables.getC1CurveFitTol();
+    double c1CurveFitTol = UserVariables.getCurveFitTol();
     boolean colocal = UserVariables.isColocal();
     private int xyPartRad;
     ImagePlus imp;
@@ -68,7 +68,7 @@ public class VolumeAnalysis extends Analyse_ {
             int i, count;
             int width = stacks[0].getWidth(), height = stacks[0].getHeight();
 
-            findParticles(1.0, true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1] == null);
+            findParticles(1.0, true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1] == null);
 
             TextWindow results = new TextWindow(title + " Results", "X\tY\tFrame\tChannel 1\tChannel 2\tChannel 2 " + '\u03C3' + "x\tChannel 2 " + '\u03C3' + "y\t" + '\u03B8',
                     new String(), 1000, 500);

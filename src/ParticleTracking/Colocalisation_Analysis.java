@@ -42,6 +42,7 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
 //        inputs[0] = IJ.openImage();
 //        inputs[1] = IJ.openImage();
 //        (new Colocalisation_Analysis(inputs)).run(null);
+//        System.exit(0);
 //    }
     public Colocalisation_Analysis() {
     }
@@ -103,7 +104,7 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
             dialog.addNumericField("Spatial Resolution:", UserVariables.getSpatialRes() * 1000.0, 3, 7, "nm/pixel");
             dialog.addNumericField("Minimum Peak Size (Ch 1):", UserVariables.getChan1MaxThresh(), 3, 7, "");
             dialog.addNumericField("Minimum Peak Size (Ch 2):", UserVariables.getChan2MaxThresh(), 3, 7, "");
-            dialog.addNumericField("Curve Fit Tolerance:", UserVariables.getC1CurveFitTol(), 3, 7, "");
+            dialog.addNumericField("Curve Fit Tolerance:", UserVariables.getCurveFitTol(), 3, 7, "");
             dialog.addNumericField("Colocalisation Factor:", coFactor, 3, 7, "");
             dialog.addCheckbox("Floating Sigma", floatingSigma);
 //            dialog.addCheckbox("Include Partial Detections", partialDetect);
@@ -169,7 +170,7 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
             count = 0;
             sepsum = 0.0;
             ParticleArray curves = analyser.findParticles(false, i, i,
-                    UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], true, floatingSigma, true);
+                    UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, floatingSigma, true);
             FloatProcessor ch1proc = new FloatProcessor(width, height);
             FloatProcessor ch2proc = new FloatProcessor(width, height);
             ArrayList detections = curves.getLevel(0);
@@ -182,14 +183,13 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
                     particleCoords.append("WIDTH\t" + width);
                     particleCoords.append("HEIGHT\t" + height);
                 }
-                if (Utils.draw2DGaussian(ch1proc, c1, UserVariables.getC1CurveFitTol(), UserVariables.getSpatialRes(), false, false)) {
+                if (Utils.draw2DGaussian(ch1proc, c1, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false)) {
 //                    if (c1.getMagnitude() > displaymax) {
 //                        displaymax = c1.getMagnitude();
 //                    }
                     count++;
                     IsoGaussian c2 = ((Particle) detections.get(j)).getC2Gaussian();
-                    if (Utils.draw2DGaussian(ch2proc, c2, UserVariables.getC2CurveFitTol(), UserVariables.getSpatialRes(),
-                            false, false)) {
+                    if (Utils.draw2DGaussian(ch2proc, c2, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false)) {
 //                        if (c2.getMagnitude() > displaymax) {
 //                            displaymax = c2.getMagnitude();
 //                        }

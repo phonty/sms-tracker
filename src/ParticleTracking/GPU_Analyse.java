@@ -55,14 +55,14 @@ public class GPU_Analyse extends Analyse_ {
         if (UserVariables.isGpu()) {
             return GPU_Analyse.this.cudaFindParticles(true, 0, stacks[0].getSize() - 1, stacks[1]);
         } else {
-            return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], true, false, false);
+            return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, false, false);
         }
     }
 
     public ParticleArray cudaFindParticles(boolean update, int startSlice, int endSlice, ImageStack channel2) {
         if (!cudaGaussFitter(c0Dir.getAbsolutePath(), ext, (float) UserVariables.getSpatialRes() * 1000.0f,
                 (float) (UserVariables.getSigEstRed() / UserVariables.getSpatialRes()), (float) UserVariables.getChan1MaxThresh(),
-                (float) UserVariables.getC1CurveFitTol(), startSlice, endSlice)) {
+                (float) UserVariables.getCurveFitTol(), startSlice, endSlice)) {
             IJ.log("CUDA Error");
             return null;
         }
@@ -96,7 +96,7 @@ public class GPU_Analyse extends Analyse_ {
                 double fit = c0CudaData[f].get(row)[4];
                 IsoGaussian c1Gaussian = new IsoGaussian(x0, y0, mag, UserVariables.getSigEstRed(), UserVariables.getSigEstRed(), fit);
                 IsoGaussian c2Gaussian = getC2Gaussian(x0, y0, ip2);
-                if (c1Gaussian.getFit() > UserVariables.getC1CurveFitTol()) {
+                if (c1Gaussian.getFit() > UserVariables.getCurveFitTol()) {
                     particles.addDetection(c0t - startSlice, new Particle(c0t, c1Gaussian, c2Gaussian, null, -1));
 
                 }

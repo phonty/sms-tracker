@@ -57,7 +57,7 @@ public class PSFEstimator extends Analyse_ {
                     new String(), 1000, 500);
             results.append(imp.getTitle() + "\n\n");
             UserVariables.setnMax(1);
-            ParticleArray particles = findParticles(1.0, true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1] == null);
+            ParticleArray particles = findParticles(1.0, true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1] == null);
             for (int i = 0; i < particles.getDepth(); i++) {
                 ArrayList detections = particles.getLevel(i);
                 for (int j = 0; j < detections.size(); j++) {
@@ -80,7 +80,7 @@ public class PSFEstimator extends Analyse_ {
         GenericDialog gd = new GenericDialog(psfTitle);
         gd.addNumericField("Spatial Resolution", UserVariables.getSpatialRes() * 1000.0, 5, 5, "nm");
         gd.addNumericField("Peak Threshold", UserVariables.getChan1MaxThresh(), 5);
-        gd.addNumericField("Fit Tolerance", UserVariables.getC1CurveFitTol(), 5);
+        gd.addNumericField("Fit Tolerance", UserVariables.getCurveFitTol(), 5);
         gd.showDialog();
         if (gd.wasCanceled()) {
             return false;

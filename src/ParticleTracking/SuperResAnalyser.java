@@ -109,14 +109,14 @@ public class SuperResAnalyser extends Colocalisation_Analysis {
         FloatProcessor ch1proc = new FloatProcessor(width, height);
         for (int i = 0; i < stacks[0].getSize(); i++) {
             dialog.updateProgress(i, stacks[0].getSize());
-            ParticleArray curves = analyser.findParticles(false, i, i, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], true, false, false);
+            ParticleArray curves = analyser.findParticles(false, i, i, UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, false, false);
             //ImagePlus temp = new ImagePlus("", ch1proc);
             //temp.show();
             //temp.setDisplayRange(0.0, 255.0);
             ArrayList detections = curves.getLevel(0);
             for (int j = 0; j < detections.size(); j++) {
                 IsoGaussian c1 = ((IsoGaussian[]) detections.get(j))[0];
-                if (draw2DGaussian(ch1proc, c1, UserVariables.getC1CurveFitTol(), UserVariables.getSpatialRes())) {
+                if (draw2DGaussian(ch1proc, c1, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes())) {
                 }
                 //temp.updateAndDraw();
             }

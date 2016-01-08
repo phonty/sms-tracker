@@ -77,8 +77,8 @@ public class TestGenerator {
                 double y2 = (x - xc) * Math.sin(theta - anoise / 2.0 + anoise * r.nextDouble()) + (y - yc)
                         * Math.cos(theta - anoise / 2.0 + anoise * r.nextDouble()) + yc;
                 IsoGaussian g2 = new IsoGaussian(x2, y2, 100.0, 168.0 / res, 168.0 / res, 0.1);
-                Utils.draw2DGaussian(image1, g1, 0.0, res, false, false);
-                Utils.draw2DGaussian(image2, g2, 0.0, res, false, false);
+                Utils.draw2DGaussian(image1, g1, 0.0, res, false);
+                Utils.draw2DGaussian(image2, g2, 0.0, res, false);
                 System.out.println(x1 / res + "," + y1 / res + "," + x2 / res + "," + y2 / res);
             }
         }
@@ -115,8 +115,8 @@ public class TestGenerator {
 //            System.out.println(x / 1000.0 + "," + y / 1000.0 + "," + xt / 1000.0 + "," + yt / 1000.0);
             IsoGaussian g1 = new IsoGaussian(x, y, 100.0, 3 * 158.0 / res, 3 * 158.0 / res, 0.1);
             IsoGaussian g2 = new IsoGaussian(xt, yt, 100.0, 3 * 168.0 / res, 3 * 168.0 / res, 0.1);
-            Utils.draw2DGaussian(image1, g1, 0.0, res, false, false);
-            Utils.draw2DGaussian(image2, g2, 0.0, res, false, false);
+            Utils.draw2DGaussian(image1, g1, 0.0, res, false);
+            Utils.draw2DGaussian(image2, g2, 0.0, res, false);
         }
         IJ.saveAs(new ImagePlus("", image1), "TIF",
                 "C:\\Users\\barry05\\Desktop\\Test_Data_Sets\\Tracking_Test_Sequences\\Simulation\\ColocalTest_" + random + "_" + noise + "_C0");
@@ -140,7 +140,7 @@ public class TestGenerator {
 //            c2image.setColor(1000);
             for (int j = 0; j < n; j++) {
                 if (particles[j] != null) {
-                    Utils.draw2DGaussian(c1image, particles[j], 0.0, res, false, false);
+                    Utils.draw2DGaussian(c1image, particles[j], 0.0, res, false);
 //                    double projectedPos[] = particles[j].projectPosition(false, separation);
 //                    IsoGaussian temp = new IsoGaussian(projectedPos[0], projectedPos[1], particles[j].getMagnitude(),
 //                            particles[j].getXSigma(), particles[j].getYSigma(), particles[j].getFit());

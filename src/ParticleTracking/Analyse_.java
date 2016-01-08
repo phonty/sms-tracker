@@ -75,6 +75,7 @@ public class Analyse_ implements PlugIn {
     protected final String labels[] = {"Channel 1", "Channel 2"};
     protected boolean gpuEnabled = false;
     protected final double MEDIAN_THRESH = 1.5;
+    private final double PART_RAD = 4.0;
 
 //    public static void main(String args[]) {
 ////        if (imp != null) {
@@ -297,7 +298,7 @@ public class Analyse_ implements PlugIn {
     }
 
     protected ParticleArray findParticles() {
-        return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], true, false, false);
+        return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, false, false);
     }
 
     /**
@@ -367,10 +368,10 @@ public class Analyse_ implements PlugIn {
                             Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan2Proc);
                             IsoGaussianFitter c2Fitter = new IsoGaussianFitter(xCoords, yCoords, pixValues, floatingSigma);
                             c2Fitter.doFit(UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
-                            x0 = (c1X - fitRad + c2Fitter.getX0()) * spatialRes;
-                            y0 = (c1Y - fitRad + c2Fitter.getY0()) * spatialRes;
-                            c2Gaussian = new IsoGaussian(x0, y0, c1Fitter.getMag(), c1Fitter.getXsig(),
-                                    c1Fitter.getYsig(), c1Fitter.getRSquared());
+                            double x1 = (c1X - fitRad + c2Fitter.getX0()) * spatialRes;
+                            double y1 = (c1Y - fitRad + c2Fitter.getY0()) * spatialRes;
+                            c2Gaussian = new IsoGaussian(x1, y1, c2Fitter.getMag(), c2Fitter.getXsig(),
+                                    c2Fitter.getYsig(), c2Fitter.getRSquared());
                         } else {
                             c2Gaussian = getC2Gaussian(x0, y0, chan2Proc);
                         }
@@ -606,7 +607,7 @@ public class Analyse_ implements PlugIn {
     }
 
     public int calcParticleRadius(double spatialRes, double sigEst) {
-        return (int) Math.ceil(3.0 * sigEst / spatialRes);
+        return (int) Math.ceil(PART_RAD * sigEst / spatialRes);
     }
 
     public ArrayList<Integer> previewResults() {
@@ -966,7 +967,7 @@ public class Analyse_ implements PlugIn {
         paramStream.println(UserInterface.getTrackLengthText() + "," + UserVariables.getTrackLength());
         paramStream.println(UserInterface.getChan1MaxThreshLabelText() + "," + UserVariables.getChan1MaxThresh());
 //        paramStream.println(UserInterface.getChan2MaxThreshLabelText() + "," + UserVariables.getChan2MaxThresh());
-        paramStream.println(UserInterface.getCurveFitTolLabelText() + "," + UserVariables.getC1CurveFitTol());
+        paramStream.println(UserInterface.getCurveFitTolLabelText() + "," + UserVariables.getCurveFitTol());
 //        paramStream.println(UserInterface.getC2CurveFitTolLabelText() + "," + UserVariables.getC2CurveFitTol());
         paramStream.println(UserInterface.getColocalToggleText() + "," + UserVariables.isColocal());
         paramStream.println(UserInterface.getPreprocessToggleText() + "," + UserVariables.isPreProcess());
