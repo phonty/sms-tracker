@@ -13,7 +13,6 @@ import ij.plugin.PlugIn;
 import ij.process.ByteProcessor;
 import ij.process.ColorProcessor;
 import ij.process.FloatProcessor;
-import ij.process.ImageProcessor;
 import ij.process.TypeConverter;
 import ij.text.TextWindow;
 import java.awt.Font;
@@ -27,7 +26,7 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
 //    protected ImageStack[] stacks = new ImageStack[2];
     protected String title = "Colocaliser";
     protected String resultsHeadings = "Image\tChannel 1 Detections\tColocalised Channel 2 Detections\t% Colocalisation\t"
-            + "\u0394 (nm)", C0, C1, coordHeadings;
+            + "\u0394 (nm)", coordHeadings;
     protected static double coFactor = 1.0;
     public static final int RED = 0, GREEN = 1, BLUE = 2;
     protected DecimalFormat numFormat = new DecimalFormat("0.0");
@@ -75,9 +74,9 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
             GenUtils.error("Not enough stacks open.");
             return;
         }
-        C0 = stacks[0].getSliceLabel(1);
-        C1 = stacks[1].getSliceLabel(1);
-        coordHeadings = C0 + "_X\t" + C0 + "_Y\t" + C1 + "_X\t" + C1 + "_Y\t" + C0 + "_\u03c3\t" + C1 + "_\u03c3\t" + C0 + " Fit\t" + C1 + " Fit";
+//        C0 = stacks[0].getSliceLabel(1);
+//        C1 = stacks[1].getSliceLabel(1);
+        coordHeadings = "C0_X\tC0_Y\tC1_X\tC1_Y\tC0_\u03c3\tC1_\u03c3\tC0_Fit\tC1_Fit";
         if (showDialog()) {
             UserVariables.setPreProcess(true);
             Analyse_ analyser = new Analyse_(stacks);
@@ -170,7 +169,7 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
             count = 0;
             sepsum = 0.0;
             ParticleArray curves = analyser.findParticles(false, i, i,
-                    UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], UserVariables.getSigEstRed(), true, floatingSigma);
+                    UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], true, floatingSigma, true);
             FloatProcessor ch1proc = new FloatProcessor(width, height);
             FloatProcessor ch2proc = new FloatProcessor(width, height);
             ArrayList detections = curves.getLevel(0);
@@ -180,6 +179,8 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
                 String coordString;
                 if (particleCoords == null) {
                     particleCoords = new TextWindow(title + " Particle Coordinates", coordHeadings, new String(), 1000, 500);
+                    particleCoords.append("WIDTH\t" + width);
+                    particleCoords.append("HEIGHT\t" + height);
                 }
                 if (Utils.draw2DGaussian(ch1proc, c1, UserVariables.getC1CurveFitTol(), UserVariables.getSpatialRes(), false, false)) {
 //                    if (c1.getMagnitude() > displaymax) {
@@ -199,12 +200,12 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
                                 + "\t" + String.valueOf(c1.getXSigma() * UserVariables.getSpatialRes())
                                 + "\t" + String.valueOf(c2.getXSigma() * UserVariables.getSpatialRes())
                                 + "\t" + String.valueOf(c1.getFit()) + "\t" + String.valueOf(c2.getFit());
-                    } else {
-                        coordString = String.valueOf(c1.getX()) + "\t" + String.valueOf(c1.getY())
-                                + "\t \t \t" + String.valueOf(c1.getXSigma()) + "\t \t"
-                                + String.valueOf(c1.getFit());
+                        particleCoords.append(coordString);
+//                    } else {
+//                        coordString = String.valueOf(c1.getX()) + "\t" + String.valueOf(c1.getY())
+//                                + "\t \t \t" + String.valueOf(c1.getXSigma()) + "\t \t"
+//                                + String.valueOf(c1.getFit());
                     }
-                    particleCoords.append(coordString);
                 }
             }
             if (results == null) {
@@ -215,8 +216,9 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
                     + "\t" + numFormat.format(1000.0 * sepsum / count));
 
             ColorProcessor output = new ColorProcessor(width, height);
-            output.setRGB((byte[]) ch1proc.getPixels(), (byte[]) ch2proc.getPixels(),
-                    null);
+            output.setRGB((byte[]) (new TypeConverter(ch1proc, false)).convertToByte().getPixels(),
+                    (byte[]) (new TypeConverter(ch2proc, false)).convertToByte().getPixels(),
+                    (byte[]) (new ByteProcessor(width, height)).getPixels());
             outStack.addSlice("" + i, output);
         }
         progress.dispose();

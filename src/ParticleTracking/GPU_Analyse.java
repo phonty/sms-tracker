@@ -55,7 +55,7 @@ public class GPU_Analyse extends Analyse_ {
         if (UserVariables.isGpu()) {
             return GPU_Analyse.this.cudaFindParticles(true, 0, stacks[0].getSize() - 1, stacks[1]);
         } else {
-            return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], UserVariables.getSigEstRed(), true, false);
+            return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getC1CurveFitTol(), stacks[0], stacks[1], true, false, false);
         }
     }
 

@@ -171,6 +171,9 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.weighty = 0.2;
         getContentPane().add(jPanel3, gridBagConstraints);
 
+        jSplitPane1.setDividerSize(3);
+        jSplitPane1.setResizeWeight(0.3);
+
         detectionPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         detectionPanel.setLayout(new java.awt.GridBagLayout());
 
@@ -510,73 +513,70 @@ public class UserInterface extends javax.swing.JDialog {
 
         jPanel2.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         jPanel2.setLayout(new java.awt.GridBagLayout());
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 0.8;
+        gridBagConstraints.insets = new java.awt.Insets(10, 10, 0, 10);
+        jPanel2.add(canvas1, gridBagConstraints);
 
-        canvas1.setPreferredSize(new java.awt.Dimension(
-            imp.getProcessor().getWidth(), imp.getProcessor().getHeight()));
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 0;
-    gridBagConstraints.gridwidth = 2;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-    gridBagConstraints.weightx = 1.0;
-    gridBagConstraints.weighty = 0.8;
-    gridBagConstraints.insets = new java.awt.Insets(10, 10, 0, 10);
-    jPanel2.add(canvas1, gridBagConstraints);
+        previewScrollBar.setOrientation(javax.swing.JScrollBar.HORIZONTAL);
+        previewScrollBar.setModel(new DefaultBoundedRangeModel(1, 0, 1, analyser.getStacks()[0].getSize()));
+        previewScrollBar.setEnabled(previewToggleButton.isSelected());
+        previewScrollBar.addAdjustmentListener(new java.awt.event.AdjustmentListener() {
+            public void adjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {
+                previewScrollBarAdjustmentValueChanged(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
+        gridBagConstraints.weightx = 0.8;
+        gridBagConstraints.weighty = 0.1;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 0);
+        jPanel2.add(previewScrollBar, gridBagConstraints);
 
-    previewScrollBar.setOrientation(javax.swing.JScrollBar.HORIZONTAL);
-    previewScrollBar.setModel(new DefaultBoundedRangeModel(1, 0, 1, analyser.getStacks()[0].getSize()));
-    previewScrollBar.setEnabled(previewToggleButton.isSelected());
-    previewScrollBar.addAdjustmentListener(new java.awt.event.AdjustmentListener() {
-        public void adjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {
-            previewScrollBarAdjustmentValueChanged(evt);
-        }
-    });
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 2;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-    gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-    gridBagConstraints.weightx = 0.8;
-    gridBagConstraints.weighty = 0.1;
-    gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 0);
-    jPanel2.add(previewScrollBar, gridBagConstraints);
+        previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
+        previewTextField.setEditable(false);
+        previewTextField.setEnabled(previewToggleButton.isSelected());
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.EAST;
+        gridBagConstraints.weightx = 0.2;
+        gridBagConstraints.weighty = 0.1;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 10, 10);
+        jPanel2.add(previewTextField, gridBagConstraints);
 
-    previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
-    previewTextField.setEditable(false);
-    previewTextField.setEnabled(previewToggleButton.isSelected());
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 1;
-    gridBagConstraints.gridy = 2;
-    gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-    gridBagConstraints.anchor = java.awt.GridBagConstraints.EAST;
-    gridBagConstraints.weightx = 0.2;
-    gridBagConstraints.weighty = 0.1;
-    gridBagConstraints.insets = new java.awt.Insets(0, 0, 10, 10);
-    jPanel2.add(previewTextField, gridBagConstraints);
+        previewToggleButton.setText("Preview");
+        previewToggleButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                previewToggleButtonActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.weighty = 0.1;
+        gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
+        jPanel2.add(previewToggleButton, gridBagConstraints);
 
-    previewToggleButton.setText("Preview");
-    previewToggleButton.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-            previewToggleButtonActionPerformed(evt);
-        }
-    });
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.gridx = 0;
-    gridBagConstraints.gridy = 1;
-    gridBagConstraints.gridwidth = 2;
-    gridBagConstraints.weighty = 0.1;
-    gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
-    jPanel2.add(previewToggleButton, gridBagConstraints);
+        jSplitPane1.setRightComponent(jPanel2);
 
-    jSplitPane1.setRightComponent(jPanel2);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 0.8;
+        getContentPane().add(jSplitPane1, gridBagConstraints);
 
-    gridBagConstraints = new java.awt.GridBagConstraints();
-    gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-    gridBagConstraints.weightx = 1.0;
-    gridBagConstraints.weighty = 0.8;
-    getContentPane().add(jSplitPane1, gridBagConstraints);
-
-    pack();
+        pack();
     }// </editor-fold>//GEN-END:initComponents
 
     private void previewScrollBarAdjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {//GEN-FIRST:event_previewScrollBarAdjustmentValueChanged
