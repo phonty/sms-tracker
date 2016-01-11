@@ -36,6 +36,7 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
 //    private final String labels[] = {"Channel 1", "Channel 2"};
     private final DecimalFormat intFormat = new DecimalFormat("000");
     private boolean floatingSigma;
+    public static final int HEADER_SIZE = 3;
 
 //    public static void main(String args[]) {
 //        ImagePlus inputs[] = new ImagePlus[2];

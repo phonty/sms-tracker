@@ -7,6 +7,7 @@ import IAClasses.ProgressDialog;
 import IAClasses.Utils;
 import UtilClasses.GenUtils;
 import UtilClasses.Utilities;
+import goshtasby.Multi_Goshtasby;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -38,6 +39,7 @@ import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Random;
+import javax.swing.JFileChooser;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
@@ -209,7 +211,15 @@ public class Analyse_ implements PlugIn {
         String sigc0Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C0", delimiter);
         String sigc1Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C1", delimiter);
         if (!(stacks[1] == null) && UserVariables.isUseCals()) {
-            calDir = Utilities.getFolder(outputDir, "Specify directory containing calibrations...", true);
+            JFileChooser fileChooser = new JFileChooser(calDir);
+            fileChooser.setDialogTitle("Specify file containing bead calibration data");
+            fileChooser.showOpenDialog(null);
+            File calFile = fileChooser.getSelectedFile();
+            calDir = calFile.getParentFile();
+            if (!(new Multi_Goshtasby()).run(calFile, Colocalisation_Analysis.HEADER_SIZE)) {
+                UserVariables.setUseCals(false);
+                System.out.println("Calculation of calibration coefficients failed - proceeding without calibration.");
+            }
         }
         if (stacks != null) {
             IJ.register(this.getClass());
