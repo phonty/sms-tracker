@@ -180,8 +180,8 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
                 String coordString;
                 if (particleCoords == null) {
                     particleCoords = new TextWindow(title + " Particle Coordinates", coordHeadings, new String(), 1000, 500);
-                    particleCoords.append("WIDTH\t" + width);
-                    particleCoords.append("HEIGHT\t" + height);
+                    particleCoords.append("WIDTH\t" + (width * UserVariables.getSpatialRes()));
+                    particleCoords.append("HEIGHT\t" + (height * UserVariables.getSpatialRes()));
                 }
                 if (Utils.draw2DGaussian(ch1proc, c1, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false)) {
 //                    if (c1.getMagnitude() > displaymax) {
