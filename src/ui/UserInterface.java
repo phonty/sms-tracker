@@ -754,6 +754,26 @@ public class UserInterface extends javax.swing.JDialog {
         return prevResToggleText;
     }
 
+    public static String getRedSigEstText() {
+        return redSigEstText;
+    }
+
+    public static String getGreenSigEstText() {
+        return greenSigEstText;
+    }
+
+    public static String getMinTrajMSDLabelText() {
+        return minTrajMSDLabelText;
+    }
+
+    public static String getUseCalToggleText() {
+        return useCalToggleText;
+    }
+
+    public static String getExtractSigsToggleText() {
+        return extractSigsToggleText;
+    }
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel c1CurveFitTolLabel;
     private javax.swing.JTextField c1CurveFitTolTextField;

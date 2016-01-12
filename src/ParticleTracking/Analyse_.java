@@ -225,7 +225,8 @@ public class Analyse_ implements PlugIn {
             IJ.register(this.getClass());
             startTime = System.currentTimeMillis();
             findParticles();
-            TextWindow results = new TextWindow(title + " Results", "X\tY\tFrame\tChannel 1\tChannel 2\tChannel 2 " + '\u03C3' + "x\tChannel 2 " + '\u03C3' + "y\t" + '\u03B8',
+            TextWindow results = new TextWindow(title + " Results", "X\tY\tFrame\tChannel 1\tChannel 2\tChannel 1 " + '\u03C3'
+                    + "\tChannel 2 " + '\u03C3',
                     new String(), 1000, 500);
             TextWindow resultSummary = new TextWindow(title + " Results Summary",
                     "Particle\tDuration (s)\tDisplacement (" + IJ.micronSymbol
@@ -478,47 +479,16 @@ public class Analyse_ implements PlugIn {
         if (traj == null) {
             return false;
         }
-//        traj.smooth();
         double points[][] = traj.getPoints();
-//        traj.calcMSD(label, -1, msdPlot, points[0], points[1]);
-//        traj.calcAngleSpread();
-//        traj.calcStepSpread();
         traj.calcDirectionality(points[0], points[1]);
         double displacement = traj.getDisplacement(traj.getEnd(), traj.getSize());
         double duration = traj.getDuration();
-//        int type = traj.getType(colocalThresh);
-//        String trajType = null;
-//        switch (type) {
-//            case ParticleTrajectory.COLOCAL:
-//                trajType = "Colocalised";
-//                break;
-//            case ParticleTrajectory.NON_COLOCAL:
-//                trajType = "Non-Colocalised";
-//                break;
-//            case ParticleTrajectory.UNKNOWN:
-//                trajType = "Unknown";
-//        }
-//        output.append(label + "\t" + trajType + "\t"
-//                + decFormat.format(traj.getDualScore() * 100.0 / traj.getSize()) + "\t"
-//                + decFormat.format(duration) + "\t"
-//                + decFormat.format(displacement)
-//                + "\t" + decFormat.format(displacement / duration) + "\t"
-//                + decFormat.format(traj.getDirectionality()) + "\t"
-//                + msdFormat.format(traj.getDiffCoeff()) + "\t"
-//                + decFormat.format(traj.getBoxCountFD()) + "\t"
-//                + decFormat.format(traj.getFluorRatio()) + "\t"
-//                + decFormat.format(traj.getAngleSpread()) + "\t"
-//                + decFormat.format(traj.getStepSpread()) + "\t"
-//                + decFormat.format(traj.getLogDC()) + "\t"
-//                + decFormat.format(traj.getMeanKappa()) + "\t");
         output.append(label + "\t"
                 + decFormat.format(duration) + "\t"
                 + decFormat.format(displacement)
                 + "\t" + decFormat.format(displacement / duration) + "\t"
                 + decFormat.format(traj.getDirectionality()) + "\t"
-                + msdFormat.format(traj.getDiffCoeff()) + "\t"
-                + decFormat.format(traj.getAngleSpread()) + "\t"
-                + decFormat.format(traj.getStepSpread()));
+                + msdFormat.format(traj.getDiffCoeff()));
         return true;
     }
 
@@ -969,20 +939,23 @@ public class Analyse_ implements PlugIn {
         paramStream.println(title);
         paramStream.println(Utilities.getDate("dd/MM/yyyy HH:mm:ss"));
         paramStream.println();
+        paramStream.println(UserInterface.getRedSigEstText() + "," + UserVariables.getSigEstRed());
+        paramStream.println(UserInterface.getGreenSigEstText() + "," + UserVariables.getSigEstGreen());
         paramStream.println(UserInterface.getSpatResLabelText() + "," + UserVariables.getSpatialRes());
+        paramStream.println(UserInterface.getChan1MaxThreshLabelText() + "," + UserVariables.getChan1MaxThresh());
+        paramStream.println(UserInterface.getCurveFitTolLabelText() + "," + UserVariables.getCurveFitTol());
+        paramStream.println(UserInterface.getPreprocessToggleText() + "," + UserVariables.isPreProcess());
+        paramStream.println(UserInterface.getGpuToggleText() + "," + UserVariables.isGpu());
         paramStream.println(UserInterface.getFpsLabelText() + "," + UserVariables.getTimeRes());
         paramStream.println(UserInterface.getMinTrajLengthLabelText() + "," + UserVariables.getMinTrajLength());
         paramStream.println(UserInterface.getMinTrajDistLabelText() + "," + UserVariables.getMinTrajDist());
+        paramStream.println(UserInterface.getMinTrajMSDLabelText() + "," + UserVariables.getMsdThresh());
         paramStream.println(UserInterface.getMaxLinkDistLabelText() + "," + UserVariables.getTrajMaxStep());
         paramStream.println(UserInterface.getTrackLengthText() + "," + UserVariables.getTrackLength());
-        paramStream.println(UserInterface.getChan1MaxThreshLabelText() + "," + UserVariables.getChan1MaxThresh());
-//        paramStream.println(UserInterface.getChan2MaxThreshLabelText() + "," + UserVariables.getChan2MaxThresh());
-        paramStream.println(UserInterface.getCurveFitTolLabelText() + "," + UserVariables.getCurveFitTol());
-//        paramStream.println(UserInterface.getC2CurveFitTolLabelText() + "," + UserVariables.getC2CurveFitTol());
         paramStream.println(UserInterface.getColocalToggleText() + "," + UserVariables.isColocal());
-        paramStream.println(UserInterface.getPreprocessToggleText() + "," + UserVariables.isPreProcess());
-        paramStream.println(UserInterface.getGpuToggleText() + "," + UserVariables.isGpu());
         paramStream.println(UserInterface.getPrevResToggleText() + "," + UserVariables.isPrevRes());
+        paramStream.println(UserInterface.getExtractSigsToggleText() + "," + UserVariables.isExtractsigs());
+        paramStream.println(UserInterface.getUseCalToggleText() + "," + UserVariables.isUseCals());
         paramStream.close();
     }
 
@@ -999,7 +972,6 @@ public class Analyse_ implements PlugIn {
         int width = (int) Math.round(1.0 / UserVariables.getSpatialRes());
         int width2 = width * 2;
         Rectangle r = new Rectangle(rx - width, ry - width, width2, width2);
-        double statsMax = Double.MAX_VALUE;
         IsoGaussian c2Gaussian = null;
         ip2.setRoi(r);
         ImageProcessor ip3 = ip2.crop();
@@ -1007,7 +979,7 @@ public class Analyse_ implements PlugIn {
         ip3.multiply(1.0 / stats1.median);
         FloatStatistics stats2 = new FloatStatistics(ip3, ImageStatistics.MIN_MAX, null);
         if (stats2.max > MEDIAN_THRESH) {
-            c2Gaussian = new IsoGaussian(x0, y0, statsMax, UserVariables.getSigEstGreen(), UserVariables.getSigEstGreen(), 0.0);
+            c2Gaussian = new IsoGaussian(x0, y0, stats2.max * stats1.median, UserVariables.getSigEstGreen(), UserVariables.getSigEstGreen(), 0.0);
         }
         return c2Gaussian;
     }
