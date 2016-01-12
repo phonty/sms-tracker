@@ -20,7 +20,7 @@ import java.util.ArrayList;
  *
  * @author barry05
  */
-public class SuperResAnalyser extends Colocalisation_Analysis {
+public class SuperResAnalyser extends Bead_Calibration {
 
     private int scaleFactor = 10;
     private final String TITLE = this.getClass().getName();

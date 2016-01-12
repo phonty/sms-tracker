@@ -20,7 +20,7 @@ import java.awt.Toolkit;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 
-public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
+public class Bead_Calibration extends Analyse_ implements PlugIn {
 
     protected ImagePlus imp;
 //    protected ImageStack[] stacks = new ImageStack[2];
@@ -45,10 +45,10 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
 //        (new Colocalisation_Analysis(inputs)).run(null);
 //        System.exit(0);
 //    }
-    public Colocalisation_Analysis() {
+    public Bead_Calibration() {
     }
 
-    public Colocalisation_Analysis(ImagePlus[] inputs) {
+    public Bead_Calibration(ImagePlus[] inputs) {
         ImageStack tempStacks[] = new ImageStack[2];
         tempStacks[0] = inputs[0].getImageStack();
         tempStacks[1] = inputs[1].getImageStack();
@@ -56,7 +56,7 @@ public class Colocalisation_Analysis extends Analyse_ implements PlugIn {
         this.stacks = tempStacks;
     }
 
-    public Colocalisation_Analysis(ImagePlus imp) {
+    public Bead_Calibration(ImagePlus imp) {
         this.imp = imp;
         ImagePlus tempImps[] = ChannelSplitter.split(imp);
         stacks[0] = tempImps[0].getImageStack();

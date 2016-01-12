@@ -134,11 +134,13 @@ public class Analyse_ implements PlugIn {
         if (showDialog()) {
             analyse(inputDir);
         }
-        try {
-            FileUtils.deleteDirectory(c0Dir);
-            FileUtils.deleteDirectory(c1Dir);
-        } catch (Exception e) {
-            IJ.error(e.toString());
+        if (IJ.getInstance() == null) {
+            try {
+                FileUtils.deleteDirectory(c0Dir);
+                FileUtils.deleteDirectory(c1Dir);
+            } catch (Exception e) {
+                IJ.error(e.toString());
+            }
         }
     }
 
@@ -216,7 +218,7 @@ public class Analyse_ implements PlugIn {
             fileChooser.showOpenDialog(null);
             File calFile = fileChooser.getSelectedFile();
             calDir = calFile.getParentFile();
-            if (!(new Multi_Goshtasby()).run(calFile, Colocalisation_Analysis.HEADER_SIZE)) {
+            if (!(new Multi_Goshtasby()).run(calFile, Bead_Calibration.HEADER_SIZE)) {
                 UserVariables.setUseCals(false);
                 System.out.println("Calculation of calibration coefficients failed - proceeding without calibration.");
             }
