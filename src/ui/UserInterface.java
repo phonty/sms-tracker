@@ -174,6 +174,8 @@ public class UserInterface extends javax.swing.JDialog {
         jSplitPane1.setDividerSize(3);
         jSplitPane1.setResizeWeight(0.3);
 
+        jTabbedPane1.setPreferredSize(new java.awt.Dimension(350, 270));
+
         detectionPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         detectionPanel.setLayout(new java.awt.GridBagLayout());
 
