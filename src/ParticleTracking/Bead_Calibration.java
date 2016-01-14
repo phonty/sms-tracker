@@ -27,7 +27,7 @@ public class Bead_Calibration extends Analyse_ implements PlugIn {
     protected String title = "Colocaliser";
     protected String resultsHeadings = "Image\tChannel 1 Detections\tColocalised Channel 2 Detections\t% Colocalisation\t"
             + "\u0394 (nm)", coordHeadings;
-    protected static double coFactor = 1.0;
+//    protected static double coFactor = 1.0;
     public static final int RED = 0, GREEN = 1, BLUE = 2;
     protected DecimalFormat numFormat = new DecimalFormat("0.0");
 //    protected static boolean partialDetect = false;
@@ -42,7 +42,7 @@ public class Bead_Calibration extends Analyse_ implements PlugIn {
 //        ImagePlus inputs[] = new ImagePlus[2];
 //        inputs[0] = IJ.openImage();
 //        inputs[1] = IJ.openImage();
-//        (new Colocalisation_Analysis(inputs)).run(null);
+//        (new Bead_Calibration(inputs)).run(null);
 //        System.exit(0);
 //    }
     public Bead_Calibration() {
@@ -106,7 +106,7 @@ public class Bead_Calibration extends Analyse_ implements PlugIn {
             dialog.addNumericField("Minimum Peak Size (Ch 1):", UserVariables.getChan1MaxThresh(), 3, 7, "");
             dialog.addNumericField("Minimum Peak Size (Ch 2):", UserVariables.getChan2MaxThresh(), 3, 7, "");
             dialog.addNumericField("Curve Fit Tolerance:", UserVariables.getCurveFitTol(), 3, 7, "");
-            dialog.addNumericField("Colocalisation Factor:", coFactor, 3, 7, "");
+//            dialog.addNumericField("Colocalisation Factor:", coFactor, 3, 7, "");
             dialog.addCheckbox("Floating Sigma", floatingSigma);
 //            dialog.addCheckbox("Include Partial Detections", partialDetect);
             dialog.showDialog();
@@ -121,7 +121,7 @@ public class Bead_Calibration extends Analyse_ implements PlugIn {
                  * Timelapse_Analysis.setC1SigmaTol(sigmaTolC1);
                  * Timelapse_Analysis.setC2SigmaTol(sigmaTolC2);
                  */
-                coFactor = dialog.getNextNumber();
+//                coFactor = dialog.getNextNumber();
 //                partialDetect = dialog.getNextBoolean();
                 floatingSigma = dialog.getNextBoolean();
                 // Check that entries were numeric:
