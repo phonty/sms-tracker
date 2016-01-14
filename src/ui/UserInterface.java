@@ -19,7 +19,7 @@ package ui;
 import IAClasses.IsoGaussian;
 import IAClasses.Utils;
 import ParticleTracking.Analyse_;
-import ParticleTracking.GPU_Analyse;
+import ParticleTracking.GPUAnalyse;
 import ParticleTracking.Particle;
 import ParticleTracking.ParticleArray;
 import ParticleTracking.UserVariables;
@@ -644,8 +644,8 @@ public class UserInterface extends javax.swing.JDialog {
         analyser.calcParticleRadius(UserVariables.getSpatialRes());
         ImageStack stacks[] = analyser.getStacks();
         ParticleArray detections;
-        if (analyser instanceof GPU_Analyse && UserVariables.isGpu()) {
-            detections = ((GPU_Analyse) analyser).cudaFindParticles(true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, stacks[1]);
+        if (analyser instanceof GPUAnalyse && UserVariables.isGpu()) {
+            detections = ((GPUAnalyse) analyser).cudaFindParticles(true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, stacks[1]);
         } else {
             detections = analyser.findParticles(true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1]);
         }

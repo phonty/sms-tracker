@@ -30,7 +30,7 @@ import java.util.ArrayList;
  *
  * @author David Barry <david.barry at cancer.org.uk>
  */
-public class GPU_Analyse extends Analyse_ {
+public class GPUAnalyse extends Analyse_ {
 
     private final int CUDA_FILE_COLS = 5;
 
@@ -46,14 +46,14 @@ public class GPU_Analyse extends Analyse_ {
 //        System.exit(0);
 //    }
 
-    public GPU_Analyse() {
+    public GPUAnalyse() {
         super();
         gpuEnabled = true;
     }
 
     protected ParticleArray findParticles() {
         if (UserVariables.isGpu()) {
-            return GPU_Analyse.this.cudaFindParticles(true, 0, stacks[0].getSize() - 1, stacks[1]);
+            return GPUAnalyse.this.cudaFindParticles(true, 0, stacks[0].getSize() - 1, stacks[1]);
         } else {
             return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, false, false);
         }
