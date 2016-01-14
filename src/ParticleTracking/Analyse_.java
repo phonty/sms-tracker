@@ -71,7 +71,7 @@ public class Analyse_ implements PlugIn {
     public final float TRACK_EXT = 1.0f;
     public final float TRACK_OFFSET = 0.75f;
     protected static File c0Dir, c1Dir,
-            calDir = new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails\\2015.08.06_Dualview");
+            calDir = new File("C:\\Users\\barry05\\Desktop\\2016.01.12_PP1_Test\\Cal");
     protected final String delimiter = GenUtils.getDelimiter();
     protected ImagePlus[] inputs;
     protected final String labels[] = {"Channel 1", "Channel 2"};
@@ -86,6 +86,7 @@ public class Analyse_ implements PlugIn {
 ////        }
 //        System.exit(0);
 //    }
+
     public Analyse_() {
     }
 
@@ -233,7 +234,7 @@ public class Analyse_ implements PlugIn {
             TextWindow resultSummary = new TextWindow(title + " Results Summary",
                     "Particle\tDuration (s)\tDisplacement (" + IJ.micronSymbol
                     + "m)\tVelocity (" + IJ.micronSymbol + "m/s)\tDirectionality\tDiffusion Coefficient ("
-                    + IJ.micronSymbol + "m^2/s)" + "\tAngle Spread\tStep Spread",
+                    + IJ.micronSymbol + "m^2/s)",
                     new String(), 1200, 500);
             int n = trajectories.size();
             for (int i = 0; i < n; i++) {
