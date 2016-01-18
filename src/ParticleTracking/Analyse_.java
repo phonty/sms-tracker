@@ -71,13 +71,14 @@ public class Analyse_ implements PlugIn {
     public final float TRACK_EXT = 1.0f;
     public final float TRACK_OFFSET = 0.75f;
     protected static File c0Dir, c1Dir,
-            calDir = new File("C:\\Users\\barry05\\Desktop\\2016.01.12_PP1_Test\\Cal");
+            calDir = new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails\\WR");
     protected final String delimiter = GenUtils.getDelimiter();
     protected ImagePlus[] inputs;
     protected final String labels[] = {"Channel 1", "Channel 2"};
     protected boolean gpuEnabled = false;
-    protected final double MEDIAN_THRESH = 1.5;
+    protected final double MEDIAN_THRESH = 1.1;
     private final double PART_RAD = 4.0;
+    private static File calFile;
 
 //    public static void main(String args[]) {
 ////        if (imp != null) {
@@ -86,7 +87,6 @@ public class Analyse_ implements PlugIn {
 ////        }
 //        System.exit(0);
 //    }
-
     public Analyse_() {
     }
 
@@ -214,10 +214,11 @@ public class Analyse_ implements PlugIn {
         String sigc0Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C0", delimiter);
         String sigc1Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C1", delimiter);
         if (!(stacks[1] == null) && UserVariables.isUseCals()) {
-            JFileChooser fileChooser = new JFileChooser(calDir);
+            String dir = calFile != null ? calFile.getParent() : null;
+            JFileChooser fileChooser = new JFileChooser(dir);
             fileChooser.setDialogTitle("Specify file containing bead calibration data");
             fileChooser.showOpenDialog(null);
-            File calFile = fileChooser.getSelectedFile();
+            calFile = fileChooser.getSelectedFile();
             calDir = calFile.getParentFile();
             if (!(new Multi_Goshtasby()).run(calFile, Bead_Calibration.HEADER_SIZE)) {
                 UserVariables.setUseCals(false);

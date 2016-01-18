@@ -29,7 +29,6 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.InputMismatchException;
 import java.util.Scanner;
-import javax.swing.DefaultBoundedRangeModel;
 import javax.swing.JTextField;
 
 public class ResultsPreviewInterface extends javax.swing.JDialog {
@@ -69,15 +68,15 @@ public class ResultsPreviewInterface extends javax.swing.JDialog {
         java.awt.GridBagConstraints gridBagConstraints;
 
         canvas = new ImageCanvas(imp);
-        trajScrollBar = new javax.swing.JScrollBar();
         trajTextField = new javax.swing.JTextField();
         removeButton = new javax.swing.JButton();
         jPanel1 = new javax.swing.JPanel();
         okButton = new javax.swing.JButton();
         cancelButton = new javax.swing.JButton();
-        imageScrollBar = new javax.swing.JScrollBar();
         imageTextField = new javax.swing.JTextField();
         removeTextField = new javax.swing.JTextField();
+        imageScrollBar = new java.awt.Scrollbar();
+        trajScrollBar = new java.awt.Scrollbar();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle(title);
@@ -98,23 +97,6 @@ public class ResultsPreviewInterface extends javax.swing.JDialog {
         gridBagConstraints.weighty = 0.75;
         gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
         getContentPane().add(canvas, gridBagConstraints);
-
-        trajScrollBar.setOrientation(javax.swing.JScrollBar.HORIZONTAL);
-        trajScrollBar.setModel(new DefaultBoundedRangeModel(0, 0, 0, trajectories.size()-1));
-        trajScrollBar.addAdjustmentListener(new java.awt.event.AdjustmentListener() {
-            public void adjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {
-                trajScrollBarAdjustmentValueChanged(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 4;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-        gridBagConstraints.weightx = 0.8;
-        gridBagConstraints.weighty = 0.05;
-        gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
-        getContentPane().add(trajScrollBar, gridBagConstraints);
 
         trajTextField.setEditable(false);
         trajTextField.setText(String.valueOf(trajScrollBar.getValue()));
@@ -175,23 +157,6 @@ public class ResultsPreviewInterface extends javax.swing.JDialog {
         gridBagConstraints.weighty = 0.05;
         getContentPane().add(jPanel1, gridBagConstraints);
 
-        imageScrollBar.setOrientation(javax.swing.JScrollBar.HORIZONTAL);
-        imageScrollBar.setModel(new DefaultBoundedRangeModel(1, 0, 1, analyser.getStacks()[0].getSize()));
-        imageScrollBar.addAdjustmentListener(new java.awt.event.AdjustmentListener() {
-            public void adjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {
-                imageScrollBarAdjustmentValueChanged(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 1;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-        gridBagConstraints.weightx = 0.8;
-        gridBagConstraints.weighty = 0.05;
-        gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
-        getContentPane().add(imageScrollBar, gridBagConstraints);
-
         imageTextField.setText(String.valueOf(imageScrollBar.getValue()));
         imageTextField.setEditable(false);
         gridBagConstraints = new java.awt.GridBagConstraints();
@@ -214,25 +179,44 @@ public class ResultsPreviewInterface extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
         getContentPane().add(removeTextField, gridBagConstraints);
 
+        imageScrollBar.setOrientation(java.awt.Scrollbar.HORIZONTAL);
+        imageScrollBar.setMinimum(1);
+        imageScrollBar.setMaximum(analyser.getStacks()[0].getSize());
+        imageScrollBar.addAdjustmentListener(new java.awt.event.AdjustmentListener() {
+            public void adjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {
+                imageScrollBarAdjustmentValueChanged(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
+        gridBagConstraints.weightx = 0.8;
+        gridBagConstraints.weighty = 0.05;
+        gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
+        getContentPane().add(imageScrollBar, gridBagConstraints);
+
+        trajScrollBar.setOrientation(java.awt.Scrollbar.HORIZONTAL);
+        trajScrollBar.setMinimum(0);
+        trajScrollBar.setMaximum(trajectories.size()-1);
+        trajScrollBar.addAdjustmentListener(new java.awt.event.AdjustmentListener() {
+            public void adjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {
+                trajScrollBarAdjustmentValueChanged(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 4;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
+        gridBagConstraints.weightx = 0.8;
+        gridBagConstraints.weighty = 0.05;
+        gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
+        getContentPane().add(trajScrollBar, gridBagConstraints);
+
         pack();
     }// </editor-fold>//GEN-END:initComponents
-
-    private void imageScrollBarAdjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {//GEN-FIRST:event_imageScrollBarAdjustmentValueChanged
-        updateTextField(imageTextField, imageScrollBar.getValue());
-        imp.setProcessor(stack.getProcessor(imageScrollBar.getValue()));
-        canvas.repaint();
-    }//GEN-LAST:event_imageScrollBarAdjustmentValueChanged
-
-    private void trajScrollBarAdjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {//GEN-FIRST:event_trajScrollBarAdjustmentValueChanged
-        updateTextField(trajTextField, trajScrollBar.getValue());
-        ImageStack stacks[] = getStacks();
-        stack = analyser.mapTrajectories((new RGBStackMerge()).mergeStacks(stacks[0].getWidth(), stacks[0].getHeight(), stacks[0].getSize(), stacks[0], stacks[1], null, true),
-                trajectories, UserVariables.getSpatialRes(), UserVariables.getMinTrajLength(),
-                UserVariables.getTimeRes(), true, trajScrollBar.getValue(), trajScrollBar.getValue(),
-                trajScrollBar.getValue(), true, 5);
-        imageScrollBar.setValue((trajectories.get(trajScrollBar.getValue())).getStartTimeIndex() + 1);
-        imageScrollBarAdjustmentValueChanged(null);
-    }//GEN-LAST:event_trajScrollBarAdjustmentValueChanged
 
     private void removeButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_removeButtonActionPerformed
         removeTextField.setText(removeTextField.getText() + " " + String.valueOf(trajScrollBar.getValue()));
@@ -266,6 +250,23 @@ public class ResultsPreviewInterface extends javax.swing.JDialog {
     private void canvasComponentResized(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_canvasComponentResized
         ((ImageCanvas) canvas).setMagnification(1.0 / UIMethods.getMagnification(imp.getProcessor(), canvas));
     }//GEN-LAST:event_canvasComponentResized
+
+    private void imageScrollBarAdjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {//GEN-FIRST:event_imageScrollBarAdjustmentValueChanged
+        updateTextField(imageTextField, imageScrollBar.getValue());
+        imp.setProcessor(stack.getProcessor(imageScrollBar.getValue()));
+        canvas.repaint();
+    }//GEN-LAST:event_imageScrollBarAdjustmentValueChanged
+
+    private void trajScrollBarAdjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {//GEN-FIRST:event_trajScrollBarAdjustmentValueChanged
+        updateTextField(trajTextField, trajScrollBar.getValue());
+        ImageStack stacks[] = getStacks();
+        stack = analyser.mapTrajectories((new RGBStackMerge()).mergeStacks(stacks[0].getWidth(), stacks[0].getHeight(), stacks[0].getSize(), stacks[0], stacks[1], null, true),
+                trajectories, UserVariables.getSpatialRes(), UserVariables.getMinTrajLength(),
+                UserVariables.getTimeRes(), true, trajScrollBar.getValue(), trajScrollBar.getValue(),
+                trajScrollBar.getValue(), true, 5);
+        imageScrollBar.setValue((trajectories.get(trajScrollBar.getValue())).getStartTimeIndex() + 1);
+        imageScrollBarAdjustmentValueChanged(null);
+    }//GEN-LAST:event_trajScrollBarAdjustmentValueChanged
 
     void updateTextField(JTextField field, int value) {
         field.setText(String.valueOf(value));
@@ -305,13 +306,13 @@ public class ResultsPreviewInterface extends javax.swing.JDialog {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton cancelButton;
     private java.awt.Canvas canvas;
-    private javax.swing.JScrollBar imageScrollBar;
+    private java.awt.Scrollbar imageScrollBar;
     private javax.swing.JTextField imageTextField;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JButton okButton;
     private javax.swing.JButton removeButton;
     private javax.swing.JTextField removeTextField;
-    private javax.swing.JScrollBar trajScrollBar;
+    private java.awt.Scrollbar trajScrollBar;
     private javax.swing.JTextField trajTextField;
     // End of variables declaration//GEN-END:variables
 }

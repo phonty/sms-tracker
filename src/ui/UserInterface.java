@@ -128,9 +128,9 @@ public class UserInterface extends javax.swing.JDialog {
         useCalsToggleButton = new javax.swing.JToggleButton();
         jPanel2 = new javax.swing.JPanel();
         canvas1 = new ImageCanvas(imp);
-        previewScrollBar = new javax.swing.JScrollBar();
         previewTextField = new javax.swing.JTextField();
         previewToggleButton = new javax.swing.JToggleButton();
+        previewScrollBar = new java.awt.Scrollbar();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle(title);
@@ -525,24 +525,6 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(10, 10, 0, 10);
         jPanel2.add(canvas1, gridBagConstraints);
 
-        previewScrollBar.setOrientation(javax.swing.JScrollBar.HORIZONTAL);
-        previewScrollBar.setModel(new DefaultBoundedRangeModel(1, 0, 1, analyser.getStacks()[0].getSize()));
-        previewScrollBar.setEnabled(previewToggleButton.isSelected());
-        previewScrollBar.addAdjustmentListener(new java.awt.event.AdjustmentListener() {
-            public void adjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {
-                previewScrollBarAdjustmentValueChanged(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-        gridBagConstraints.weightx = 0.8;
-        gridBagConstraints.weighty = 0.1;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 0);
-        jPanel2.add(previewScrollBar, gridBagConstraints);
-
         previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
         previewTextField.setEditable(false);
         previewTextField.setEnabled(previewToggleButton.isSelected());
@@ -570,6 +552,25 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
         jPanel2.add(previewToggleButton, gridBagConstraints);
 
+        previewScrollBar.setOrientation(java.awt.Scrollbar.HORIZONTAL);
+        previewScrollBar.setMinimum(1);
+        previewScrollBar.setMaximum(analyser.getStacks()[0].getSize());
+        previewScrollBar.setEnabled(previewToggleButton.isSelected());
+        previewScrollBar.addAdjustmentListener(new java.awt.event.AdjustmentListener() {
+            public void adjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {
+                previewScrollBarAdjustmentValueChanged(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
+        gridBagConstraints.weightx = 0.8;
+        gridBagConstraints.weighty = 0.1;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 0);
+        jPanel2.add(previewScrollBar, gridBagConstraints);
+
         jSplitPane1.setRightComponent(jPanel2);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
@@ -580,14 +581,6 @@ public class UserInterface extends javax.swing.JDialog {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
-
-    private void previewScrollBarAdjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {//GEN-FIRST:event_previewScrollBarAdjustmentValueChanged
-        previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
-        if (previewScrollBar.getValueIsAdjusting() || !setVariables()) {
-            return;
-        }
-        viewDetections();
-    }//GEN-LAST:event_previewScrollBarAdjustmentValueChanged
 
     private void previewToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_previewToggleButtonActionPerformed
         previewScrollBar.setEnabled(previewToggleButton.isSelected());
@@ -607,6 +600,14 @@ public class UserInterface extends javax.swing.JDialog {
         this.dispose();
         wasOKed = true;
     }//GEN-LAST:event_okButtonActionPerformed
+
+    private void previewScrollBarAdjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {//GEN-FIRST:event_previewScrollBarAdjustmentValueChanged
+        previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
+        if (previewScrollBar.getValueIsAdjusting() || !setVariables()) {
+            return;
+        }
+        viewDetections();
+    }//GEN-LAST:event_previewScrollBarAdjustmentValueChanged
 
     boolean setVariables() {
         try {
@@ -723,7 +724,6 @@ public class UserInterface extends javax.swing.JDialog {
 //    public static String getChan2MaxThreshLabelText() {
 //        return chan2MaxThreshLabelText;
 //    }
-
     public static String getCurveFitTolLabelText() {
         return c1CurveFitTolLabelText;
     }
@@ -731,7 +731,6 @@ public class UserInterface extends javax.swing.JDialog {
 //    public static String getC2CurveFitTolLabelText() {
 //        return c2CurveFitTolLabelText;
 //    }
-
     public static String getColocalToggleText() {
         return colocalToggleText;
     }
@@ -806,7 +805,7 @@ public class UserInterface extends javax.swing.JDialog {
     private javax.swing.JButton okButton;
     private javax.swing.JToggleButton preprocessToggleButton;
     private javax.swing.JToggleButton previewResultsToggleButton;
-    private javax.swing.JScrollBar previewScrollBar;
+    private java.awt.Scrollbar previewScrollBar;
     private javax.swing.JTextField previewTextField;
     private javax.swing.JToggleButton previewToggleButton;
     private javax.swing.JLabel redSigmaLabel;
