@@ -76,7 +76,6 @@ public class Analyse_ implements PlugIn {
     protected ImagePlus[] inputs;
     protected final String labels[] = {"Channel 1", "Channel 2"};
     protected boolean gpuEnabled = false;
-    protected final double MEDIAN_THRESH = 1.1;
     private final double PART_RAD = 4.0;
     private static File calFile;
 
@@ -947,6 +946,7 @@ public class Analyse_ implements PlugIn {
         paramStream.println(UserInterface.getGreenSigEstText() + "," + UserVariables.getSigEstGreen());
         paramStream.println(UserInterface.getSpatResLabelText() + "," + UserVariables.getSpatialRes());
         paramStream.println(UserInterface.getChan1MaxThreshLabelText() + "," + UserVariables.getChan1MaxThresh());
+        paramStream.println(UserInterface.getChan2MaxThreshLabelText()+ "," + UserVariables.getMedianThresh());
         paramStream.println(UserInterface.getCurveFitTolLabelText() + "," + UserVariables.getCurveFitTol());
         paramStream.println(UserInterface.getPreprocessToggleText() + "," + UserVariables.isPreProcess());
         paramStream.println(UserInterface.getGpuToggleText() + "," + UserVariables.isGpu());
@@ -982,7 +982,7 @@ public class Analyse_ implements PlugIn {
         FloatStatistics stats1 = new FloatStatistics(ip3, ImageStatistics.MEDIAN, null);
         ip3.multiply(1.0 / stats1.median);
         FloatStatistics stats2 = new FloatStatistics(ip3, ImageStatistics.MIN_MAX, null);
-        if (stats2.max > MEDIAN_THRESH) {
+        if (stats2.max > UserVariables.getMedianThresh()) {
             c2Gaussian = new IsoGaussian(x0, y0, stats2.max * stats1.median, UserVariables.getSigEstGreen(), UserVariables.getSigEstGreen(), 0.0);
         }
         return c2Gaussian;

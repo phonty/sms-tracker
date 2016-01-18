@@ -47,7 +47,8 @@ public class UserInterface extends javax.swing.JDialog {
     private static final String minTrajDistLabelText = "Minimum trajectory distance (" + IJ.micronSymbol + "m):";
     private static final String minTrajMSDLabelText = "Minimum trajectory MSD (" + IJ.micronSymbol + "m^2/s):";
     private static final String maxLinkDistLabelText = "Maximum linking distance:";
-    private static final String chan1MaxThreshLabelText = "Minimum peak size:";
+    private static final String chan1MaxThreshLabelText = "C1 Minimum peak size:";
+    private static final String chan2MaxThreshLabelText = "C2 Minimum peak size:";
 //    private static final String chan2MaxThreshLabelText = "Minimum peak size (C2):";
     private static final String c1CurveFitTolLabelText = "Curve fit tolerance:";
 //    private static final String c2CurveFitTolLabelText = "Curve fit tolerance (C2):";
@@ -107,6 +108,8 @@ public class UserInterface extends javax.swing.JDialog {
         greenSigmaLabel = new javax.swing.JLabel();
         redSigmaTextField = new javax.swing.JTextField();
         greenSigmaTextField = new javax.swing.JTextField();
+        jLabel1 = new javax.swing.JLabel();
+        medianThreshTextField = new javax.swing.JTextField();
         trackingPanel = new javax.swing.JPanel();
         timeResLabel = new javax.swing.JLabel();
         timeResTextField = new javax.swing.JTextField();
@@ -227,7 +230,7 @@ public class UserInterface extends javax.swing.JDialog {
         preprocessToggleButton.setSelected(UserVariables.isPreProcess());
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 5;
+        gridBagConstraints.gridy = 6;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
@@ -238,7 +241,7 @@ public class UserInterface extends javax.swing.JDialog {
         c1CurveFitTolLabel.setText(c1CurveFitTolLabelText);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 4;
+        gridBagConstraints.gridy = 5;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weightx = 0.5;
@@ -249,7 +252,7 @@ public class UserInterface extends javax.swing.JDialog {
         c1CurveFitTolTextField.setText(String.valueOf(UserVariables.getCurveFitTol()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 4;
+        gridBagConstraints.gridy = 5;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 0.5;
@@ -261,7 +264,7 @@ public class UserInterface extends javax.swing.JDialog {
         gpuToggleButton.setEnabled(analyser.isGpuEnabled());
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 7;
+        gridBagConstraints.gridy = 8;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
@@ -304,6 +307,28 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         detectionPanel.add(greenSigmaTextField, gridBagConstraints);
+
+        jLabel1.setText(chan2MaxThreshLabelText);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 4;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        detectionPanel.add(jLabel1, gridBagConstraints);
+
+        medianThreshTextField.setText(String.valueOf(UserVariables.getMedianThresh()));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 4;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        detectionPanel.add(medianThreshTextField, gridBagConstraints);
 
         jTabbedPane1.addTab("Detection", detectionPanel);
 
@@ -612,6 +637,7 @@ public class UserInterface extends javax.swing.JDialog {
     boolean setVariables() {
         try {
             UserVariables.setChan1MaxThresh(Double.parseDouble(chan1MaxThreshTextField.getText()));
+            UserVariables.setMedianThresh(Double.parseDouble(medianThreshTextField.getText()));
 //            UserVariables.setChan2MaxThresh(Double.parseDouble(chan2MaxThreshTextField.getText()));
             UserVariables.setMinTrajLength(Double.parseDouble(minTrajLengthTextField.getText()));
             UserVariables.setMinTrajDist(Double.parseDouble(minTrajDistTextField.getText()));
@@ -775,6 +801,10 @@ public class UserInterface extends javax.swing.JDialog {
         return extractSigsToggleText;
     }
 
+    public static String getChan2MaxThreshLabelText() {
+        return chan2MaxThreshLabelText;
+    }
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel c1CurveFitTolLabel;
     private javax.swing.JTextField c1CurveFitTolTextField;
@@ -790,12 +820,14 @@ public class UserInterface extends javax.swing.JDialog {
     private javax.swing.JToggleButton gpuToggleButton;
     private javax.swing.JLabel greenSigmaLabel;
     private javax.swing.JTextField greenSigmaTextField;
+    private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JSplitPane jSplitPane1;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JLabel maxTrajStepLabel;
     private javax.swing.JTextField maxTrajStepTextField;
+    private javax.swing.JTextField medianThreshTextField;
     private javax.swing.JLabel minTrajDistLabel;
     private javax.swing.JTextField minTrajDistTextField;
     private javax.swing.JLabel minTrajLengthLabel;
