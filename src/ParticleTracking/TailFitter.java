@@ -24,7 +24,6 @@ import java.io.File;
 import java.util.Random;
 import org.apache.commons.math3.analysis.function.Gaussian;
 import org.apache.commons.math3.special.Erf;
-import org.apache.commons.math3.util.MathArrays;
 
 /**
  *

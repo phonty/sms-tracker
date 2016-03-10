@@ -71,7 +71,7 @@ public class Analyse_ implements PlugIn {
     public final float TRACK_EXT = 1.0f;
     public final float TRACK_OFFSET = 0.75f;
     protected static File c0Dir, c1Dir,
-            calDir = new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails\\WR");
+            calDir = new File("C:\\Users\\barry05\\Desktop\\2016.02.23_PP1\\Cal");
     protected final String delimiter = GenUtils.getDelimiter();
     protected ImagePlus[] inputs;
     protected final String labels[] = {"Channel 1", "Channel 2"};
@@ -213,8 +213,7 @@ public class Analyse_ implements PlugIn {
         String sigc0Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C0", delimiter);
         String sigc1Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C1", delimiter);
         if (!(stacks[1] == null) && UserVariables.isUseCals()) {
-            String dir = calFile != null ? calFile.getParent() : null;
-            JFileChooser fileChooser = new JFileChooser(dir);
+            JFileChooser fileChooser = new JFileChooser(calDir);
             fileChooser.setDialogTitle("Specify file containing bead calibration data");
             fileChooser.showOpenDialog(null);
             calFile = fileChooser.getSelectedFile();
@@ -261,7 +260,10 @@ public class Analyse_ implements PlugIn {
                 }
             }
             n = trajectories.size();
+            ProgressDialog trajProg = new ProgressDialog(null, "Analysing trajectories...", false, title, false);
+            trajProg.setVisible(true);
             for (int i = 0; i < n; i++) {
+                trajProg.updateProgress(i, n);
                 boolean remove = false;
                 ParticleTrajectory traj = (ParticleTrajectory) trajectories.get(i);
                 if (traj != null) {
@@ -294,6 +296,7 @@ public class Analyse_ implements PlugIn {
                     n--;
                 }
             }
+            trajProg.dispose();
             ImageStack maps = mapTrajectories((new RGBStackMerge()).mergeStacks(stacks[0].getWidth(), stacks[0].getHeight(), stacks[0].getSize(), stacks[0], stacks[1], null, true),
                     trajectories, UserVariables.getSpatialRes(), UserVariables.getMinTrajLength(),
                     UserVariables.getTimeRes(), true, 0, trajectories.size() - 1, 1, false, calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed()));
@@ -647,12 +650,12 @@ public class Analyse_ implements PlugIn {
         ImageProcessor[] sigTemps = new ImageProcessor[size];
         ImageProcessor[] virTemps = new ImageProcessor[size];
         Particle last = null, next;
-        ProgressDialog progress = new ProgressDialog(null, "Extracting Signal Areas " + count + "...", false, title, false);
-        progress.setVisible(true);
+//        ProgressDialog progress = new ProgressDialog(null, "Extracting Signal Areas " + count + "...", false, title, false);
+//        progress.setVisible(true);
         double radius = calcParticleRadius(UserVariables.getSpatialRes(),
                 UserVariables.getSigEstRed()) * UserVariables.getSpatialRes();
         for (int i = 0; i < size; i++) {
-            progress.updateProgress(i, size);
+//            progress.updateProgress(i, size);
             Particle current = sigStartP;
             next = sigStartP.getLink();
             xSigPoints = new ArrayList();
@@ -739,7 +742,7 @@ public class Analyse_ implements PlugIn {
             last = sigStartP;
             sigStartP = sigStartP.getLink();
         }
-        progress.dispose();
+//        progress.dispose();
         int xc = (int) Math.ceil(TRACK_OFFSET * offset);
         int yc = (signalWidth - 1) / 2;
         int outputWidth = (int) Math.round(signalLength + offset);
@@ -747,10 +750,10 @@ public class Analyse_ implements PlugIn {
         output[0] = new ImageStack(outputWidth, signalWidth);
         output[1] = new ImageStack(outputWidth, signalWidth);
 
-        progress = new ProgressDialog(null, "Aligning Signal Areas " + count + "...", false, title, false);
-        progress.setVisible(true);
+//        progress = new ProgressDialog(null, "Aligning Signal Areas " + count + "...", false, title, false);
+//        progress.setVisible(true);
         for (int j = 0; j < size; j++) {
-            progress.updateProgress(j, size);
+//            progress.updateProgress(j, size);
             if (virTemps[j] != null && sigTemps[j] != null && sigTemps[j].getWidth() >= outputWidth) {
                 Particle alignmentParticle = null;
                 if (UserVariables.isUseCals()) {
@@ -798,7 +801,7 @@ public class Analyse_ implements PlugIn {
                 }
             }
         }
-        progress.dispose();
+//        progress.dispose();
         return output;
     }
 
@@ -946,7 +949,7 @@ public class Analyse_ implements PlugIn {
         paramStream.println(UserInterface.getGreenSigEstText() + "," + UserVariables.getSigEstGreen());
         paramStream.println(UserInterface.getSpatResLabelText() + "," + UserVariables.getSpatialRes());
         paramStream.println(UserInterface.getChan1MaxThreshLabelText() + "," + UserVariables.getChan1MaxThresh());
-        paramStream.println(UserInterface.getChan2MaxThreshLabelText()+ "," + UserVariables.getMedianThresh());
+        paramStream.println(UserInterface.getChan2MaxThreshLabelText() + "," + UserVariables.getMedianThresh());
         paramStream.println(UserInterface.getCurveFitTolLabelText() + "," + UserVariables.getCurveFitTol());
         paramStream.println(UserInterface.getPreprocessToggleText() + "," + UserVariables.isPreProcess());
         paramStream.println(UserInterface.getGpuToggleText() + "," + UserVariables.isGpu());

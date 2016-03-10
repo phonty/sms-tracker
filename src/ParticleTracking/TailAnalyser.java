@@ -52,8 +52,8 @@ public class TailAnalyser {
     private final String checkBoxLabels[] = {"Randomize", "Tail by Tail"};
     private boolean checks[] = {randomize, tailByTail};
     private static int chanChoice = 1, eqChoice = 1, iterations = 1;
-    double minVersion = 5.028;
-    private boolean correlate = true;
+    double minVersion = 5.045;
+    private boolean correlate = false;
 
 //    public static void main(String args[]) {
 //        TailAnalyser ta = new TailAnalyser();
@@ -120,13 +120,13 @@ public class TailAnalyser {
                         }
                     }
                 }
-//            } else {
-//                ImageStack stacks[] = buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, randomize, resultsDir);
-//                for (int j = 0; j < stacks.length; j++) {
-//                    System.out.print("Vel:," + numFormat.format(VEL_BINS[j]) + ",");
-//                    ImageProcessor stackAverage = projectStack(stacks[j]);
-//                    processStackAverage(stackAverage);
-//                }
+            } else {
+                ImageStack stacks[] = buildStackAverageOverall(stackWidth, stackHeight, selectedSubDirs, chan, randomize, resultsDir);
+                for (int j = 0; j < stacks.length; j++) {
+                    System.out.print("Vel:," + numFormat.format(VEL_BINS[j]) + ",");
+                    ImageProcessor stackAverage = projectStack(stacks[j]);
+                    processStackAverage(stackAverage);
+                }
             }
         }
         generateImages(selectedSubDirs, chan, resultsDir, stackWidth, stackHeight);
@@ -174,6 +174,7 @@ public class TailAnalyser {
         TailFitter tf = new TailFitter(eqChoice, spatialRes, UserVariables.getSigEstGreen());
         tf.loadData(xVals, yVals, zVals);
         tf.doFit(UserVariables.getSigEstGreen());
+        tf.printParams();
         return tf;
     }
 
