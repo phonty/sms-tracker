@@ -40,11 +40,11 @@ public class GPUAnalyse extends Analyse_ {
 
     private native boolean cudaGaussFitter(String folder, String ext, float spatialRes, float sigmaEst, float maxthresh, float fitTol, int startSlice, int endSlice);
 
-//    public static void main(String args[]) {
-//        GPUAnalyse instance = new GPUAnalyse();
-//        instance.run(null);
-//        System.exit(0);
-//    }
+    public static void main(String args[]) {
+        GPUAnalyse instance = new GPUAnalyse();
+        instance.run(null);
+        System.exit(0);
+    }
 
     public GPUAnalyse() {
         super();

@@ -71,7 +71,7 @@ public class Analyse_ implements PlugIn {
     public final float TRACK_EXT = 1.0f;
     public final float TRACK_OFFSET = 0.75f;
     protected static File c0Dir, c1Dir,
-            calDir = new File("C:\\Users\\barry05\\Desktop\\2016.02.23_PP1\\Cal");
+            calDir = new File("C:\\Users\\barry05\\Desktop\\2016.03.10_PP1\\Cal");
     protected final String delimiter = GenUtils.getDelimiter();
     protected ImagePlus[] inputs;
     protected final String labels[] = {"Channel 1", "Channel 2"};
@@ -637,6 +637,7 @@ public class Analyse_ implements PlugIn {
      * @return
      */
     ImageStack[] extractTrajSignalValues(ParticleTrajectory ptraj, int signalLength, int signalWidth, float offset, int width, int height, int count) {
+        String calParent = calDir + delimiter + "goshtasby" + delimiter + GOSHTASBY_M + "_" + GOSHTASBY_N;
         TextReader reader = new TextReader();
         double xdiv = width * UserVariables.getSpatialRes() / GOSHTASBY_M;
         double ydiv = height * UserVariables.getSpatialRes() / GOSHTASBY_N;
@@ -694,18 +695,17 @@ public class Analyse_ implements PlugIn {
                     double x = current.getC1Gaussian().getX(), y = current.getC1Gaussian().getY();
                     int xi = 1 + (int) Math.floor(x / xdiv);
                     int yi = 1 + (int) Math.floor(y / ydiv);
-                    ImageProcessor xcoeffs = reader.open(calDir + delimiter + "goshtasby"
-                            + delimiter + GOSHTASBY_M + "_" + GOSHTASBY_N + delimiter + "xcoeffs" + xi + "_" + yi + ".txt");
-                    ImageProcessor ycoeffs = reader.open(calDir + delimiter + "goshtasby"
-                            + delimiter + GOSHTASBY_M + "_" + GOSHTASBY_N + delimiter + "ycoeffs" + xi + "_" + yi + ".txt");
-                    ImageProcessor coords = reader.open(calDir + delimiter + "goshtasby"
-                            + delimiter + GOSHTASBY_M + "_" + GOSHTASBY_N + delimiter + "coords" + xi + "_" + yi + ".txt");
-                    if (xcoeffs == null || ycoeffs == null || coords == null) {
-                        GenUtils.error("Incomplete calibration parameters - proceeding without.");
-                        UserVariables.setUseCals(false);
-                    } else {
-                        xg = goshtasbyEval(xcoeffs, coords, x, y);
-                        yg = goshtasbyEval(ycoeffs, coords, x, y);
+                    if (new File(calParent + delimiter + "xcoeffs" + xi + "_" + yi + ".txt").exists()) {
+                        ImageProcessor xcoeffs = reader.open(calParent + delimiter + "xcoeffs" + xi + "_" + yi + ".txt");
+                        ImageProcessor ycoeffs = reader.open(calParent + delimiter + "ycoeffs" + xi + "_" + yi + ".txt");
+                        ImageProcessor coords = reader.open(calParent + delimiter + "coords" + xi + "_" + yi + ".txt");
+                        if (xcoeffs == null || ycoeffs == null || coords == null) {
+                            GenUtils.error("Incomplete calibration parameters - proceeding without.");
+                            UserVariables.setUseCals(false);
+                        } else {
+                            xg = goshtasbyEval(xcoeffs, coords, x, y);
+                            yg = goshtasbyEval(ycoeffs, coords, x, y);
+                        }
                     }
                 }
                 xSigPoints.add((float) (xg / UserVariables.getSpatialRes()));
