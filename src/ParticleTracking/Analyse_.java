@@ -35,6 +35,7 @@ import java.awt.Rectangle;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -167,6 +168,9 @@ public class Analyse_ implements PlugIn {
         }
         StackStatistics cytoStats2 = new StackStatistics(cytoImp);
         int histogram[] = cytoStats2.histogram16;
+        if (histogram == null) {
+            histogram = cytoStats2.histogram;
+        }
         double sum = 0.0;
         int nPixels = cytoStats2.pixelCount;
         int thresh = 0;
@@ -238,10 +242,8 @@ public class Analyse_ implements PlugIn {
             int n = trajectories.size();
             for (int i = 0; i < n; i++) {
                 ParticleTrajectory traj = (ParticleTrajectory) trajectories.get(i);
-                traj.calcMSD(-1);
                 if (!(traj.getDisplacement(traj.getEnd(), traj.getSize()) > UserVariables.getMinTrajDist()
                         && traj.getDuration() > UserVariables.getMinTrajLength()
-                        && traj.getDiffCoeff() > UserVariables.getMsdThresh()
                         && checkTrajColocalisation(traj, UserVariables.getColocalThresh(), UserVariables.isColocal()))) {
                     trajectories.remove(i);
                     i--;
@@ -267,6 +269,7 @@ public class Analyse_ implements PlugIn {
                 boolean remove = false;
                 ParticleTrajectory traj = (ParticleTrajectory) trajectories.get(i);
                 if (traj != null) {
+                    traj.calcMSD(-1, i);
                     printData(i, resultSummary, i + 1);
                     traj.printTrajectory(i + 1, results, numFormat, title);
                     if (stacks[1] != null && UserVariables.isExtractsigs()) {
@@ -306,6 +309,11 @@ public class Analyse_ implements PlugIn {
             resultSummary.setVisible(true);
             IJ.saveString(results.getTextPanel().getText(), parentDir + "/results.txt");
             IJ.saveString(resultSummary.getTextPanel().getText(), parentDir + "/resultsSummary.txt");
+            try {
+                ParticleTrajectory.getMsdPlot().getResultsTable().saveAs(parentDir + "/MSD_Plot.csv");
+            } catch (IOException e) {
+            }
+            IJ.saveAs(ParticleTrajectory.getMsdPlot().makeHighResolution("", 10.0f, true, false), "PNG", parentDir + "/MSD_Plot");
             if (maps != null) {
                 (new ImagePlus("Trajectory Maps", maps)).show();
                 IJ.saveAs((new ImagePlus("", maps)), "TIF", parentDir + "/trajectories.tif");
@@ -329,6 +337,7 @@ public class Analyse_ implements PlugIn {
             return null;
         }
         ImageProcessor fp = (new TypeConverter(processor, false)).convertToFloat(null);
+        fp.noise(0.0001);
         if (UserVariables.isPreProcess()) {
             (new GaussianBlur()).blurGaussian(fp, sigma, sigma, 0.1);
         }

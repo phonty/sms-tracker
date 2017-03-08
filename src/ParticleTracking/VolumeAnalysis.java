@@ -259,7 +259,7 @@ public class VolumeAnalysis extends Analyse_ {
             return false;
         }
         traj.smooth();
-        traj.calcMSD(-1);
+        traj.calcMSD(-1, label);
         traj.calcAngleSpread();
         traj.calcStepSpread();
         traj.calcDirectionality(traj.getPoints()[0], traj.getPoints()[1]);

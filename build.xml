@@ -74,7 +74,7 @@
         <exec executable="C:\Users\barryd\Strawberry\perl\bin\perl.exe">
             <arg line="C:\Users\barryd\Perl_Scripts\get_mercurial_revision_number.pl"/>
             <arg line="${basedir}"/>
-            <arg line="1"/>
+            <arg line="5"/>
             <arg line="$"/>
         </exec>
     </target>

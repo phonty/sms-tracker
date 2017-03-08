@@ -34,9 +34,9 @@ public class GPUAnalyse extends Analyse_ {
 
     private final int CUDA_FILE_COLS = 5;
 
-    static {
-        System.loadLibrary("cuda_gauss_tracker"); // Load native library at runtime
-    }
+//    static {
+//        System.loadLibrary("cuda_gauss_tracker"); // Load native library at runtime
+//    }
 
     private native boolean cudaGaussFitter(String folder, String ext, float spatialRes, float sigmaEst, float maxthresh, float fitTol, int startSlice, int endSlice);
 
