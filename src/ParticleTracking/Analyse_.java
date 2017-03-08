@@ -217,6 +217,7 @@ public class Analyse_ implements PlugIn {
         String parentDir = GenUtils.openResultsDirectory(outputDir + delimiter + title, delimiter);
         String sigc0Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C0", delimiter);
         String sigc1Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C1", delimiter);
+        ParticleTrajectory.resetMSDPlot();
         if (!(stacks[1] == null) && UserVariables.isUseCals()) {
             JFileChooser fileChooser = new JFileChooser(calDir);
             fileChooser.setDialogTitle("Specify file containing bead calibration data");
