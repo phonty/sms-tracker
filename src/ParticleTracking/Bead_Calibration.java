@@ -3,6 +3,7 @@ package ParticleTracking;
 import IAClasses.IsoGaussian;
 import IAClasses.ProgressDialog;
 import IAClasses.Utils;
+import Revision.Revision;
 import UtilClasses.GenUtils;
 import ij.IJ;
 import ij.ImagePlus;
@@ -65,7 +66,7 @@ public class Bead_Calibration extends Analyse_ implements PlugIn {
 
     @Override
     public void run(String arg) {
-        title = title + "_v" + Analyse_.VERSION + "." + intFormat.format(Revision.Revision.revisionNumber);
+        title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
         labels[0] = "Channel 1";
         labels[1] = "Channel 2";
         if (IJ.getInstance() != null) {

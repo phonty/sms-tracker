@@ -5,6 +5,7 @@ import ui.UserInterface;
 import IAClasses.IsoGaussian;
 import IAClasses.ProgressDialog;
 import IAClasses.Utils;
+import Revision.Revision;
 import UtilClasses.GenUtils;
 import UtilClasses.Utilities;
 import goshtasby.Multi_Goshtasby;
@@ -59,7 +60,7 @@ public class Analyse_ implements PlugIn {
 
 //    protected double[] SIGMAS;
     public final int GOSHTASBY_M = 2, GOSHTASBY_N = 4;
-    public static final int VERSION = 5;
+//    public static final int VERSION = 5;
     private final double NORM_VAL = 0.99999;
     protected ArrayList<ParticleTrajectory> trajectories = new ArrayList(); //Trajectories of the detected particles
     protected ImageStack stacks[];
@@ -105,7 +106,7 @@ public class Analyse_ implements PlugIn {
      */
     public void run(String arg) {
         File inputDir = null;
-        title = title + "_v" + VERSION + "." + intFormat.format(Revision.Revision.revisionNumber);
+        title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
         stacks = new ImageStack[2];
         if (IJ.getInstance() != null) {
             if (!getActiveImages()) {
