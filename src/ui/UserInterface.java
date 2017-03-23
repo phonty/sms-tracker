@@ -62,6 +62,7 @@ public class UserInterface extends javax.swing.JDialog {
     private static final String colocalThreshText = "Colocalisation Threshold:";
     private static final String redSigEstText = "C1 PSF Width (" + IJ.micronSymbol + "m):";
     private static final String greenSigEstText = "C2 PSF Width (" + IJ.micronSymbol + "m):";
+    private static final String minMSDPointsLabelText = "Minimum Points for MSD Calculation:";
 
     /**
      * Creates new form UserInterface
@@ -127,6 +128,8 @@ public class UserInterface extends javax.swing.JDialog {
         colocalThreshLabel = new javax.swing.JLabel();
         previewResultsToggleButton = new javax.swing.JToggleButton();
         useCalsToggleButton = new javax.swing.JToggleButton();
+        minMSDPointsTextField = new javax.swing.JTextField();
+        minMSDPointsLabel = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
         canvas1 = new ImageCanvas(imp);
         previewTextField = new javax.swing.JTextField();
@@ -457,7 +460,7 @@ public class UserInterface extends javax.swing.JDialog {
         colocalThreshTextField.setText(String.valueOf(UserVariables.getColocalThresh()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 11;
+        gridBagConstraints.gridy = 10;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 0.5;
         gridBagConstraints.weighty = 1.0;
@@ -479,7 +482,7 @@ public class UserInterface extends javax.swing.JDialog {
         colocalThreshLabel.setText(colocalThreshText);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 11;
+        gridBagConstraints.gridy = 10;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 0.5;
         gridBagConstraints.weighty = 1.0;
@@ -509,6 +512,26 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 10);
         trackingPanel.add(useCalsToggleButton, gridBagConstraints);
+
+        minMSDPointsTextField.setText(String.valueOf(UserVariables.getMinMSDPoints()));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 9;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        trackingPanel.add(minMSDPointsTextField, gridBagConstraints);
+
+        minMSDPointsLabel.setText(minMSDPointsLabelText);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 9;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        trackingPanel.add(minMSDPointsLabel, gridBagConstraints);
 
         jTabbedPane1.addTab("Tracking", trackingPanel);
 
@@ -635,6 +658,7 @@ public class UserInterface extends javax.swing.JDialog {
             UserVariables.setColocalThresh(Double.parseDouble(colocalThreshTextField.getText()));
             UserVariables.setSigEstRed(Double.parseDouble(redSigmaTextField.getText()));
             UserVariables.setSigEstGreen(Double.parseDouble(greenSigmaTextField.getText()));
+            UserVariables.setMinMSDPoints(Integer.parseInt(minMSDPointsTextField.getText()));
 //            printParams();
         } catch (NumberFormatException e) {
             IJ.error("Number formatting error " + e.toString());
@@ -804,6 +828,8 @@ public class UserInterface extends javax.swing.JDialog {
     private javax.swing.JLabel maxTrajStepLabel;
     private javax.swing.JTextField maxTrajStepTextField;
     private javax.swing.JTextField medianThreshTextField;
+    private javax.swing.JLabel minMSDPointsLabel;
+    private javax.swing.JTextField minMSDPointsTextField;
     private javax.swing.JLabel minTrajDistLabel;
     private javax.swing.JTextField minTrajDistTextField;
     private javax.swing.JLabel minTrajLengthLabel;

@@ -271,7 +271,7 @@ public class Analyse_ implements PlugIn {
                 boolean remove = false;
                 ParticleTrajectory traj = (ParticleTrajectory) trajectories.get(i);
                 if (traj != null) {
-                    traj.calcMSD(-1, i);
+                    traj.calcMSD(-1, i + 1);
                     printData(i, resultSummary, i + 1);
                     traj.printTrajectory(i + 1, results, numFormat, title);
                     if (stacks[1] != null && UserVariables.isExtractsigs()) {
@@ -301,12 +301,12 @@ public class Analyse_ implements PlugIn {
                     n--;
                 }
             }
+            ParticleTrajectory.drawGlobalMSDPlot();
             trajProg.dispose();
             ImageStack maps = mapTrajectories((new RGBStackMerge()).mergeStacks(stacks[0].getWidth(), stacks[0].getHeight(), stacks[0].getSize(), stacks[0], stacks[1], null, true),
                     trajectories, UserVariables.getSpatialRes(), UserVariables.getMinTrajLength(),
                     UserVariables.getTimeRes(), true, 0, trajectories.size() - 1, 1, false, calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed()));
             resultSummary.append("\nAnalysis Time (s): " + numFormat.format((System.currentTimeMillis() - startTime) / 1000.0));
-            results.append(toString());
             results.setVisible(true);
             resultSummary.setVisible(true);
             IJ.saveString(results.getTextPanel().getText(), parentDir + "/results.txt");
