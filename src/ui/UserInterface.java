@@ -671,13 +671,17 @@ public class UserInterface extends javax.swing.JDialog {
         analyser.calcParticleRadius(UserVariables.getSpatialRes());
         ImageStack stacks[] = analyser.getStacks();
         ParticleArray detections;
+        int psv = previewScrollBar.getValue();
+        if (psv < 1) {
+            psv = 1;
+        }
         if (analyser instanceof GPUAnalyse && UserVariables.isGpu()) {
-            detections = ((GPUAnalyse) analyser).cudaFindParticles(true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, stacks[1]);
+            detections = ((GPUAnalyse) analyser).cudaFindParticles(true, psv - 1, psv - 1, stacks[1]);
         } else {
-            detections = analyser.findParticles(true, previewScrollBar.getValue() - 1, previewScrollBar.getValue() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1]);
+            detections = analyser.findParticles(true, psv - 1, psv - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1]);
         }
         if (detections != null) {
-            ImageProcessor output = Utils.updateImage(stacks[0], stacks[1], previewScrollBar.getValue());
+            ImageProcessor output = Utils.updateImage(stacks[0], stacks[1], psv);
             double mag = 1.0 / UIMethods.getMagnification(output, canvas1);
             double sr = 1.0 / Double.parseDouble(spatResTextField.getText());
 //        int radius = (int)Math.round(sr);

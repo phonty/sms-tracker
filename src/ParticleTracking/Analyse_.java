@@ -113,29 +113,39 @@ public class Analyse_ implements PlugIn {
                 return;
             }
         } else {
-            String dirName = prepareInputs();
-            if (dirName != null) {
-                inputDir = new File(dirName);
-            } else {
+            inputDir = buildStacks();
+            if (inputDir == null) {
                 return;
             }
-            c0Dir = new File(inputDir.getAbsolutePath() + delimiter + C_0);
-            ImagePlus imp = Utils.buildStack(c0Dir);
-            stacks[0] = imp.getImageStack();
-//        Utils.normaliseStack(stacks[0], IMAGE_MAX);
-            this.ext = imp.getTitle();
-            c1Dir = new File(inputDir.getAbsolutePath() + delimiter + C_1);
-            if (c1Dir.exists()) {
-                stacks[1] = (Utils.buildStack(c1Dir)).getImageStack();
-//            Utils.normaliseStack(stacks[1], IMAGE_MAX);
-            }
         }
-//        if (IJ.getInstance() != null) {
-//            imp = WindowManager.getCurrentImage();
-//        }
         if (showDialog()) {
             analyse(inputDir);
         }
+        cleanUp();
+    }
+
+    protected File buildStacks() {
+        String dirName = prepareInputs();
+        File inputDir;
+        if (dirName != null) {
+            inputDir = new File(dirName);
+        } else {
+            return null;
+        }
+        c0Dir = new File(inputDir.getAbsolutePath() + delimiter + C_0);
+        ImagePlus imp = Utils.buildStack(c0Dir);
+        stacks[0] = imp.getImageStack();
+//        Utils.normaliseStack(stacks[0], IMAGE_MAX);
+        this.ext = imp.getTitle();
+        c1Dir = new File(inputDir.getAbsolutePath() + delimiter + C_1);
+        if (c1Dir.exists()) {
+            stacks[1] = (Utils.buildStack(c1Dir)).getImageStack();
+//            Utils.normaliseStack(stacks[1], IMAGE_MAX);
+        }
+        return inputDir;
+    }
+
+    protected void cleanUp() {
         if (IJ.getInstance() == null) {
             try {
                 FileUtils.deleteDirectory(c0Dir);
@@ -179,7 +189,8 @@ public class Analyse_ implements PlugIn {
             sum += histogram[thresh++];
         }
         double normFactor = 100.0 / thresh;
-        (new StackConverter(cytoImp)).convertToGray32();
+        GenUtils.convertStack(cytoImp, 32);
+//        (new StackConverter(cytoImp)).convertToGray32();
         cytoStack = cytoImp.getImageStack();
         for (int i = 1; i <= cytoSize; i++) {
             cytoStack.getProcessor(i).multiply(normFactor);
