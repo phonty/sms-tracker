@@ -16,7 +16,6 @@
  */
 package ParticleMapping;
 
-import IAClasses.Utils;
 import Math.Histogram;
 import ParticleTracking.Analyse_;
 import ParticleTracking.Particle;
@@ -33,8 +32,12 @@ import ij.measure.ResultsTable;
 import ij.plugin.filter.Analyzer;
 import ij.plugin.filter.EDM;
 import ij.plugin.filter.ParticleAnalyzer;
+import ij.process.Blitter;
 import ij.process.ByteProcessor;
+import ij.process.FloatBlitter;
+import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
+import ij.process.TypeConverter;
 import java.awt.Color;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -81,9 +84,11 @@ public class Particle_Mapper extends Analyse_ {
 //        }
         try {
             ParticleArray pa = findParticles();
-            double[][] centroids = buildTerritories(IJ.openImage().getProcessor());
-            double[][] distances = calcDistances(assignParticlesToCells(pa, IJ.openImage().getProcessor(), centroids));
-            showHistograms(distances, 30, 20, 0);
+            ImageProcessor nuclei = IJ.openImage().getProcessor();
+            double[][] centroids = buildTerritories(nuclei.duplicate());
+            ImageProcessor regions = IJ.openImage().getProcessor();
+            double[][] distances = calcDistances(assignParticlesToCells(pa, regions, centroids), buildDistanceMap(nuclei));
+            showHistograms(distances, 40, 10, -10);
             cleanUp();
         } catch (IOException e) {
             IJ.error("IOException");
@@ -153,17 +158,17 @@ public class Particle_Mapper extends Analyse_ {
         return assignments;
     }
 
-    double[][] calcDistances(ArrayList<Particle>[] assignments) {
+    double[][] calcDistances(ArrayList<Particle>[] assignments, ImageProcessor distanceMap) {
         int N = assignments.length;
         double[][] distances = new double[N][];
+        double res = UserVariables.getSpatialRes();
         for (int i = 0; i < N; i++) {
             if (assignments[i] != null) {
                 int M = assignments[i].size();
                 distances[i] = new double[M];
-                double[] centroid = regionCentroidMap.get(i);
                 for (int j = 0; j < M; j++) {
                     Particle p = assignments[i].get(j);
-                    distances[i][j] = Utils.calcDistance(centroid[0]*UserVariables.getSpatialRes(), centroid[1]*UserVariables.getSpatialRes(), p.getX(), p.getY());
+                    distances[i][j] = res * distanceMap.getInterpolatedValue(p.getX() / res, p.getY() / res);
                 }
             }
         }
@@ -189,14 +194,27 @@ public class Particle_Mapper extends Analyse_ {
                 }
             }
             meanHistogram[i] = (float) mean.getMean();
-            bins[i] = i * binSize;
+            bins[i] = (float) (i * binSize + min);
         }
         Plot histPlot = new Plot("Mean Foci Distance Distribtion",
-                "Distance ("+IJ.micronSymbol+"m)", "% Frequency");
+                "Distance (" + IJ.micronSymbol + "m)", "% Frequency");
         histPlot.setLineWidth(3);
         histPlot.setColor(Color.blue);
         histPlot.addPoints(bins, meanHistogram, Plot.CONNECTED_CIRCLES);
         histPlot.draw();
         histPlot.show();
+    }
+
+    ImageProcessor buildDistanceMap(ImageProcessor image) {
+        ImageProcessor invertedImage = image.duplicate();
+        invertedImage.invert();
+        EDM edm = new EDM();
+        edm.toEDM(image);
+        IJ.saveAs(new ImagePlus("", image), "TIF", "C:\\Users\\barryd\\particle_mapper_debug\\fgdistancemap");
+        FloatProcessor distanceMap = edm.makeFloatEDM(invertedImage, 0, false);
+        IJ.saveAs(new ImagePlus("", distanceMap), "TIF", "C:\\Users\\barryd\\particle_mapper_debug\\bgdistancemap");
+        (new FloatBlitter(distanceMap)).copyBits((new TypeConverter(image, false)).convertToFloat(null), 0, 0, Blitter.SUBTRACT);
+        IJ.saveAs(new ImagePlus("", distanceMap), "TIF", "C:\\Users\\barryd\\particle_mapper_debug\\distancemap");
+        return distanceMap;
     }
 }
