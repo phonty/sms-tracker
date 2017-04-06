@@ -477,8 +477,10 @@ public class TestGenerator {
         for (int n = 0; n < nCentres; n++) {
             int N = r.nextInt(maxNPerCell);
             for (int j = 0; j < N; j++) {
-                double px = centres[n][0] + r.nextGaussian() * maxDist;
-                double py = centres[n][1] + r.nextGaussian() * maxDist;
+                double radius = Math.abs(r.nextGaussian() * maxDist);
+                double theta = 2.0 * Math.PI * r.nextDouble();
+                double px = centres[n][0] + radius * Math.cos(theta);
+                double py = centres[n][1] + radius * Math.sin(theta);
                 IsoGaussian particle = new IsoGaussian(px, py, 100.0 + 50.0 * r.nextGaussian(), 1.0);
                 Utils.draw2DGaussian(c1image, particle, 0.0, 1.0, false);
             }
