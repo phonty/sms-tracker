@@ -48,6 +48,7 @@ import java.util.LinkedHashMap;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import ui.DetectionGUI;
 
 /**
  *
@@ -218,5 +219,11 @@ public class Particle_Mapper extends Analyse_ {
         (new FloatBlitter(distanceMap)).copyBits((new TypeConverter(image, false)).convertToFloat(null), 0, 0, Blitter.SUBTRACT);
         IJ.saveAs(new ImagePlus("", distanceMap), "TIF", "C:\\Users\\barryd\\particle_mapper_debug\\distancemap");
         return distanceMap;
+    }
+    
+        public boolean showDialog() {
+        DetectionGUI ui = new DetectionGUI(null, true, title, this);
+        ui.setVisible(true);
+        return ui.isWasOKed();
     }
 }
