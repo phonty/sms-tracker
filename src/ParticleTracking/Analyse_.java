@@ -68,7 +68,7 @@ public class Analyse_ implements PlugIn {
     protected DecimalFormat numFormat = new DecimalFormat("0.000");
     protected DecimalFormat intFormat = new DecimalFormat("000");
     protected String title = "Particle Tracker", ext;
-    private final String C_0 = "C0", C_1 = "C1";
+    protected final String C_0 = "C0", C_1 = "C1";
     private final double TRACK_WIDTH = 4.0;
     public final float TRACK_EXT = 1.0f;
     public final float TRACK_OFFSET = 0.75f;
@@ -157,7 +157,7 @@ public class Analyse_ implements PlugIn {
         }
     }
 
-    String prepareInputs() {
+    protected String prepareInputs() {
         ImagePlus cytoImp = IJ.openImage();
         if (cytoImp == null) {
             return null;
@@ -173,6 +173,13 @@ public class Analyse_ implements PlugIn {
                 return null;
             }
         }
+
+        return normaliseStacks(cytoStack, sigStack);
+    }
+
+    protected String normaliseStacks(ImageStack cytoStack, ImageStack sigStack) {
+        ImagePlus cytoImp = new ImagePlus("", cytoStack);
+        int cytoSize = cytoStack.getSize();
         StackStatistics cytoStats = new StackStatistics(cytoImp);
         double stackMin = cytoStats.min;
         for (int i = 1; i <= cytoSize; i++) {
@@ -191,7 +198,6 @@ public class Analyse_ implements PlugIn {
         }
         normFactor = 100.0 / thresh;
         GenUtils.convertStack(cytoImp, 32);
-//        (new StackConverter(cytoImp)).convertToGray32();
         cytoStack = cytoImp.getImageStack();
         for (int i = 1; i <= cytoSize; i++) {
             cytoStack.getProcessor(i).multiply(normFactor);

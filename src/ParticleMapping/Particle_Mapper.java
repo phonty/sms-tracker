@@ -23,6 +23,7 @@ import ParticleTracking.Particle;
 import ParticleTracking.ParticleArray;
 import ParticleTracking.UserVariables;
 import Revision.Revision;
+import UtilClasses.GenUtils;
 import UtilClasses.GenVariables;
 import ij.IJ;
 import ij.ImagePlus;
@@ -39,6 +40,7 @@ import ij.process.FloatBlitter;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
+import ij.process.StackStatistics;
 import ij.process.TypeConverter;
 import java.awt.Color;
 import java.io.File;
@@ -49,6 +51,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import ui.DetectionGUI;
 
@@ -241,5 +244,14 @@ public class Particle_Mapper extends Analyse_ {
             output.multiply(1.0 / normFactor);
             IJ.saveAs(new ImagePlus("", output), "TIF", "C:\\Users\\barryd\\particle_mapper_debug\\detections_level_" + d);
         }
+    }
+
+    protected String prepareInputs() {
+        ImagePlus cytoImp = IJ.openImage();
+        if (cytoImp == null) {
+            return null;
+        }
+
+        return normaliseStacks(cytoImp.getImageStack(), null);
     }
 }
