@@ -80,6 +80,7 @@ public class Analyse_ implements PlugIn {
     protected boolean gpuEnabled = false;
     private final double PART_RAD = 4.0;
     private static File calFile;
+    protected double normFactor;
 
 //    public static void main(String args[]) {
 ////        if (imp != null) {
@@ -188,7 +189,7 @@ public class Analyse_ implements PlugIn {
         while (sum < nPixels * NORM_VAL && thresh < histogram.length) {
             sum += histogram[thresh++];
         }
-        double normFactor = 100.0 / thresh;
+        normFactor = 100.0 / thresh;
         GenUtils.convertStack(cytoImp, 32);
 //        (new StackConverter(cytoImp)).convertToGray32();
         cytoStack = cytoImp.getImageStack();
@@ -387,6 +388,7 @@ public class Analyse_ implements PlugIn {
             FloatProcessor chan2Proc = (channel2 != null) ? (FloatProcessor) preProcess(channel2.getProcessor(i + 1).duplicate(), UserVariables.getSigEstGreen()) : null;
             double c1Threshold = Utils.getPercentileThresh(chan1Proc, UserVariables.getChan1MaxThresh());
             ByteProcessor thisC1Max = Utils.findLocalMaxima(xyPartRad, xyPartRad, UserVariables.FOREGROUND, chan1Proc, c1Threshold, false);
+            IJ.saveAs(new ImagePlus("", thisC1Max), "PNG", "C:\\Users\\barryd\\particle_mapper_debug\\maxima");
             for (c1X = 0; c1X < width; c1X++) {
                 for (c1Y = 0; c1Y < height; c1Y++) {
                     if (thisC1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {

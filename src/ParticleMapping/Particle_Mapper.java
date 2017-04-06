@@ -16,6 +16,7 @@
  */
 package ParticleMapping;
 
+import IAClasses.Utils;
 import Math.Histogram;
 import ParticleTracking.Analyse_;
 import ParticleTracking.Particle;
@@ -37,6 +38,7 @@ import ij.process.ByteProcessor;
 import ij.process.FloatBlitter;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
+import ij.process.ShortProcessor;
 import ij.process.TypeConverter;
 import java.awt.Color;
 import java.io.File;
@@ -85,6 +87,7 @@ public class Particle_Mapper extends Analyse_ {
         }
         try {
             ParticleArray pa = findParticles();
+            drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight());
             ImageProcessor nuclei = IJ.openImage().getProcessor();
             double[][] centroids = buildTerritories(nuclei.duplicate());
             ImageProcessor regions = IJ.openImage("C:\\Users\\barryd\\particle_mapper_debug\\voronoi_indexed.png").getProcessor();
@@ -220,10 +223,23 @@ public class Particle_Mapper extends Analyse_ {
         IJ.saveAs(new ImagePlus("", distanceMap), "TIF", "C:\\Users\\barryd\\particle_mapper_debug\\distancemap");
         return distanceMap;
     }
-    
-        public boolean showDialog() {
+
+    public boolean showDialog() {
         DetectionGUI ui = new DetectionGUI(null, true, title, this);
         ui.setVisible(true);
         return ui.isWasOKed();
+    }
+
+    public void drawDetections(ParticleArray pa, int width, int height) {
+        int depth = pa.getDepth();
+        for (int d = 0; d < depth; d++) {
+            ArrayList<Particle> level = pa.getLevel(d);
+            ShortProcessor output = new ShortProcessor(width, height);
+            for (Particle p : level) {
+                Utils.draw2DGaussian(output, p.getC1Gaussian(), 0.0, UserVariables.getSpatialRes(), false);
+            }
+            output.multiply(1.0 / normFactor);
+            IJ.saveAs(new ImagePlus("", output), "TIF", "C:\\Users\\barryd\\particle_mapper_debug\\detections_level_" + d);
+        }
     }
 }
