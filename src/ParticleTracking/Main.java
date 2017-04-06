@@ -30,4 +30,9 @@ public class Main {
         instance.run(null);
         System.exit(0);
     }
+//    public static void main(String args[]) {
+//        TestGenerator tg = new TestGenerator();
+//        tg.generateMulti(40, 30, 512, 512, tg.generateNuclei(20, 512, 512, 24, 36));
+//        System.exit(0);
+//    }
 }

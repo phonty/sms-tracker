@@ -6,13 +6,10 @@ package ParticleTracking;
 
 import IAClasses.IsoGaussian;
 import IAClasses.Utils;
-import ParticleTracking.BlinkingFluorophore;
-import ParticleTracking.DecayingFluorophore;
-import ParticleTracking.Fluorophore;
-import ParticleTracking.MotileGaussian;
-import ParticleTracking.UserVariables;
 import ij.IJ;
 import ij.ImagePlus;
+import ij.gui.OvalRoi;
+import ij.plugin.RoiRotator;
 import ij.plugin.filter.GaussianBlur;
 import ij.process.ByteProcessor;
 import ij.process.FloatProcessor;
@@ -50,10 +47,9 @@ public class TestGenerator {
 //    }
 //    public static void main(String args[]) {
 //        TestGenerator tg = new TestGenerator();
-//        tg.generateCalibrationTest(false);
+//        tg.generateNuclei(20, 512, 512, 12, 24);
 //        System.exit(0);
 //    }
-
     public TestGenerator() {
     }
 
@@ -452,4 +448,44 @@ public class TestGenerator {
                     "TIF", outputDir + "\\BlurredAndScaled_" + indFormat.format(i));
         }
     }
+
+    public double[][] generateNuclei(int n, int imageWidth, int imageHeight, int nWidth, int nHeight) {
+        Random r = new Random();
+        ByteProcessor c1image = new ByteProcessor(imageWidth, imageHeight);
+        c1image.setColor(100.0);
+        double[][] centres = new double[n][2];
+        for (int i = 0; i < n; i++) {
+            int x = r.nextInt(imageWidth);
+            int y = r.nextInt(imageHeight);
+            double width = nWidth + r.nextDouble() * nWidth / 10.0;
+            double height = nHeight + r.nextDouble() * nHeight / 10.0;
+            OvalRoi nucleus = new OvalRoi(x, y, width, height);
+            c1image.fill(RoiRotator.rotate(nucleus, r.nextDouble() * 360.0));
+            centres[i] = new double[]{x + width / 2.0, y + height / 2.0};
+        }
+        c1image.noise(10.0);
+        IJ.saveAs(new ImagePlus("", c1image), "PNG",
+                "C:\\Users\\barryd\\sim_data\\nuclei");
+        return centres;
+    }
+
+    public void generateMulti(int maxNPerCell, double maxDist, int width, int height, double[][] centres) {
+        Random r = new Random();
+        int nCentres = centres.length;
+        FloatProcessor c1image = new FloatProcessor(width, height);
+        c1image.setColor(100);
+        for (int n = 0; n < nCentres; n++) {
+            int N = r.nextInt(maxNPerCell);
+            for (int j = 0; j < N; j++) {
+                double px = centres[n][0] + r.nextGaussian() * maxDist;
+                double py = centres[n][1] + r.nextGaussian() * maxDist;
+                IsoGaussian particle = new IsoGaussian(px, py, 100.0 + 50.0 * r.nextGaussian(), 1.0);
+                Utils.draw2DGaussian(c1image, particle, 0.0, 1.0, false);
+            }
+        }
+        c1image.noise(10.0);
+        IJ.saveAs(new ImagePlus("", c1image.duplicate()), "TIF",
+                "C:\\Users\\barryd\\sim_data\\foci");
+    }
+
 }

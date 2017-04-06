@@ -79,16 +79,16 @@ public class Particle_Mapper extends Analyse_ {
                 return;
             }
         }
-//        if (!showDialog()) {
-//            return;
-//        }
+        if (!showDialog()) {
+            return;
+        }
         try {
             ParticleArray pa = findParticles();
             ImageProcessor nuclei = IJ.openImage().getProcessor();
             double[][] centroids = buildTerritories(nuclei.duplicate());
-            ImageProcessor regions = IJ.openImage().getProcessor();
+            ImageProcessor regions = IJ.openImage("C:\\Users\\barryd\\particle_mapper_debug\\voronoi_indexed.png").getProcessor();
             double[][] distances = calcDistances(assignParticlesToCells(pa, regions, centroids), buildDistanceMap(nuclei));
-            showHistograms(distances, 40, 10, -10);
+            showHistograms(distances, 40, 20, -5);
             cleanUp();
         } catch (IOException e) {
             IJ.error("IOException");
@@ -145,14 +145,16 @@ public class Particle_Mapper extends Analyse_ {
             int xp = (int) Math.round(p.getX() / UserVariables.getSpatialRes());
             int yp = (int) Math.round(p.getY() / UserVariables.getSpatialRes());
             int pIndex = cellMap.getPixel(xp, yp) - 1;
-            if (assignments[pIndex] == null) {
-                assignments[pIndex] = new ArrayList();
-            }
-            assignments[pIndex].add(p);
+            if (pIndex >= 0) {
+                if (assignments[pIndex] == null) {
+                    assignments[pIndex] = new ArrayList();
+                }
+                assignments[pIndex].add(p);
 //            particleRegionMap.put(p, pIndex);
-            double[] centroid = regionCentroidMap.get(pIndex);
-            map.drawLine(xp, yp,
-                    (int) Math.round(centroid[0]), (int) Math.round(centroid[1]));
+                double[] centroid = regionCentroidMap.get(pIndex);
+                map.drawLine(xp, yp,
+                        (int) Math.round(centroid[0]), (int) Math.round(centroid[1]));
+            }
         }
         IJ.saveAs(new ImagePlus("", map), "PNG", "C:\\Users\\barryd\\particle_mapper_debug\\map");
         return assignments;
