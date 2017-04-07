@@ -43,11 +43,13 @@ import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
 import ij.process.TypeConverter;
+import ij.text.TextWindow;
 import java.awt.Color;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import org.apache.commons.csv.CSVFormat;
@@ -64,6 +66,7 @@ public class Particle_Mapper extends Analyse_ {
     LinkedHashMap<Integer, double[]> regionCentroidMap = new LinkedHashMap();
     String outputDirName;
     protected String title = "Particle Mapper";
+    private final String resultsHeadings = "X\t Y\t Number of Foci\t Mean Intensity of Foci\t Mean Foci Distance To Nuclear Boundary (" + IJ.micronSymbol + "m)";
 
     public Particle_Mapper() {
 
@@ -96,38 +99,30 @@ public class Particle_Mapper extends Analyse_ {
             ParticleArray pa = findParticles();
             drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight());
             ImageProcessor nuclei = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath()).getProcessor();
-            double[][] distances = calcDistances(
-                    assignParticlesToCells(
-                            pa, buildTerritories(nuclei.duplicate()).getProcessor(), getCentroids(nuclei.duplicate())
-                    ),
-                    buildDistanceMap(nuclei)
+            double[][] centroids = getCentroids(nuclei.duplicate());
+            ArrayList<Particle>[] assignments = assignParticlesToCells(
+                    pa, buildTerritories(nuclei.duplicate()).getProcessor(), centroids
             );
+            double[][] distances = calcDistances(assignments, buildDistanceMap(nuclei));
             showHistograms(distances, 40, 20, -5);
+            outputData(distances, centroids, assignments);
             cleanUp();
         } catch (IOException e) {
             IJ.error("IOException");
         }
     }
 
-    public double[][] getCentroids(ImageProcessor image) throws IOException {
+    public double[][] getCentroids(ImageProcessor image) {
         ImagePlus imp = new ImagePlus("", image);
         ResultsTable rt = Analyzer.getResultsTable();
-        ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_NONE+ParticleAnalyzer.CLEAR_WORKSHEET, Measurements.CENTROID, rt, 0, Double.MAX_VALUE);
+        ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_NONE + ParticleAnalyzer.CLEAR_WORKSHEET, Measurements.CENTROID, rt, 0, Double.MAX_VALUE);
         pa.setHideOutputImage(true);
         pa.analyze(imp);
-        File centFile = new File(outputDirName + "/cell_centroids.csv");
-        CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(centFile), GenVariables.ISO), CSVFormat.EXCEL);
         double[][] centroids = {rt.getColumnAsDoubles(rt.getColumnIndex("X")), rt.getColumnAsDoubles(rt.getColumnIndex("Y"))};
-        int N = rt.size();
-        printer.printRecord((Object[]) rt.getHeadings());
-        for (int i = 0; i < N; i++) {
-            printer.printRecord(centroids[0][i], centroids[1][i]);
-        }
-        printer.close();
         return centroids;
     }
 
-    public ImagePlus buildTerritories(ImageProcessor image) throws IOException {
+    public ImagePlus buildTerritories(ImageProcessor image) {
         ImagePlus imp = new ImagePlus("", image);
         ResultsTable rt = Analyzer.getResultsTable();
         ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_NONE, Measurements.CENTROID, rt, 0, Double.MAX_VALUE);
@@ -170,7 +165,6 @@ public class Particle_Mapper extends Analyse_ {
                     assignments[pIndex] = new ArrayList();
                 }
                 assignments[pIndex].add(p);
-//            particleRegionMap.put(p, pIndex);
                 double[] centroid = regionCentroidMap.get(pIndex);
                 map.drawLine(xp, yp,
                         (int) Math.round(centroid[0]), (int) Math.round(centroid[1]));
@@ -218,7 +212,7 @@ public class Particle_Mapper extends Analyse_ {
             meanHistogram[i] = (float) mean.getMean();
             bins[i] = (float) (i * binSize + min);
         }
-        Plot histPlot = new Plot("Mean Foci Distance Distribtion",
+        Plot histPlot = new Plot("Mean Foci Distance Distribution",
                 "Distance (" + IJ.micronSymbol + "m)", "% Frequency");
         histPlot.setLineWidth(3);
         histPlot.setColor(Color.blue);
@@ -264,5 +258,41 @@ public class Particle_Mapper extends Analyse_ {
         }
 
         return normaliseStacks(cytoImp.getImageStack(), null);
+    }
+
+    void outputData(double[][] distances, double[][] centroids, ArrayList<Particle>[] assignments) throws IOException {
+        int N = distances.length;
+        TextWindow tw = new TextWindow(title + " Results", resultsHeadings, new String(), 640, 480);
+        DecimalFormat df1 = new DecimalFormat("00");
+        DecimalFormat df2 = new DecimalFormat("0.000");
+        for (int i = 0; i < N; i++) {
+            String result = df1.format(Math.round(centroids[0][i])) + "\t" + df1.format(Math.round(centroids[1][i]));
+            if (assignments[i] != null) {
+                int L = assignments[i].size();
+                DescriptiveStatistics intensitites = new DescriptiveStatistics();
+                DescriptiveStatistics dist = new DescriptiveStatistics();
+                for (int j = 0; j < L; j++) {
+                    Particle p = assignments[i].get(j);
+                    intensitites.addValue(p.getC1Intensity());
+                    dist.addValue(distances[i][j]);
+                }
+                result = result.concat("\t" + L + "\t" + df2.format(intensitites.getMean()) + "\t" + df2.format(dist.getMean()));
+            } else {
+                result = result.concat("\t 0\t " + df2.format(0) + "\t " + df2.format(0));
+            }
+            tw.append(result);
+        }
+        saveTextWindow(tw);
+    }
+
+    void saveTextWindow(TextWindow tw) throws IOException {
+        File dataFile = new File(outputDirName + "/cell_data.csv");
+        CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(dataFile), GenVariables.ISO), CSVFormat.EXCEL);
+        int L = tw.getTextPanel().getLineCount();
+        printer.printRecord(resultsHeadings.replace("\t", ","));
+        for (int l = 0; l < L; l++) {
+            printer.printRecord(tw.getTextPanel().getLine(l).replace("\t", ","));
+        }
+        printer.close();
     }
 }
