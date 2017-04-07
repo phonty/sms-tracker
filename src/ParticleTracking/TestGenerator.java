@@ -14,6 +14,7 @@ import ij.plugin.filter.GaussianBlur;
 import ij.process.ByteProcessor;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
+import ij.process.ShortProcessor;
 import java.text.DecimalFormat;
 import java.util.Random;
 
@@ -472,7 +473,7 @@ public class TestGenerator {
     public void generateMulti(int maxNPerCell, double maxDist, int width, int height, double[][] centres) {
         Random r = new Random();
         int nCentres = centres.length;
-        FloatProcessor c1image = new FloatProcessor(width, height);
+        ShortProcessor c1image = new ShortProcessor(width, height);
         c1image.setColor(100);
         for (int n = 0; n < nCentres; n++) {
             int N = r.nextInt(maxNPerCell);

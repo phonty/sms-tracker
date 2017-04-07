@@ -29,6 +29,8 @@ import UtilClasses.Utilities;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.Prefs;
+import ij.gui.GenericDialog;
 import ij.gui.Plot;
 import ij.io.OpenDialog;
 import ij.measure.Measurements;
@@ -41,10 +43,11 @@ import ij.process.ByteProcessor;
 import ij.process.FloatBlitter;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
+import ij.process.ImageStatistics;
 import ij.process.ShortProcessor;
-import ij.process.TypeConverter;
 import ij.text.TextWindow;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -77,6 +80,7 @@ public class Particle_Mapper extends Analyse_ {
      * @param arg
      */
     public void run(String arg) {
+        Prefs.blackBackground = false;
         File inputDir = null;
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
         stacks = new ImageStack[2];
@@ -99,12 +103,14 @@ public class Particle_Mapper extends Analyse_ {
             ParticleArray pa = findParticles();
             drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight());
             ImageProcessor nuclei = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath()).getProcessor();
+            checkBinaryImage(nuclei);
+            IJ.saveAs(new ImagePlus("", nuclei), "PNG", outputDirName + "/Nuclei Mask");
             double[][] centroids = getCentroids(nuclei.duplicate());
             ArrayList<Particle>[] assignments = assignParticlesToCells(
                     pa, buildTerritories(nuclei.duplicate()).getProcessor(), centroids
             );
             double[][] distances = calcDistances(assignments, buildDistanceMap(nuclei));
-            showHistograms(distances, 40, 20, -5);
+            buildHistograms(distances, 40, 20, -5);
             outputData(distances, centroids, assignments);
             cleanUp();
         } catch (IOException e) {
@@ -125,16 +131,13 @@ public class Particle_Mapper extends Analyse_ {
     public ImagePlus buildTerritories(ImageProcessor image) {
         ImagePlus imp = new ImagePlus("", image);
         ResultsTable rt = Analyzer.getResultsTable();
-        ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_NONE, Measurements.CENTROID, rt, 0, Double.MAX_VALUE);
-        pa.setHideOutputImage(true);
         EDM edm = new EDM();
         edm.setup("voronoi", imp);
         edm.run(image);
         image.threshold(1);
-        IJ.saveAs(new ImagePlus("", image), "PNG", outputDirName + "/voronoi_thresh");
-        image.invert();
+        IJ.saveAs(new ImagePlus("", image), "PNG", outputDirName + "/Cell Boundaries");
         rt.reset();
-        pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_ROI_MASKS, 0, rt, 0, Double.MAX_VALUE);
+        ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_ROI_MASKS, 0, rt, 0, Double.MAX_VALUE);
         pa.setHideOutputImage(true);
         pa.analyze(imp);
         return pa.getOutputImage();
@@ -170,7 +173,7 @@ public class Particle_Mapper extends Analyse_ {
                         (int) Math.round(centroid[0]), (int) Math.round(centroid[1]));
             }
         }
-        IJ.saveAs(new ImagePlus("", map), "PNG", outputDirName + "/map");
+        IJ.saveAs(new ImagePlus("", map), "PNG", outputDirName + "/Foci-Nuclei Associations");
         return assignments;
     }
 
@@ -191,7 +194,18 @@ public class Particle_Mapper extends Analyse_ {
         return distances;
     }
 
-    void showHistograms(double[][] distances, int nBins, double max, double min) {
+    void buildHistograms(double[][] distances, int nBins, double max, double min) {
+        GenericDialog gd = new GenericDialog("Specify parameters for histogram");
+        gd.addNumericField("Minimum Value:", min, 1);
+        gd.addNumericField("Maximum Value:", max, 1);
+        gd.addNumericField("Number of Bins:", nBins, 0);
+        gd.setMinimumSize(new Dimension(400, 100));
+        gd.showDialog();
+        if (gd.wasOKed()) {
+            min = gd.getNextNumber();
+            max = gd.getNextNumber();
+            nBins = (int) Math.round(nBins);
+        }
         int N = distances.length;
         int[][] histograms = new int[N][nBins];
         float[] meanHistogram = new float[nBins];
@@ -219,16 +233,19 @@ public class Particle_Mapper extends Analyse_ {
         histPlot.addPoints(bins, meanHistogram, Plot.CONNECTED_CIRCLES);
         histPlot.draw();
         histPlot.show();
+        ResultsTable rt = histPlot.getResultsTable();
+        rt.save(outputDirName + "/distance_histogram_data.csv");
     }
 
     ImageProcessor buildDistanceMap(ImageProcessor image) {
+        image.invert();
         ImageProcessor invertedImage = image.duplicate();
         invertedImage.invert();
         EDM edm = new EDM();
         FloatProcessor fgDistanceMap = edm.makeFloatEDM(image, 0, false);
         FloatProcessor distanceMap = edm.makeFloatEDM(invertedImage, 0, false);
-        (new FloatBlitter(distanceMap)).copyBits((new TypeConverter(fgDistanceMap, false)).convertToFloat(null), 0, 0, Blitter.SUBTRACT);
-        IJ.saveAs(new ImagePlus("", distanceMap), "TIF", outputDirName + "/distancemap");
+        (new FloatBlitter(distanceMap)).copyBits(fgDistanceMap, 0, 0, Blitter.SUBTRACT);
+        IJ.saveAs(new ImagePlus("", distanceMap), "TIF", outputDirName + "/Distance Map");
         return distanceMap;
     }
 
@@ -247,7 +264,7 @@ public class Particle_Mapper extends Analyse_ {
                 Utils.draw2DGaussian(output, p.getC1Gaussian(), 0.0, UserVariables.getSpatialRes(), false);
             }
             output.multiply(1.0 / normFactor);
-            IJ.saveAs(new ImagePlus("", output), "TIF", outputDirName + "/detections_level_" + d);
+            IJ.saveAs(new ImagePlus("", output), "TIF", outputDirName + "/Foci Detections " + d);
         }
     }
 
@@ -294,5 +311,19 @@ public class Particle_Mapper extends Analyse_ {
             printer.printRecord(tw.getTextPanel().getLine(l).replace("\t", ","));
         }
         printer.close();
+    }
+
+    void checkBinaryImage(ImageProcessor binaryImage) {
+        ImageStatistics stats = binaryImage.getStatistics();
+        if (stats.histogram[0] + stats.histogram[255] < binaryImage.getWidth() * binaryImage.getHeight()) {
+            binaryImage.autoThreshold();
+        }
+        if (binaryImage.isInvertedLut()) {
+            binaryImage.invertLut();
+        }
+        stats = binaryImage.getStatistics();
+        if (stats.histogram[0] > stats.histogram[255]) {
+            binaryImage.invert();
+        }
     }
 }

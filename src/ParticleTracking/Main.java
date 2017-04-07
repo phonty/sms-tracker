@@ -32,7 +32,7 @@ public class Main {
     }
 //    public static void main(String args[]) {
 //        TestGenerator tg = new TestGenerator();
-//        tg.generateMulti(100,30, 512, 512, tg.generateNuclei(20, 512, 512, 24, 36));
+//        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
 //        System.exit(0);
 //    }
 }
