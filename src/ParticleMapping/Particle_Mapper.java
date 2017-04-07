@@ -25,10 +25,12 @@ import ParticleTracking.UserVariables;
 import Revision.Revision;
 import UtilClasses.GenUtils;
 import UtilClasses.GenVariables;
+import UtilClasses.Utilities;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.Plot;
+import ij.io.OpenDialog;
 import ij.measure.Measurements;
 import ij.measure.ResultsTable;
 import ij.plugin.filter.Analyzer;
@@ -40,7 +42,6 @@ import ij.process.FloatBlitter;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
-import ij.process.StackStatistics;
 import ij.process.TypeConverter;
 import java.awt.Color;
 import java.io.File;
@@ -51,7 +52,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import ui.DetectionGUI;
 
@@ -62,6 +62,8 @@ import ui.DetectionGUI;
 public class Particle_Mapper extends Analyse_ {
 
     LinkedHashMap<Integer, double[]> regionCentroidMap = new LinkedHashMap();
+    String outputDirName;
+    protected String title = "Particle Mapper";
 
     public Particle_Mapper() {
 
@@ -72,7 +74,7 @@ public class Particle_Mapper extends Analyse_ {
      * @param arg
      */
     public void run(String arg) {
-        File inputDir;
+        File inputDir = null;
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
         stacks = new ImageStack[2];
         if (IJ.getInstance() != null) {
@@ -88,13 +90,18 @@ public class Particle_Mapper extends Analyse_ {
         if (!showDialog()) {
             return;
         }
+        File outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
+        outputDirName = GenUtils.openResultsDirectory(outputDir + delimiter + title, delimiter);
         try {
             ParticleArray pa = findParticles();
             drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight());
-            ImageProcessor nuclei = IJ.openImage().getProcessor();
-            double[][] centroids = buildTerritories(nuclei.duplicate());
-            ImageProcessor regions = IJ.openImage("C:\\Users\\barryd\\particle_mapper_debug\\voronoi_indexed.png").getProcessor();
-            double[][] distances = calcDistances(assignParticlesToCells(pa, regions, centroids), buildDistanceMap(nuclei));
+            ImageProcessor nuclei = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath()).getProcessor();
+            double[][] distances = calcDistances(
+                    assignParticlesToCells(
+                            pa, buildTerritories(nuclei.duplicate()).getProcessor(), getCentroids(nuclei.duplicate())
+                    ),
+                    buildDistanceMap(nuclei)
+            );
             showHistograms(distances, 40, 20, -5);
             cleanUp();
         } catch (IOException e) {
@@ -102,13 +109,13 @@ public class Particle_Mapper extends Analyse_ {
         }
     }
 
-    public double[][] buildTerritories(ImageProcessor image) throws IOException {
+    public double[][] getCentroids(ImageProcessor image) throws IOException {
         ImagePlus imp = new ImagePlus("", image);
         ResultsTable rt = Analyzer.getResultsTable();
-        ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_NONE, Measurements.CENTROID, rt, 0, Double.MAX_VALUE);
+        ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_NONE+ParticleAnalyzer.CLEAR_WORKSHEET, Measurements.CENTROID, rt, 0, Double.MAX_VALUE);
         pa.setHideOutputImage(true);
         pa.analyze(imp);
-        File centFile = new File("C:\\Users\\barryd\\particle_mapper_debug\\cell_centroids.csv");
+        File centFile = new File(outputDirName + "/cell_centroids.csv");
         CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(centFile), GenVariables.ISO), CSVFormat.EXCEL);
         double[][] centroids = {rt.getColumnAsDoubles(rt.getColumnIndex("X")), rt.getColumnAsDoubles(rt.getColumnIndex("Y"))};
         int N = rt.size();
@@ -117,19 +124,25 @@ public class Particle_Mapper extends Analyse_ {
             printer.printRecord(centroids[0][i], centroids[1][i]);
         }
         printer.close();
+        return centroids;
+    }
+
+    public ImagePlus buildTerritories(ImageProcessor image) throws IOException {
+        ImagePlus imp = new ImagePlus("", image);
+        ResultsTable rt = Analyzer.getResultsTable();
+        ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_NONE, Measurements.CENTROID, rt, 0, Double.MAX_VALUE);
+        pa.setHideOutputImage(true);
         EDM edm = new EDM();
         edm.setup("voronoi", imp);
         edm.run(image);
-        IJ.saveAs(new ImagePlus("", image), "PNG", "C:\\Users\\barryd\\particle_mapper_debug\\voronoi");
         image.threshold(1);
-        IJ.saveAs(new ImagePlus("", image), "PNG", "C:\\Users\\barryd\\particle_mapper_debug\\voronoi_thresh");
+        IJ.saveAs(new ImagePlus("", image), "PNG", outputDirName + "/voronoi_thresh");
         image.invert();
         rt.reset();
         pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_ROI_MASKS, 0, rt, 0, Double.MAX_VALUE);
         pa.setHideOutputImage(true);
         pa.analyze(imp);
-        IJ.saveAs(pa.getOutputImage(), "PNG", "C:\\Users\\barryd\\particle_mapper_debug\\voronoi_indexed");
-        return centroids;
+        return pa.getOutputImage();
     }
 
     ArrayList<Particle>[] assignParticlesToCells(ParticleArray pa, ImageProcessor cellMap, double[][] cellCentroids) {
@@ -163,7 +176,7 @@ public class Particle_Mapper extends Analyse_ {
                         (int) Math.round(centroid[0]), (int) Math.round(centroid[1]));
             }
         }
-        IJ.saveAs(new ImagePlus("", map), "PNG", "C:\\Users\\barryd\\particle_mapper_debug\\map");
+        IJ.saveAs(new ImagePlus("", map), "PNG", outputDirName + "/map");
         return assignments;
     }
 
@@ -218,12 +231,10 @@ public class Particle_Mapper extends Analyse_ {
         ImageProcessor invertedImage = image.duplicate();
         invertedImage.invert();
         EDM edm = new EDM();
-        edm.toEDM(image);
-        IJ.saveAs(new ImagePlus("", image), "TIF", "C:\\Users\\barryd\\particle_mapper_debug\\fgdistancemap");
+        FloatProcessor fgDistanceMap = edm.makeFloatEDM(image, 0, false);
         FloatProcessor distanceMap = edm.makeFloatEDM(invertedImage, 0, false);
-        IJ.saveAs(new ImagePlus("", distanceMap), "TIF", "C:\\Users\\barryd\\particle_mapper_debug\\bgdistancemap");
-        (new FloatBlitter(distanceMap)).copyBits((new TypeConverter(image, false)).convertToFloat(null), 0, 0, Blitter.SUBTRACT);
-        IJ.saveAs(new ImagePlus("", distanceMap), "TIF", "C:\\Users\\barryd\\particle_mapper_debug\\distancemap");
+        (new FloatBlitter(distanceMap)).copyBits((new TypeConverter(fgDistanceMap, false)).convertToFloat(null), 0, 0, Blitter.SUBTRACT);
+        IJ.saveAs(new ImagePlus("", distanceMap), "TIF", outputDirName + "/distancemap");
         return distanceMap;
     }
 
@@ -242,12 +253,12 @@ public class Particle_Mapper extends Analyse_ {
                 Utils.draw2DGaussian(output, p.getC1Gaussian(), 0.0, UserVariables.getSpatialRes(), false);
             }
             output.multiply(1.0 / normFactor);
-            IJ.saveAs(new ImagePlus("", output), "TIF", "C:\\Users\\barryd\\particle_mapper_debug\\detections_level_" + d);
+            IJ.saveAs(new ImagePlus("", output), "TIF", outputDirName + "/detections_level_" + d);
         }
     }
 
     protected String prepareInputs() {
-        ImagePlus cytoImp = IJ.openImage();
+        ImagePlus cytoImp = IJ.openImage((new OpenDialog("Specify Foci Image", null)).getPath());
         if (cytoImp == null) {
             return null;
         }
