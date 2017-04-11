@@ -35,4 +35,9 @@ public class Main {
 //        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
 //        System.exit(0);
 //    }
+//    public static void main(String args[]) {
+//        GPUAnalyse instance = new GPUAnalyse();
+//        instance.run(null);
+//        System.exit(0);
+//    }
 }

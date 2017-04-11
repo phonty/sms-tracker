@@ -78,7 +78,7 @@ public class Analyse_ implements PlugIn {
     protected ImagePlus[] inputs;
     protected final String labels[] = {"Channel 1", "Channel 2"};
     protected boolean gpuEnabled = false;
-    private final double PART_RAD = 4.0;
+    private final double PART_RAD = 2.0;
     private static File calFile;
     protected double normFactor;
 
@@ -375,8 +375,8 @@ public class Analyse_ implements PlugIn {
         }
         int i, noOfImages = channel1.getSize(), width = channel1.getWidth(), height = channel1.getHeight(),
                 arraySize = endSlice - startSlice + 1;
-        int xyPartRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
-        int fitRad = (int) Math.ceil(xyPartRad);
+        int searchRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
+        int fitRad = searchRad;
         int c1X, c1Y, pSize = 2 * fitRad + 1;
         double[] xCoords = new double[pSize];
         double[] yCoords = new double[pSize];
@@ -393,7 +393,7 @@ public class Analyse_ implements PlugIn {
             FloatProcessor chan1Proc = (FloatProcessor) preProcess(channel1.getProcessor(i + 1).duplicate(), UserVariables.getSigEstRed());
             FloatProcessor chan2Proc = (channel2 != null) ? (FloatProcessor) preProcess(channel2.getProcessor(i + 1).duplicate(), UserVariables.getSigEstGreen()) : null;
             double c1Threshold = Utils.getPercentileThresh(chan1Proc, UserVariables.getChan1MaxThresh());
-            ByteProcessor thisC1Max = Utils.findLocalMaxima(xyPartRad, xyPartRad, UserVariables.FOREGROUND, chan1Proc, c1Threshold, false);
+            ByteProcessor thisC1Max = Utils.findLocalMaxima(searchRad, searchRad, UserVariables.FOREGROUND, chan1Proc, c1Threshold, false, fitRad - searchRad);
             for (c1X = 0; c1X < width; c1X++) {
                 for (c1Y = 0; c1Y < height; c1Y++) {
                     if (thisC1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
@@ -402,14 +402,8 @@ public class Analyse_ implements PlugIn {
                          * <code>xyPartRad</code> pixels of maxima in red image:
                          */
                         Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan1Proc);
-                        IsoGaussianFitter c1Fitter = new IsoGaussianFitter(xCoords, yCoords, pixValues, floatingSigma);
-                        c1Fitter.doFit(UserVariables.getSigEstRed() / UserVariables.getSpatialRes());
-                        ArrayList<IsoGaussian> c1Fits = new ArrayList();
-                        double x0 = (c1X - fitRad + c1Fitter.getX0()) * spatialRes;
-                        double y0 = (c1Y - fitRad + c1Fitter.getY0()) * spatialRes;
-                        c1Fits.add(new IsoGaussian(x0, y0, c1Fitter.getMag(), c1Fitter.getXsig(),
-                                c1Fitter.getYsig(), c1Fitter.getRSquared()));
-                        IsoGaussian c2Gaussian;
+                        ArrayList<IsoGaussian> c1Fits = doFitting(xCoords, yCoords, pixValues, floatingSigma, c1X, c1Y, fitRad, spatialRes, c1Threshold);
+                        IsoGaussian c2Gaussian = null;
                         if (fitC2Gaussian) {
                             Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan2Proc);
                             IsoGaussianFitter c2Fitter = new IsoGaussianFitter(xCoords, yCoords, pixValues, floatingSigma);
@@ -418,17 +412,17 @@ public class Analyse_ implements PlugIn {
                             double y1 = (c1Y - fitRad + c2Fitter.getY0()) * spatialRes;
                             c2Gaussian = new IsoGaussian(x1, y1, c2Fitter.getMag(), c2Fitter.getXsig(),
                                     c2Fitter.getYsig(), c2Fitter.getRSquared());
-                        } else {
-                            c2Gaussian = getC2Gaussian(x0, y0, chan2Proc);
                         }
 
                         /*
                          * A particle has been isolated - trajectories need to
                          * be updated:
                          */
-                        for (IsoGaussian c1Fit : c1Fits) {
-                            if (c1Fit.getFit() > c1FitTol) {
-                                particles.addDetection(i - startSlice, new Particle(i - startSlice, c1Fit, c2Gaussian, null, -1));
+                        if (c1Fits != null) {
+                            for (IsoGaussian c1Fit : c1Fits) {
+                                if (c1Fit.getFit() > c1FitTol) {
+                                    particles.addDetection(i - startSlice, new Particle(i - startSlice, c1Fit, c2Gaussian, null, -1));
+                                }
                             }
                         }
                     }
@@ -438,6 +432,18 @@ public class Analyse_ implements PlugIn {
         progress.dispose();
         updateTrajs(particles, spatialRes, update);
         return particles;
+    }
+
+    protected ArrayList<IsoGaussian> doFitting(double[] xCoords, double[] yCoords, double[][] pixValues,
+            boolean floatingSigma, int c1X, int c1Y, int fitRad, double spatialRes, double c1Threshold) {
+        IsoGaussianFitter c1Fitter = new IsoGaussianFitter(xCoords, yCoords, pixValues, floatingSigma);
+        c1Fitter.doFit(UserVariables.getSigEstRed() / UserVariables.getSpatialRes());
+        ArrayList<IsoGaussian> c1Fits = new ArrayList();
+        double x0 = (c1X - fitRad + c1Fitter.getX0()) * spatialRes;
+        double y0 = (c1Y - fitRad + c1Fitter.getY0()) * spatialRes;
+        c1Fits.add(new IsoGaussian(x0, y0, c1Fitter.getMag(), c1Fitter.getXsig(),
+                c1Fitter.getYsig(), c1Fitter.getRSquared()));
+        return c1Fits;
     }
 
     protected void updateTrajs(ParticleArray particles, double spatialRes, boolean update) {

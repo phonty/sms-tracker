@@ -94,6 +94,7 @@ public class Particle_Mapper extends Analyse_ {
                 return;
             }
         }
+        ImageProcessor nuclei = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath()).getProcessor();
         if (!showDialog()) {
             return;
         }
@@ -102,7 +103,6 @@ public class Particle_Mapper extends Analyse_ {
         try {
             ParticleArray pa = findParticles();
             drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight());
-            ImageProcessor nuclei = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath()).getProcessor();
             checkBinaryImage(nuclei);
             IJ.saveAs(new ImagePlus("", nuclei), "PNG", outputDirName + "/Nuclei Mask");
             double[][] centroids = getCentroids(nuclei.duplicate());
@@ -326,4 +326,11 @@ public class Particle_Mapper extends Analyse_ {
             binaryImage.invert();
         }
     }
+
+//    protected ArrayList<IsoGaussian> doFitting(double[] xCoords, double[] yCoords, double[][] pixValues,
+//            boolean floatingSigma, int c1X, int c1Y, int fitRad, double spatialRes, double c1Threshold) {
+//        MultiGaussFitter c1Fitter = new MultiGaussFitter(2, fitRad, xCoords.length);
+//        c1Fitter.fit(pixValues, UserVariables.getSigEstRed() / UserVariables.getSpatialRes());
+//        return c1Fitter.getFits(spatialRes, c1X - fitRad, c1Y - fitRad, c1Threshold, UserVariables.getCurveFitTol());
+//    }
 }
