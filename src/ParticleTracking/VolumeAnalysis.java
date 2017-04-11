@@ -4,6 +4,7 @@
  */
 package ParticleTracking;
 
+import Particle_Analysis.Particle_Tracker;
 import IAClasses.IsoGaussian;
 import IAClasses.Utils;
 import ij.IJ;
@@ -26,7 +27,7 @@ import java.util.Arrays;
  *
  * @author barry05
  */
-public class VolumeAnalysis extends Analyse_ {
+public class VolumeAnalysis extends Particle_Tracker {
 
     private int outputsize = 51, midpoint = (outputsize - 1) / 2;
     double spatialRes = UserVariables.getSpatialRes();

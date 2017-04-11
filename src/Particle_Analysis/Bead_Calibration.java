@@ -1,8 +1,11 @@
-package ParticleTracking;
+package Particle_Analysis;
 
 import IAClasses.IsoGaussian;
 import IAClasses.ProgressDialog;
 import IAClasses.Utils;
+import ParticleTracking.Particle;
+import ParticleTracking.ParticleArray;
+import ParticleTracking.UserVariables;
 import Revision.Revision;
 import UtilClasses.GenUtils;
 import ij.IJ;
@@ -21,7 +24,7 @@ import java.awt.Toolkit;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 
-public class Bead_Calibration extends Analyse_ implements PlugIn {
+public class Bead_Calibration extends Particle_Tracker implements PlugIn {
 
     protected ImagePlus imp;
 //    protected ImageStack[] stacks = new ImageStack[2];
@@ -82,7 +85,7 @@ public class Bead_Calibration extends Analyse_ implements PlugIn {
         coordHeadings = "C0_X\tC0_Y\tC1_X\tC1_Y\tC0_\u03c3\tC1_\u03c3\tC0_Fit\tC1_Fit";
         if (showDialog()) {
             UserVariables.setPreProcess(true);
-            Analyse_ analyser = new Analyse_(stacks);
+            Particle_Tracker analyser = new Particle_Tracker(stacks);
             analyser.calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
             UserVariables.setnMax(1);
             (buildOutput(analyser)).show();
@@ -151,12 +154,12 @@ public class Bead_Calibration extends Analyse_ implements PlugIn {
 //            return (byte[]) (new ByteProcessor(fch1.getWidth(), fch1.getHeight())).getPixels();
 //        }
 //    }
-    ImagePlus buildOutput(Analyse_ analyser) {
+    ImagePlus buildOutput(Particle_Tracker analyser) {
         if (stacks == null) {
             return null;
         }
         if (analyser == null) {
-            analyser = new Analyse_(stacks);
+            analyser = new Particle_Tracker(stacks);
         }
 //        double displaymax = 0.0;
         int colocalisation, count;

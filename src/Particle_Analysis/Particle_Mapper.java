@@ -14,11 +14,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package ParticleMapping;
+package Particle_Analysis;
 
 import IAClasses.Utils;
 import Math.Histogram;
-import ParticleTracking.Analyse_;
 import ParticleTracking.Particle;
 import ParticleTracking.ParticleArray;
 import ParticleTracking.UserVariables;
@@ -64,7 +63,7 @@ import ui.DetectionGUI;
  *
  * @author Dave Barry <david.barry at crick.ac.uk>
  */
-public class Particle_Mapper extends Analyse_ {
+public class Particle_Mapper extends Particle_Tracker {
 
     LinkedHashMap<Integer, double[]> regionCentroidMap = new LinkedHashMap();
     String outputDirName;
@@ -84,16 +83,16 @@ public class Particle_Mapper extends Analyse_ {
         File inputDir = null;
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
         stacks = new ImageStack[2];
-        if (IJ.getInstance() != null) {
-            if (!getActiveImages()) {
-                return;
-            }
-        } else {
+//        if (IJ.getInstance() != null) {
+//            if (!getActiveImages()) {
+//                return;
+//            }
+//        } else {
             inputDir = buildStacks();
             if (inputDir == null) {
                 return;
             }
-        }
+//        }
         ImageProcessor nuclei = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath()).getProcessor();
         if (!showDialog()) {
             return;
@@ -114,7 +113,7 @@ public class Particle_Mapper extends Analyse_ {
             outputData(distances, centroids, assignments);
             cleanUp();
         } catch (IOException e) {
-            IJ.error("IOException");
+            IJ.error(e.getMessage());
         }
     }
 

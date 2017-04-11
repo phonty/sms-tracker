@@ -17,6 +17,7 @@
  */
 package ParticleTracking;
 
+import Particle_Analysis.Particle_Tracker;
 import IAClasses.IsoGaussian;
 import IAClasses.ProgressDialog;
 import UtilClasses.GenUtils;
@@ -30,7 +31,7 @@ import java.util.ArrayList;
  *
  * @author David Barry <david.barry at cancer.org.uk>
  */
-public class GPUAnalyse extends Analyse_ {
+public class GPUAnalyse extends Particle_Tracker {
 
     private final int CUDA_FILE_COLS = 5;
 

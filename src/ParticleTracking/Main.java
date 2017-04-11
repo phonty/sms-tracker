@@ -16,8 +16,7 @@
  */
 package ParticleTracking;
 
-import ParticleMapping.Particle_Mapper;
-import ij.IJ;
+import Particle_Analysis.Particle_Mapper;
 
 /**
  *

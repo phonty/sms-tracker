@@ -1,10 +1,16 @@
-package ParticleTracking;
+package Particle_Analysis;
 
 import ui.ResultsPreviewInterface;
 import ui.UserInterface;
 import IAClasses.IsoGaussian;
 import IAClasses.ProgressDialog;
 import IAClasses.Utils;
+import ParticleTracking.IsoGaussianFitter;
+import ParticleTracking.Particle;
+import ParticleTracking.ParticleArray;
+import ParticleTracking.ParticleTrajectory;
+import ParticleTracking.TrajectoryBuilder;
+import ParticleTracking.UserVariables;
 import Revision.Revision;
 import UtilClasses.GenUtils;
 import UtilClasses.Utilities;
@@ -27,7 +33,6 @@ import ij.process.FloatProcessor;
 import ij.process.FloatStatistics;
 import ij.process.ImageProcessor;
 import ij.process.ImageStatistics;
-import ij.process.StackConverter;
 import ij.process.StackStatistics;
 import ij.process.TypeConverter;
 import ij.text.TextWindow;
@@ -56,7 +61,7 @@ import org.apache.commons.io.FilenameUtils;
  * @author David J Barry
  * @version 2.0, FEB 2011
  */
-public class Analyse_ implements PlugIn {
+public class Particle_Tracker implements PlugIn {
 
 //    protected double[] SIGMAS;
     public final int GOSHTASBY_M = 2, GOSHTASBY_N = 4;
@@ -89,14 +94,14 @@ public class Analyse_ implements PlugIn {
 ////        }
 //        System.exit(0);
 //    }
-    public Analyse_() {
+    public Particle_Tracker() {
     }
 
-    public Analyse_(ImageStack[] stacks) {
+    public Particle_Tracker(ImageStack[] stacks) {
         this.stacks = stacks;
     }
 
-    public Analyse_(ImagePlus imp, String ext) {
+    public Particle_Tracker(ImagePlus imp, String ext) {
 //        this.imp = imp;
 //        this.stacks = imp.getImageStack();
         this.ext = ext;
@@ -122,7 +127,9 @@ public class Analyse_ implements PlugIn {
         if (showDialog()) {
             analyse(inputDir);
         }
-        cleanUp();
+        if (IJ.getInstance() == null) {
+            cleanUp();
+        }
     }
 
     protected File buildStacks() {
@@ -147,13 +154,11 @@ public class Analyse_ implements PlugIn {
     }
 
     protected void cleanUp() {
-        if (IJ.getInstance() == null) {
-            try {
-                FileUtils.deleteDirectory(c0Dir);
-                FileUtils.deleteDirectory(c1Dir);
-            } catch (Exception e) {
-                IJ.error(e.toString());
-            }
+        try {
+            FileUtils.deleteDirectory(c0Dir);
+            FileUtils.deleteDirectory(c1Dir);
+        } catch (Exception e) {
+            IJ.error(e.toString());
         }
     }
 

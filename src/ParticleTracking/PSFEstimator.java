@@ -4,6 +4,7 @@
  */
 package ParticleTracking;
 
+import Particle_Analysis.Particle_Tracker;
 import IAClasses.IsoGaussian;
 import IAClasses.ProgressDialog;
 import IAClasses.Utils;
@@ -23,7 +24,7 @@ import java.util.ArrayList;
  *
  * @author barry05
  */
-public class PSFEstimator extends Analyse_ {
+public class PSFEstimator extends Particle_Tracker {
 
     private TextWindow results;
     private String psfTitle = "PSF Estimator v1.0";
