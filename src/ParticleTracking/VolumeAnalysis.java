@@ -4,6 +4,8 @@
  */
 package ParticleTracking;
 
+import Particle.Particle;
+import Particle.ParticleArray;
 import Particle_Analysis.Particle_Tracker;
 import IAClasses.IsoGaussian;
 import IAClasses.Utils;

@@ -4,6 +4,7 @@
  */
 package ParticleTracking;
 
+import Particle.ParticleArray;
 import Particle_Analysis.Bead_Calibration;
 import Particle_Analysis.Particle_Tracker;
 import IAClasses.IsoGaussian;

@@ -16,10 +16,12 @@
  */
 package Particle_Analysis;
 
+import Cell.Cell;
+import Cell.Nucleus;
 import IAClasses.Utils;
 import Math.Histogram;
-import ParticleTracking.Particle;
-import ParticleTracking.ParticleArray;
+import Particle.Particle;
+import Particle.ParticleArray;
 import ParticleTracking.UserVariables;
 import Revision.Revision;
 import UtilClasses.GenUtils;
@@ -31,12 +33,14 @@ import ij.ImageStack;
 import ij.Prefs;
 import ij.gui.GenericDialog;
 import ij.gui.Plot;
+import ij.gui.Roi;
 import ij.io.OpenDialog;
 import ij.measure.Measurements;
 import ij.measure.ResultsTable;
 import ij.plugin.filter.Analyzer;
 import ij.plugin.filter.EDM;
 import ij.plugin.filter.ParticleAnalyzer;
+import ij.plugin.frame.RoiManager;
 import ij.process.Blitter;
 import ij.process.ByteProcessor;
 import ij.process.FloatBlitter;
@@ -53,7 +57,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Collections;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
@@ -61,8 +65,8 @@ import ui.DetectionGUI;
 
 public class Particle_Mapper extends Particle_Tracker {
 
-    LinkedHashMap<Integer, double[]> regionCentroidMap = new LinkedHashMap();
     String outputDirName;
+    private ArrayList<Cell> cells;
     /**
      * Title of the application
      */
@@ -86,10 +90,10 @@ public class Particle_Mapper extends Particle_Tracker {
 //                return;
 //            }
 //        } else {
-            inputDir = buildStacks();
-            if (inputDir == null) {
-                return;
-            }
+        inputDir = buildStacks();
+        if (inputDir == null) {
+            return;
+        }
 //        }
         ImageProcessor nuclei = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath()).getProcessor();
         if (!showDialog()) {
@@ -98,17 +102,15 @@ public class Particle_Mapper extends Particle_Tracker {
         File outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
         outputDirName = GenUtils.openResultsDirectory(outputDir + delimiter + title);
         try {
-            ParticleArray pa = findParticles();
-            drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight());
             checkBinaryImage(nuclei);
             IJ.saveAs(new ImagePlus("", nuclei), "PNG", outputDirName + "/Nuclei Mask");
-            double[][] centroids = getCentroids(nuclei.duplicate());
-            ArrayList<Particle>[] assignments = assignParticlesToCells(
-                    pa, buildTerritories(nuclei.duplicate()).getProcessor(), centroids
-            );
-            double[][] distances = calcDistances(assignments, buildDistanceMap(nuclei));
+            findCells(nuclei.duplicate());
+            ParticleArray pa = findParticles();
+            drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight());
+            assignParticlesToCells(pa, buildTerritories(nuclei.duplicate()).getProcessor());
+            double[][] distances = calcDistances(buildDistanceMap(nuclei));
             buildHistograms(distances, 40, 20, -5);
-            outputData(distances, centroids, assignments);
+            outputData(distances);
             cleanUp();
         } catch (IOException e) {
             IJ.error(e.getMessage());
@@ -116,31 +118,40 @@ public class Particle_Mapper extends Particle_Tracker {
     }
 
     /**
-     * Uses {@link ij.plugin.filter.ParticleAnalyzer ParticleAnalyzer} to find 
+     * Uses {@link ij.plugin.filter.ParticleAnalyzer ParticleAnalyzer} to find
      * centroids of objects in <code>image</code>.
-     * 
+     *
      * @param image a binary image
-     * @return a <code>2 x n</code> array, specifying the centroids of any objects
-     * found in <code>image</code>. The n<sup>th</sup> centroid, in the form (x, y),
-     * is accessed as (centroids[0][n], centroids[1][n]).
+     * @return a <code>2 x n</code> array, specifying the centroids of any
+     * objects found in <code>image</code>. The n<sup>th</sup> centroid, in the
+     * form (x, y), is accessed as (centroids[0][n], centroids[1][n]).
      */
-    public double[][] getCentroids(ImageProcessor image) {
+    public void findCells(ImageProcessor image) {
+        cells= new ArrayList();
         ImagePlus imp = new ImagePlus("", image);
         ResultsTable rt = Analyzer.getResultsTable();
-        ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_NONE + ParticleAnalyzer.CLEAR_WORKSHEET, Measurements.CENTROID, rt, 0, Double.MAX_VALUE);
+        ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_NONE + ParticleAnalyzer.CLEAR_WORKSHEET + ParticleAnalyzer.ADD_TO_MANAGER, Measurements.CENTROID, rt, 0, Double.MAX_VALUE);
         pa.setHideOutputImage(true);
         pa.analyze(imp);
-        double[][] centroids = {rt.getColumnAsDoubles(rt.getColumnIndex("X")), rt.getColumnAsDoubles(rt.getColumnIndex("Y"))};
-        return centroids;
+        int n = rt.size();
+        RoiManager roimanager = RoiManager.getInstance();
+        roimanager.setVisible(false);
+        Roi[] rois = roimanager.getRoisAsArray();
+        int x = rt.getColumnIndex("X");
+        int y = rt.getColumnIndex("Y");
+        for (int i = 0; i < n; i++) {
+            double[] centroid = new double[]{rt.getValueAsDouble(x, i), rt.getValueAsDouble(y, i)};
+            cells.add(new Cell(new Nucleus(rois[i], centroid)));
+        }
     }
 
     /**
      * Creates an indexed list of regions, based on a voronoi segmentation of
      * objects in <code>image</code>.
-     * 
-     * @param image greyscale image in which the constructed regions each have 
-     * a unique label
-     * @return 
+     *
+     * @param image greyscale image in which the constructed regions each have a
+     * unique label
+     * @return
      */
     public ImagePlus buildTerritories(ImageProcessor image) {
         ImagePlus imp = new ImagePlus("", image);
@@ -158,62 +169,63 @@ public class Particle_Mapper extends Particle_Tracker {
     }
 
     /**
-     * 
+     *
      * @param pa
      * @param cellMap
      * @param cellCentroids
-     * @return 
+     * @return
      */
-    ArrayList<Particle>[] assignParticlesToCells(ParticleArray pa, ImageProcessor cellMap, double[][] cellCentroids) {
+    void assignParticlesToCells(ParticleArray pa, ImageProcessor cellMap) {
         ByteProcessor map = new ByteProcessor(cellMap.getWidth(), cellMap.getHeight());
         map.setValue(0);
         map.fill();
         map.setValue(255);
         ArrayList<Particle> detections = pa.getLevel(0);
-        int M = cellCentroids[0].length;
+        int M = cells.size();
         for (int i = 0; i < M; i++) {
-            int xc = (int) Math.round(cellCentroids[0][i]);
-            int yc = (int) Math.round(cellCentroids[1][i]);
-            int pIndex = cellMap.getPixel(xc, yc) - 1;
-            regionCentroidMap.put(pIndex, new double[]{cellCentroids[0][i], cellCentroids[1][i]});
+            Cell c = cells.get(i);
+            double[] centroid = c.getNucleus().getCentroid();
+            int xc = (int) Math.round(centroid[0]);
+            int yc = (int) Math.round(centroid[1]);
+            int id = cellMap.getPixel(xc, yc) - 1;
+            c.setID(id);
         }
+        Collections.sort(cells);
         int N = detections.size();
-        ArrayList<Particle>[] assignments = new ArrayList[M];
         for (int i = 0; i < N; i++) {
             Particle p = detections.get(i);
             int xp = (int) Math.round(p.getX() / UserVariables.getSpatialRes());
             int yp = (int) Math.round(p.getY() / UserVariables.getSpatialRes());
             int pIndex = cellMap.getPixel(xp, yp) - 1;
             if (pIndex >= 0) {
-                if (assignments[pIndex] == null) {
-                    assignments[pIndex] = new ArrayList();
-                }
-                assignments[pIndex].add(p);
-                double[] centroid = regionCentroidMap.get(pIndex);
+                Cell c = cells.get(pIndex);
+                double[] centroid = c.getNucleus().getCentroid();
                 map.drawLine(xp, yp,
                         (int) Math.round(centroid[0]), (int) Math.round(centroid[1]));
+                c.addParticle(p);
             }
         }
         IJ.saveAs(new ImagePlus("", map), "PNG", outputDirName + "/Foci-Nuclei Associations");
-        return assignments;
     }
 
     /**
-     * 
+     *
      * @param assignments
      * @param distanceMap
-     * @return 
+     * @return
      */
-    double[][] calcDistances(ArrayList<Particle>[] assignments, ImageProcessor distanceMap) {
-        int N = assignments.length;
+    double[][] calcDistances(ImageProcessor distanceMap) {
+        int N = cells.size();
         double[][] distances = new double[N][];
         double res = UserVariables.getSpatialRes();
         for (int i = 0; i < N; i++) {
-            if (assignments[i] != null) {
-                int M = assignments[i].size();
+            Cell c = cells.get(i);
+            ArrayList<Particle> particles = c.getParticles();
+            if (particles != null) {
+                int M = particles.size();
                 distances[i] = new double[M];
                 for (int j = 0; j < M; j++) {
-                    Particle p = assignments[i].get(j);
+                    Particle p = particles.get(j);
                     distances[i][j] = res * distanceMap.getInterpolatedValue(p.getX() / res, p.getY() / res);
                 }
             }
@@ -222,11 +234,11 @@ public class Particle_Mapper extends Particle_Tracker {
     }
 
     /**
-     * 
+     *
      * @param distances
      * @param nBins
      * @param max
-     * @param min 
+     * @param min
      */
     void buildHistograms(double[][] distances, int nBins, double max, double min) {
         GenericDialog gd = new GenericDialog("Specify parameters for histogram");
@@ -272,9 +284,9 @@ public class Particle_Mapper extends Particle_Tracker {
     }
 
     /**
-     * 
+     *
      * @param image
-     * @return 
+     * @return
      */
     ImageProcessor buildDistanceMap(ImageProcessor image) {
         image.invert();
@@ -290,6 +302,7 @@ public class Particle_Mapper extends Particle_Tracker {
 
     /**
      * Displays the user interface
+     *
      * @return true if the user click OK, false otherwise
      */
     public boolean showDialog() {
@@ -300,7 +313,7 @@ public class Particle_Mapper extends Particle_Tracker {
 
     /**
      * Generates an image of the particles contained in <code>pa</code>.
-     * 
+     *
      * @param pa array of particles to be drawn
      * @param width width of output image
      * @param height height of output image
@@ -321,6 +334,7 @@ public class Particle_Mapper extends Particle_Tracker {
     /**
      * Duplicates the image containing foci, saves a normalised copy and returns
      * a reference to the saved location
+     *
      * @return absolute path to the normalised images
      */
     protected String prepareInputs() {
@@ -333,25 +347,28 @@ public class Particle_Mapper extends Particle_Tracker {
     }
 
     /**
-     * 
+     *
      * @param distances
      * @param centroids
      * @param assignments
-     * @throws IOException 
+     * @throws IOException
      */
-    void outputData(double[][] distances, double[][] centroids, ArrayList<Particle>[] assignments) throws IOException {
+    void outputData(double[][] distances) throws IOException {
         int N = distances.length;
         TextWindow tw = new TextWindow(title + " Results", resultsHeadings, new String(), 640, 480);
         DecimalFormat df1 = new DecimalFormat("00");
         DecimalFormat df2 = new DecimalFormat("0.000");
         for (int i = 0; i < N; i++) {
-            String result = df1.format(Math.round(centroids[0][i])) + "\t" + df1.format(Math.round(centroids[1][i]));
-            if (assignments[i] != null) {
-                int L = assignments[i].size();
+            Cell c = cells.get(i);
+            double[] centroid = c.getNucleus().getCentroid();
+            ArrayList<Particle> particles = c.getParticles();
+            String result = df1.format(Math.round(centroid[0])) + "\t" + df1.format(Math.round(centroid[1]));
+            if (particles != null) {
+                int L = particles.size();
                 DescriptiveStatistics intensitites = new DescriptiveStatistics();
                 DescriptiveStatistics dist = new DescriptiveStatistics();
                 for (int j = 0; j < L; j++) {
-                    Particle p = assignments[i].get(j);
+                    Particle p = particles.get(j);
                     intensitites.addValue(p.getC1Intensity());
                     dist.addValue(distances[i][j]);
                 }
@@ -365,9 +382,9 @@ public class Particle_Mapper extends Particle_Tracker {
     }
 
     /**
-     * 
+     *
      * @param tw
-     * @throws IOException 
+     * @throws IOException
      */
     void saveTextWindow(TextWindow tw) throws IOException {
         File dataFile = new File(outputDirName + "/cell_data.csv");
@@ -381,8 +398,8 @@ public class Particle_Mapper extends Particle_Tracker {
     }
 
     /**
-     * 
-     * @param binaryImage 
+     *
+     * @param binaryImage
      */
     void checkBinaryImage(ImageProcessor binaryImage) {
         ImageStatistics stats = binaryImage.getStatistics();
