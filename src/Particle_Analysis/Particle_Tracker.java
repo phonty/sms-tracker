@@ -107,9 +107,6 @@ public class Particle_Tracker implements PlugIn {
         this.ext = ext;
     }
 
-    /**
-     * Implements run method from {@link PlugIn}.
-     */
     public void run(String arg) {
         File inputDir = null;
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
@@ -237,9 +234,9 @@ public class Particle_Tracker implements PlugIn {
      */
     public void analyse(File inputDir) {
         File outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
-        String parentDir = GenUtils.openResultsDirectory(outputDir + delimiter + title, delimiter);
-        String sigc0Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C0", delimiter);
-        String sigc1Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C1", delimiter);
+        String parentDir = GenUtils.openResultsDirectory(outputDir + delimiter + title);
+        String sigc0Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C0");
+        String sigc1Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C1");
         ParticleTrajectory.resetMSDPlot();
         if (!(stacks[1] == null) && UserVariables.isUseCals()) {
             JFileChooser fileChooser = new JFileChooser(calDir);
@@ -508,11 +505,11 @@ public class Particle_Tracker implements PlugIn {
      * Outputs velocity and directionality data on the particle specified by
      * <code>particleNumber</code>. Directionality ( <code>D</code>) is
      * calculated according to: <br> <br>
-     * <code>D = 1 / (1 + &lambda<sub>1</sub>
-     * &lambda<sub>2</sub><sup>-1</sup>)</code>
-     * <br> <br> where <code>&lambda<sub>1</sub></code> and
-     * <code>&lambda<sub>2</sub></code> are the eigenvalues of the trajectory
-     * data and      <code>&lambda<sub>1</sub> < &lambda<sub>2</sub></code>.
+     * <code>D = 1 / (1 + &lambda;<sub>1</sub>
+     * &lambda;<sub>2</sub><sup>-1</sup>)</code>
+     * <br> <br> where <code>&lambda;<sub>1</sub></code> and
+     * <code>&lambda;<sub>2</sub></code> are the eigenvalues of the trajectory
+     * data and      <code>&lambda;<sub>1</sub>&lambda;<sub>2</sub></code>.
      *
      */
     public boolean printData(int particleNumber, TextWindow output, int label) {

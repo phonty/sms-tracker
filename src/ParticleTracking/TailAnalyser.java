@@ -29,10 +29,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 
-/**
- *
- * @author David Barry <david.barry at crick.ac.uk>
- */
 public class TailAnalyser {
 
     protected DecimalFormat numFormat = new DecimalFormat("0.000");
@@ -100,7 +96,7 @@ public class TailAnalyser {
         int stackWidth = tempIP.getWidth();
         int stackHeight = tempIP.getHeight();
         temp.close();
-        File resultsDir = new File(GenUtils.openResultsDirectory(parentDir + "/" + protein, "/"));
+        File resultsDir = new File(GenUtils.openResultsDirectory(parentDir + "/" + protein));
 //        Arrays.fill(sigSums, 0.0);
 //        Arrays.fill(sigCounts, 0);
         for (int i = 0; i < iterations; i++) {

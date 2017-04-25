@@ -59,25 +59,23 @@ import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import ui.DetectionGUI;
 
-/**
- *
- * @author Dave Barry <david.barry at crick.ac.uk>
- */
 public class Particle_Mapper extends Particle_Tracker {
 
     LinkedHashMap<Integer, double[]> regionCentroidMap = new LinkedHashMap();
     String outputDirName;
+    /**
+     * Title of the application
+     */
     protected String title = "Particle Mapper";
     private final String resultsHeadings = "X\t Y\t Number of Foci\t Mean Intensity of Foci\t Mean Foci Distance To Nuclear Boundary (" + IJ.micronSymbol + "m)";
 
+    /**
+     * Default constructor.
+     */
     public Particle_Mapper() {
 
     }
 
-    /**
-     *
-     * @param arg
-     */
     public void run(String arg) {
         Prefs.blackBackground = false;
         File inputDir = null;
@@ -98,7 +96,7 @@ public class Particle_Mapper extends Particle_Tracker {
             return;
         }
         File outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
-        outputDirName = GenUtils.openResultsDirectory(outputDir + delimiter + title, delimiter);
+        outputDirName = GenUtils.openResultsDirectory(outputDir + delimiter + title);
         try {
             ParticleArray pa = findParticles();
             drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight());
@@ -117,6 +115,15 @@ public class Particle_Mapper extends Particle_Tracker {
         }
     }
 
+    /**
+     * Uses {@link ij.plugin.filter.ParticleAnalyzer ParticleAnalyzer} to find 
+     * centroids of objects in <code>image</code>.
+     * 
+     * @param image a binary image
+     * @return a <code>2 x n</code> array, specifying the centroids of any objects
+     * found in <code>image</code>. The n<sup>th</sup> centroid, in the form (x, y),
+     * is accessed as (centroids[0][n], centroids[1][n]).
+     */
     public double[][] getCentroids(ImageProcessor image) {
         ImagePlus imp = new ImagePlus("", image);
         ResultsTable rt = Analyzer.getResultsTable();
@@ -127,6 +134,14 @@ public class Particle_Mapper extends Particle_Tracker {
         return centroids;
     }
 
+    /**
+     * Creates an indexed list of regions, based on a voronoi segmentation of
+     * objects in <code>image</code>.
+     * 
+     * @param image greyscale image in which the constructed regions each have 
+     * a unique label
+     * @return 
+     */
     public ImagePlus buildTerritories(ImageProcessor image) {
         ImagePlus imp = new ImagePlus("", image);
         ResultsTable rt = Analyzer.getResultsTable();
@@ -142,6 +157,13 @@ public class Particle_Mapper extends Particle_Tracker {
         return pa.getOutputImage();
     }
 
+    /**
+     * 
+     * @param pa
+     * @param cellMap
+     * @param cellCentroids
+     * @return 
+     */
     ArrayList<Particle>[] assignParticlesToCells(ParticleArray pa, ImageProcessor cellMap, double[][] cellCentroids) {
         ByteProcessor map = new ByteProcessor(cellMap.getWidth(), cellMap.getHeight());
         map.setValue(0);
@@ -176,6 +198,12 @@ public class Particle_Mapper extends Particle_Tracker {
         return assignments;
     }
 
+    /**
+     * 
+     * @param assignments
+     * @param distanceMap
+     * @return 
+     */
     double[][] calcDistances(ArrayList<Particle>[] assignments, ImageProcessor distanceMap) {
         int N = assignments.length;
         double[][] distances = new double[N][];
@@ -193,6 +221,13 @@ public class Particle_Mapper extends Particle_Tracker {
         return distances;
     }
 
+    /**
+     * 
+     * @param distances
+     * @param nBins
+     * @param max
+     * @param min 
+     */
     void buildHistograms(double[][] distances, int nBins, double max, double min) {
         GenericDialog gd = new GenericDialog("Specify parameters for histogram");
         gd.addNumericField("Minimum Value:", min, 1);
@@ -236,6 +271,11 @@ public class Particle_Mapper extends Particle_Tracker {
         rt.save(outputDirName + "/distance_histogram_data.csv");
     }
 
+    /**
+     * 
+     * @param image
+     * @return 
+     */
     ImageProcessor buildDistanceMap(ImageProcessor image) {
         image.invert();
         ImageProcessor invertedImage = image.duplicate();
@@ -248,12 +288,23 @@ public class Particle_Mapper extends Particle_Tracker {
         return distanceMap;
     }
 
+    /**
+     * Displays the user interface
+     * @return true if the user click OK, false otherwise
+     */
     public boolean showDialog() {
         DetectionGUI ui = new DetectionGUI(null, true, title, this);
         ui.setVisible(true);
         return ui.isWasOKed();
     }
 
+    /**
+     * Generates an image of the particles contained in <code>pa</code>.
+     * 
+     * @param pa array of particles to be drawn
+     * @param width width of output image
+     * @param height height of output image
+     */
     public void drawDetections(ParticleArray pa, int width, int height) {
         int depth = pa.getDepth();
         for (int d = 0; d < depth; d++) {
@@ -267,6 +318,11 @@ public class Particle_Mapper extends Particle_Tracker {
         }
     }
 
+    /**
+     * Duplicates the image containing foci, saves a normalised copy and returns
+     * a reference to the saved location
+     * @return absolute path to the normalised images
+     */
     protected String prepareInputs() {
         ImagePlus cytoImp = IJ.openImage((new OpenDialog("Specify Foci Image", null)).getPath());
         if (cytoImp == null) {
@@ -276,6 +332,13 @@ public class Particle_Mapper extends Particle_Tracker {
         return normaliseStacks(cytoImp.getImageStack(), null);
     }
 
+    /**
+     * 
+     * @param distances
+     * @param centroids
+     * @param assignments
+     * @throws IOException 
+     */
     void outputData(double[][] distances, double[][] centroids, ArrayList<Particle>[] assignments) throws IOException {
         int N = distances.length;
         TextWindow tw = new TextWindow(title + " Results", resultsHeadings, new String(), 640, 480);
@@ -301,6 +364,11 @@ public class Particle_Mapper extends Particle_Tracker {
         saveTextWindow(tw);
     }
 
+    /**
+     * 
+     * @param tw
+     * @throws IOException 
+     */
     void saveTextWindow(TextWindow tw) throws IOException {
         File dataFile = new File(outputDirName + "/cell_data.csv");
         CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(dataFile), GenVariables.ISO), CSVFormat.EXCEL);
@@ -312,24 +380,21 @@ public class Particle_Mapper extends Particle_Tracker {
         printer.close();
     }
 
+    /**
+     * 
+     * @param binaryImage 
+     */
     void checkBinaryImage(ImageProcessor binaryImage) {
         ImageStatistics stats = binaryImage.getStatistics();
         if (stats.histogram[0] + stats.histogram[255] < binaryImage.getWidth() * binaryImage.getHeight()) {
             binaryImage.autoThreshold();
         }
         if (binaryImage.isInvertedLut()) {
-            binaryImage.invertLut();
+//            binaryImage.invertLut();
         }
         stats = binaryImage.getStatistics();
         if (stats.histogram[0] > stats.histogram[255]) {
             binaryImage.invert();
         }
     }
-
-//    protected ArrayList<IsoGaussian> doFitting(double[] xCoords, double[] yCoords, double[][] pixValues,
-//            boolean floatingSigma, int c1X, int c1Y, int fitRad, double spatialRes, double c1Threshold) {
-//        MultiGaussFitter c1Fitter = new MultiGaussFitter(2, fitRad, xCoords.length);
-//        c1Fitter.fit(pixValues, UserVariables.getSigEstRed() / UserVariables.getSpatialRes());
-//        return c1Fitter.getFits(spatialRes, c1X - fitRad, c1Y - fitRad, c1Threshold, UserVariables.getCurveFitTol());
-//    }
 }

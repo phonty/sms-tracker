@@ -18,10 +18,6 @@ package ParticleTracking;
 
 import Particle_Analysis.Particle_Mapper;
 
-/**
- *
- * @author Dave Barry <david.barry at crick.ac.uk>
- */
 public class Main {
 
     public static void main(String args[]) {

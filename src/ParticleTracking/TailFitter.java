@@ -25,10 +25,6 @@ import java.util.Random;
 import org.apache.commons.math3.analysis.function.Gaussian;
 import org.apache.commons.math3.special.Erf;
 
-/**
- *
- * @author David Barry <david.barry at cancer.org.uk>
- */
 public class TailFitter extends IsoGaussianFitter {
 
     private final double spatialRes, sigmaEst;

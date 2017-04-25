@@ -27,10 +27,6 @@ import ij.process.ImageProcessor;
 import java.io.File;
 import java.util.ArrayList;
 
-/**
- *
- * @author David Barry <david.barry at cancer.org.uk>
- */
 public class GPUAnalyse extends Particle_Tracker {
 
     private final int CUDA_FILE_COLS = 5;
