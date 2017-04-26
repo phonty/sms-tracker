@@ -17,6 +17,8 @@
 package Particle_Analysis;
 
 import Cell.Cell;
+import Cell.CellRegion;
+import Cell.Cytoplasm;
 import Cell.Nucleus;
 import IAClasses.Utils;
 import Math.Histogram;
@@ -58,6 +60,7 @@ import java.io.OutputStreamWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
@@ -106,8 +109,13 @@ public class Particle_Mapper extends Particle_Tracker {
             IJ.saveAs(new ImagePlus("", nuclei), "PNG", outputDirName + "/Nuclei Mask");
             findCells(nuclei.duplicate());
             ParticleArray pa = findParticles();
+            ImageProcessor cellMap = buildTerritories(nuclei.duplicate()).getProcessor();
+            IJ.saveAs(new ImagePlus("", cellMap), "PNG", outputDirName + "/Region IDs");
+            Collections.sort(cells);
+            filterCells(IJ.openImage((new OpenDialog("Specify Region Index Image", null)).getPath()).getProcessor(),
+                    new Cytoplasm(), 50.0, Measurements.MEAN);
+            assignParticlesToCells(pa, cellMap);
             drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight());
-            assignParticlesToCells(pa, buildTerritories(nuclei.duplicate()).getProcessor());
             double[][] distances = calcDistances(buildDistanceMap(nuclei));
             buildHistograms(distances, 40, 20, -5);
             outputData(distances);
@@ -127,7 +135,7 @@ public class Particle_Mapper extends Particle_Tracker {
      * form (x, y), is accessed as (centroids[0][n], centroids[1][n]).
      */
     public void findCells(ImageProcessor image) {
-        cells= new ArrayList();
+        cells = new ArrayList();
         ImagePlus imp = new ImagePlus("", image);
         ResultsTable rt = Analyzer.getResultsTable();
         ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_NONE + ParticleAnalyzer.CLEAR_WORKSHEET + ParticleAnalyzer.ADD_TO_MANAGER, Measurements.CENTROID, rt, 0, Double.MAX_VALUE);
@@ -162,9 +170,23 @@ public class Particle_Mapper extends Particle_Tracker {
         image.threshold(1);
         IJ.saveAs(new ImagePlus("", image), "PNG", outputDirName + "/Cell Boundaries");
         rt.reset();
-        ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_ROI_MASKS, 0, rt, 0, Double.MAX_VALUE);
+        ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_ROI_MASKS + ParticleAnalyzer.ADD_TO_MANAGER, 0, rt, 0, Double.MAX_VALUE);
         pa.setHideOutputImage(true);
         pa.analyze(imp);
+        int n = rt.size();
+        RoiManager roimanager = RoiManager.getInstance();
+        roimanager.setVisible(false);
+        Roi[] rois = roimanager.getRoisAsArray();
+        ImageProcessor cellMap = pa.getOutputImage().getProcessor();
+        for (int i = 0; i < n; i++) {
+            Cell c = cells.get(i);
+            double[] centroid = c.getNucleus().getCentroid();
+            int xc = (int) Math.round(centroid[0]);
+            int yc = (int) Math.round(centroid[1]);
+            int id = cellMap.getPixel(xc, yc) - 1;
+            c.setID(id);
+            c.addCellRegion(new Cytoplasm(rois[i]));
+        }
         return pa.getOutputImage();
     }
 
@@ -181,23 +203,17 @@ public class Particle_Mapper extends Particle_Tracker {
         map.fill();
         map.setValue(255);
         ArrayList<Particle> detections = pa.getLevel(0);
-        int M = cells.size();
-        for (int i = 0; i < M; i++) {
-            Cell c = cells.get(i);
-            double[] centroid = c.getNucleus().getCentroid();
-            int xc = (int) Math.round(centroid[0]);
-            int yc = (int) Math.round(centroid[1]);
-            int id = cellMap.getPixel(xc, yc) - 1;
-            c.setID(id);
-        }
-        Collections.sort(cells);
         int N = detections.size();
+        LinkedHashMap<Integer, Integer> idToIndexMap = new LinkedHashMap();
+        for (int i = 0; i < cells.size(); i++) {
+            idToIndexMap.put(cells.get(i).getID(), i);
+        }
         for (int i = 0; i < N; i++) {
             Particle p = detections.get(i);
             int xp = (int) Math.round(p.getX() / UserVariables.getSpatialRes());
             int yp = (int) Math.round(p.getY() / UserVariables.getSpatialRes());
-            int pIndex = cellMap.getPixel(xp, yp) - 1;
-            if (pIndex >= 0) {
+            Integer pIndex = idToIndexMap.get(cellMap.getPixel(xp, yp) - 1);
+            if (pIndex != null) {
                 Cell c = cells.get(pIndex);
                 double[] centroid = c.getNucleus().getCentroid();
                 map.drawLine(xp, yp,
@@ -413,5 +429,37 @@ public class Particle_Mapper extends Particle_Tracker {
         if (stats.histogram[0] > stats.histogram[255]) {
             binaryImage.invert();
         }
+    }
+
+    void filterCells(ImageProcessor image, CellRegion region, double threshold, int measurement) {
+        DescriptiveStatistics ds = new DescriptiveStatistics();
+        for (Cell cell : cells) {
+            CellRegion cr = cell.getRegionOfType(region);
+            image.setRoi(cr.getRoi());
+            ImageStatistics stats = ImageStatistics.getStatistics(image, measurement, null);
+            switch (measurement) {
+                case Measurements.MEAN:
+                    ds.addValue(stats.mean);
+                    break;
+                case Measurements.STD_DEV:
+                    ds.addValue(stats.stdDev);
+                    break;
+                default:
+                    ds.addValue(0.0);
+            }
+        }
+        double percentile = ds.getPercentile(threshold);
+        double[] measures = ds.getValues();
+        ArrayList<Cell> cells2 = new ArrayList();
+        for (int i = 0; i < cells.size(); i++) {
+            if (measures[i] > percentile) {
+                cells2.add(cells.get(i));
+            }
+        }
+        cells = cells2;
+    }
+
+    void analyseCellFluorescenceDistribution(ImageProcessor image) {
+
     }
 }
