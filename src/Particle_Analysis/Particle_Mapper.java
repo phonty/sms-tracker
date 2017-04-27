@@ -44,6 +44,7 @@ import ij.plugin.filter.EDM;
 import ij.plugin.filter.ParticleAnalyzer;
 import ij.plugin.frame.RoiManager;
 import ij.process.Blitter;
+import ij.process.ByteBlitter;
 import ij.process.ByteProcessor;
 import ij.process.FloatBlitter;
 import ij.process.FloatProcessor;
@@ -119,6 +120,7 @@ public class Particle_Mapper extends Particle_Tracker {
             double[][] distances = calcDistances(buildDistanceMap(nuclei));
             buildHistograms(distances, 40, 20, -5);
             outputData(distances);
+            saveValues(analyseCellFluorescenceDistribution(stacks[0].getProcessor(1), Measurements.MEAN + Measurements.STD_DEV));
             cleanUp();
         } catch (IOException e) {
             IJ.error(e.getMessage());
@@ -138,6 +140,7 @@ public class Particle_Mapper extends Particle_Tracker {
         cells = new ArrayList();
         ImagePlus imp = new ImagePlus("", image);
         ResultsTable rt = Analyzer.getResultsTable();
+        resetRoiManager();
         ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_NONE + ParticleAnalyzer.CLEAR_WORKSHEET + ParticleAnalyzer.ADD_TO_MANAGER, Measurements.CENTROID, rt, 0, Double.MAX_VALUE);
         pa.setHideOutputImage(true);
         pa.analyze(imp);
@@ -150,6 +153,13 @@ public class Particle_Mapper extends Particle_Tracker {
         for (int i = 0; i < n; i++) {
             double[] centroid = new double[]{rt.getValueAsDouble(x, i), rt.getValueAsDouble(y, i)};
             cells.add(new Cell(new Nucleus(rois[i], centroid)));
+        }
+    }
+
+    void resetRoiManager() {
+        RoiManager instance = RoiManager.getInstance();
+        if (instance != null) {
+            instance.reset();
         }
     }
 
@@ -170,6 +180,7 @@ public class Particle_Mapper extends Particle_Tracker {
         image.threshold(1);
         IJ.saveAs(new ImagePlus("", image), "PNG", outputDirName + "/Cell Boundaries");
         rt.reset();
+        resetRoiManager();
         ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_ROI_MASKS + ParticleAnalyzer.ADD_TO_MANAGER, 0, rt, 0, Double.MAX_VALUE);
         pa.setHideOutputImage(true);
         pa.analyze(imp);
@@ -185,7 +196,7 @@ public class Particle_Mapper extends Particle_Tracker {
             int yc = (int) Math.round(centroid[1]);
             int id = cellMap.getPixel(xc, yc) - 1;
             c.setID(id);
-            c.addCellRegion(new Cytoplasm(rois[i]));
+            c.addCellRegion(new Cytoplasm(rois[id]));
         }
         return pa.getOutputImage();
     }
@@ -413,6 +424,19 @@ public class Particle_Mapper extends Particle_Tracker {
         printer.close();
     }
 
+    void saveValues(double[][] vals) throws IOException {
+        File dataFile = new File(outputDirName + "/data_vals.csv");
+        CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(dataFile), GenVariables.ISO), CSVFormat.EXCEL);
+        int L = vals.length;
+        for (int l = 0; l < L; l++) {
+            for (double v : vals[l]) {
+                printer.print(v);
+            }
+            printer.println();
+        }
+        printer.close();
+    }
+
     /**
      *
      * @param binaryImage
@@ -431,10 +455,10 @@ public class Particle_Mapper extends Particle_Tracker {
         }
     }
 
-    void filterCells(ImageProcessor image, CellRegion region, double threshold, int measurement) {
+    void filterCells(ImageProcessor image, CellRegion regionType, double threshold, int measurement) {
         DescriptiveStatistics ds = new DescriptiveStatistics();
         for (Cell cell : cells) {
-            CellRegion cr = cell.getRegionOfType(region);
+            CellRegion cr = cell.getRegion(regionType);
             image.setRoi(cr.getRoi());
             ImageStatistics stats = ImageStatistics.getStatistics(image, measurement, null);
             switch (measurement) {
@@ -459,7 +483,34 @@ public class Particle_Mapper extends Particle_Tracker {
         cells = cells2;
     }
 
-    void analyseCellFluorescenceDistribution(ImageProcessor image) {
-
+    double[][] analyseCellFluorescenceDistribution(ImageProcessor image, int measurements) {
+        int N = cells.size();
+        double[][] vals = new double[N][];
+        for (int i = 0; i < N; i++) {
+            Cell cell = cells.get(i);
+            Nucleus nucleus = (Nucleus) cell.getRegion(new Nucleus());
+            Cytoplasm cyto = (Cytoplasm) cell.getRegion(new Cytoplasm());
+            Roi nucRoi = nucleus.getRoi();
+            ByteProcessor nucMask = (ByteProcessor) nucRoi.getMask();
+            IJ.saveAs(new ImagePlus("", nucMask), "PNG", outputDirName + "/nucMask");
+            image.setRoi(nucRoi);
+            image.setMask(nucMask);
+            ImageStatistics nucstats = ImageStatistics.getStatistics(image, measurements, null);
+            Roi cytoRoi = cyto.getRoi();
+            ByteProcessor cytoMask = (ByteProcessor) cytoRoi.getMask();
+            IJ.saveAs(new ImagePlus("", cytoMask), "PNG", outputDirName + "/cytoMask");
+            int xc = nucRoi.getBounds().x - cytoRoi.getBounds().x;
+            int yc = nucRoi.getBounds().y - cytoRoi.getBounds().y;
+            (new ByteBlitter(cytoMask)).copyBits(nucMask, xc, yc, Blitter.SUBTRACT);
+            IJ.saveAs(new ImagePlus("", cytoMask), "PNG", outputDirName + "/cyto-less-nuc-Mask");
+            image.setRoi(cytoRoi);
+            image.setMask(cytoMask);
+            ImageStatistics cytostats = ImageStatistics.getStatistics(image, measurements, null);
+            vals[i] = new double[]{nucstats.mean, nucstats.stdDev,
+                cytostats.mean, cytostats.stdDev,
+                nucstats.mean / cytostats.mean,
+                nucstats.stdDev / cytostats.stdDev};
+        }
+        return vals;
     }
 }
