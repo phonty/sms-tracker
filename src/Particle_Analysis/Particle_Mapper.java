@@ -21,13 +21,15 @@ import Cell.CellRegion;
 import Cell.Cytoplasm;
 import Cell.Nucleus;
 import IAClasses.Utils;
+import static IJUtilities.IJUtils.resetRoiManager;
+import static IO.DataWriter.saveTextWindow;
+import static IO.DataWriter.saveValues;
 import Math.Histogram;
 import Particle.Particle;
 import Particle.ParticleArray;
 import ParticleTracking.UserVariables;
 import Revision.Revision;
 import UtilClasses.GenUtils;
-import UtilClasses.GenVariables;
 import UtilClasses.Utilities;
 import ij.IJ;
 import ij.ImagePlus;
@@ -55,15 +57,11 @@ import ij.text.TextWindow;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import ui.DetectionGUI;
 
@@ -120,7 +118,7 @@ public class Particle_Mapper extends Particle_Tracker {
             double[][] distances = calcDistances(buildDistanceMap(nuclei));
             buildHistograms(distances, 40, 20, -5);
             outputData(distances);
-            saveValues(analyseCellFluorescenceDistribution(stacks[0].getProcessor(1), Measurements.MEAN + Measurements.STD_DEV));
+            saveValues(analyseCellFluorescenceDistribution(stacks[0].getProcessor(1), Measurements.MEAN + Measurements.STD_DEV), new File(outputDirName + "/data_vals.csv"));
             cleanUp();
         } catch (IOException e) {
             IJ.error(e.getMessage());
@@ -156,12 +154,6 @@ public class Particle_Mapper extends Particle_Tracker {
         }
     }
 
-    void resetRoiManager() {
-        RoiManager instance = RoiManager.getInstance();
-        if (instance != null) {
-            instance.reset();
-        }
-    }
 
     /**
      * Creates an indexed list of regions, based on a voronoi segmentation of
@@ -405,37 +397,9 @@ public class Particle_Mapper extends Particle_Tracker {
             }
             tw.append(result);
         }
-        saveTextWindow(tw);
+        saveTextWindow(tw, new File(outputDirName + "/cell_data.csv"), resultsHeadings.replace("\t", ","));
     }
 
-    /**
-     *
-     * @param tw
-     * @throws IOException
-     */
-    void saveTextWindow(TextWindow tw) throws IOException {
-        File dataFile = new File(outputDirName + "/cell_data.csv");
-        CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(dataFile), GenVariables.ISO), CSVFormat.EXCEL);
-        int L = tw.getTextPanel().getLineCount();
-        printer.printRecord(resultsHeadings.replace("\t", ","));
-        for (int l = 0; l < L; l++) {
-            printer.printRecord(tw.getTextPanel().getLine(l).replace("\t", ","));
-        }
-        printer.close();
-    }
-
-    void saveValues(double[][] vals) throws IOException {
-        File dataFile = new File(outputDirName + "/data_vals.csv");
-        CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(dataFile), GenVariables.ISO), CSVFormat.EXCEL);
-        int L = vals.length;
-        for (int l = 0; l < L; l++) {
-            for (double v : vals[l]) {
-                printer.print(v);
-            }
-            printer.println();
-        }
-        printer.close();
-    }
 
     /**
      *
