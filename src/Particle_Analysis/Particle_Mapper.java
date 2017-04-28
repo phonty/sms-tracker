@@ -35,6 +35,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.Prefs;
+import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.gui.Plot;
 import ij.gui.Roi;
@@ -56,7 +57,7 @@ import ij.process.ShortProcessor;
 import ij.process.TypeConverter;
 import ij.text.TextWindow;
 import java.awt.Color;
-import java.awt.Dimension;
+import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -68,8 +69,12 @@ import ui.DetectionGUI;
 
 public class Particle_Mapper extends Particle_Tracker {
 
+    private double histMin = -5.0, histMax = 20.0, threshLevel = 50.0;
+    private boolean useThresh = true, isolateFoci = true, analyseFluorescence = true;
+    private int histNBins = 40;
     String outputDirName;
     private Cell[] cells;
+    ImagePlus[] inputs = new ImagePlus[3];
     /**
      * Title of the application
      */
@@ -85,41 +90,47 @@ public class Particle_Mapper extends Particle_Tracker {
 
     public void run(String arg) {
         Prefs.blackBackground = false;
-        File inputDir = null;
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
         stacks = new ImageStack[2];
-//        if (IJ.getInstance() != null) {
-//            if (!getActiveImages()) {
-//                return;
-//            }
-//        } else {
-        inputDir = buildStacks();
+        if (IJ.getInstance() == null) {
+            inputs[0] = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath());
+            inputs[1] = IJ.openImage((new OpenDialog("Specify Foci Image", null)).getPath());
+            inputs[2] = IJ.openImage((new OpenDialog("Specify Image For Thresholding", null)).getPath());
+        }
+        File inputDir = buildStacks();
         if (inputDir == null) {
             return;
         }
-//        }
-        ImageProcessor nuclei = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath()).getProcessor();
         if (!showDialog()) {
             return;
         }
-        File outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
-        outputDirName = GenUtils.openResultsDirectory(outputDir + delimiter + title);
+        outputDirName = GenUtils.openResultsDirectory(Utilities.getFolder(inputDir,
+                "Specify directory for output files...", true) + delimiter + title);
         try {
-            ByteProcessor binaryNuclei = checkBinaryImage(nuclei);
+            ByteProcessor binaryNuclei = checkBinaryImage(inputs[0].getProcessor());
             IJ.saveAs(new ImagePlus("", binaryNuclei), "PNG", outputDirName + "/Nuclei Mask");
             findCells(binaryNuclei.duplicate());
-            ParticleArray pa = findParticles();
             ImageProcessor cellMap = buildTerritories(binaryNuclei.duplicate()).getProcessor();
-            IJ.saveAs(new ImagePlus("", cellMap), "PNG", outputDirName + "/Region IDs");
             Arrays.sort(cells);
-            filterCells(IJ.openImage((new OpenDialog("Specify Region Index Image", null)).getPath()).getProcessor(),
-                    new Cytoplasm(), 75.0, Measurements.MEAN);
-            assignParticlesToCells(pa, cellMap);
-            drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight());
-            double[][] distances = calcDistances(buildDistanceMap(binaryNuclei));
-            buildHistograms(distances, 40, 20, -5);
-            outputData(distances);
-            saveValues(analyseCellFluorescenceDistribution(stacks[0].getProcessor(1), Measurements.MEAN + Measurements.STD_DEV), new File(outputDirName + "/data_vals.csv"));
+            if (useThresh) {
+                filterCells(inputs[2].getProcessor(), new Cytoplasm(), threshLevel, Measurements.MEAN);
+            }
+            if (isolateFoci) {
+                ParticleArray pa = findParticles();
+                assignParticlesToCells(pa, cellMap);
+                drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight());
+                double[][] distances = calcDistances(buildDistanceMap(binaryNuclei));
+                buildHistograms(distances, histNBins, histMax, histMin);
+                outputFociDistanceData(distances);
+            }
+            if (analyseFluorescence) {
+                saveValues(analyseCellFluorescenceDistribution(stacks[0].getProcessor(1),
+                        Measurements.MEAN + Measurements.STD_DEV),
+                        new File(outputDirName + "/fluorescence_distribution_data.csv"),
+                        new String[]{"Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
+                            "Cytosolic Std Dev", "Nuclear Mean / Cytosolic Mean",
+                            "Nuclear Std Dev / Cytosolic Std Dev"});
+            }
             cleanUp();
         } catch (IOException e) {
             IJ.error(e.getMessage());
@@ -276,17 +287,6 @@ public class Particle_Mapper extends Particle_Tracker {
      * @param min
      */
     void buildHistograms(double[][] distances, int nBins, double max, double min) {
-        GenericDialog gd = new GenericDialog("Specify parameters for histogram");
-        gd.addNumericField("Minimum Value:", min, 1);
-        gd.addNumericField("Maximum Value:", max, 1);
-        gd.addNumericField("Number of Bins:", nBins, 0);
-        gd.setMinimumSize(new Dimension(400, 100));
-        gd.showDialog();
-        if (gd.wasOKed()) {
-            min = gd.getNextNumber();
-            max = gd.getNextNumber();
-            nBins = (int) Math.round(nBins);
-        }
         int N = distances.length;
         int[][] histograms = new int[N][nBins];
         float[] meanHistogram = new float[nBins];
@@ -315,7 +315,7 @@ public class Particle_Mapper extends Particle_Tracker {
         histPlot.draw();
         histPlot.show();
         ResultsTable rt = histPlot.getResultsTable();
-        rt.save(outputDirName + "/distance_histogram_data.csv");
+        rt.save(outputDirName + "/foci_distance_histogram.csv");
     }
 
     /**
@@ -341,6 +341,67 @@ public class Particle_Mapper extends Particle_Tracker {
      * @return true if the user click OK, false otherwise
      */
     public boolean showDialog() {
+        String[] imageTitles;
+        if (IJ.getInstance() != null) {
+            imageTitles = WindowManager.getImageTitles();
+        } else {
+            imageTitles = new String[]{inputs[0].getTitle(), inputs[1].getTitle(), inputs[2].getTitle()};
+        }
+        int N = imageTitles.length;
+        if (N < 2) {
+            IJ.error("Minimum of two images required.");
+            return false;
+        }
+        GenericDialog gd = new GenericDialog(title);
+        Font bFont = gd.getFont();
+        if (bFont == null) {
+            bFont = new Font("Times", Font.BOLD, 12);
+        } else {
+            bFont = bFont.deriveFont(Font.BOLD);
+        }
+        gd.centerDialog(true);
+        gd.addChoice("Nuclei: ", imageTitles, imageTitles[0]);
+        gd.addChoice("Protein distribution to be quantified: ", imageTitles, imageTitles[1]);
+        gd.addMessage("Do you want to use a third image to select cells based on intensity threshold?", bFont);
+        gd.addCheckbox("Use threshold image", useThresh);
+        gd.addChoice("Select threshold image: ", imageTitles, imageTitles[N > 2 ? 2 : 1]);
+        gd.addSlider("Specify threshold level %", 0.0, 100.0, threshLevel);
+        gd.addMessage("How do you want to analyse the protein distribution?", bFont);
+        String[] checkBoxLabels = new String[]{"Attempt to isolate foci", "Just quantify the distribution"};
+        gd.addCheckboxGroup(1, 2, checkBoxLabels, new boolean[]{isolateFoci, analyseFluorescence});
+        gd.addMessage("Specify ranges and bin size for distance histogram", bFont);
+        gd.addNumericField("Minimum Value:", histMin, 1);
+        gd.addNumericField("Maximum Value:", histMax, 1);
+        gd.addNumericField("Number of Bins:", histNBins, 0);
+        gd.showDialog();
+        if (gd.wasCanceled()) {
+            return false;
+        }
+        if (IJ.getInstance() == null) {
+            ImagePlus[] inputsCopy = new ImagePlus[]{inputs[0].duplicate(), inputs[1].duplicate(), inputs[2].duplicate()};
+            inputs[0] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
+            inputs[1] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
+            inputs[2] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
+        } else {
+            inputs[0] = WindowManager.getImage(gd.getNextChoice());
+            inputs[1] = WindowManager.getImage(gd.getNextChoice());
+            inputs[2] = WindowManager.getImage(gd.getNextChoice());
+        }
+        useThresh = gd.getNextBoolean();
+        threshLevel = gd.getNextNumber();
+        isolateFoci = gd.getNextBoolean();
+        analyseFluorescence = gd.getNextBoolean();
+        histMin = gd.getNextNumber();
+        histMax = gd.getNextNumber();
+        histNBins = (int) Math.round(gd.getNextNumber());
+        if (isolateFoci) {
+            return showDetectionGui();
+        } else {
+            return true;
+        }
+    }
+
+    boolean showDetectionGui() {
         DetectionGUI ui = new DetectionGUI(null, true, title, this);
         ui.setVisible(true);
         return ui.isWasOKed();
@@ -373,12 +434,10 @@ public class Particle_Mapper extends Particle_Tracker {
      * @return absolute path to the normalised images
      */
     protected String prepareInputs() {
-        ImagePlus cytoImp = IJ.openImage((new OpenDialog("Specify Foci Image", null)).getPath());
-        if (cytoImp == null) {
+        if (inputs[1] == null) {
             return null;
         }
-
-        return normaliseStacks(cytoImp.getImageStack(), null);
+        return normaliseStacks(inputs[1].getImageStack(), null);
     }
 
     /**
@@ -388,7 +447,7 @@ public class Particle_Mapper extends Particle_Tracker {
      * @param assignments
      * @throws IOException
      */
-    void outputData(double[][] distances) throws IOException {
+    void outputFociDistanceData(double[][] distances) throws IOException {
         int N = distances.length;
         TextWindow tw = new TextWindow(title + " Results", resultsHeadings, new String(), 640, 480);
         DecimalFormat df1 = new DecimalFormat("00");
@@ -413,7 +472,7 @@ public class Particle_Mapper extends Particle_Tracker {
             }
             tw.append(result);
         }
-        saveTextWindow(tw, new File(outputDirName + "/cell_data.csv"), resultsHeadings.replace("\t", ","));
+        saveTextWindow(tw, new File(outputDirName + "/foci_distance_data.csv"), resultsHeadings.replace("\t", ","));
     }
 
     /**
@@ -477,17 +536,14 @@ public class Particle_Mapper extends Particle_Tracker {
             Cytoplasm cyto = (Cytoplasm) cell.getRegion(new Cytoplasm());
             Roi nucRoi = nucleus.getRoi();
             ByteProcessor nucMask = (ByteProcessor) nucRoi.getMask();
-            IJ.saveAs(new ImagePlus("", nucMask), "PNG", outputDirName + "/nucMask");
             image.setRoi(nucRoi);
             image.setMask(nucMask);
             ImageStatistics nucstats = ImageStatistics.getStatistics(image, measurements, null);
             Roi cytoRoi = cyto.getRoi();
             ByteProcessor cytoMask = (ByteProcessor) cytoRoi.getMask();
-            IJ.saveAs(new ImagePlus("", cytoMask), "PNG", outputDirName + "/cytoMask");
             int xc = nucRoi.getBounds().x - cytoRoi.getBounds().x;
             int yc = nucRoi.getBounds().y - cytoRoi.getBounds().y;
             (new ByteBlitter(cytoMask)).copyBits(nucMask, xc, yc, Blitter.SUBTRACT);
-            IJ.saveAs(new ImagePlus("", cytoMask), "PNG", outputDirName + "/cyto-less-nuc-Mask");
             image.setRoi(cytoRoi);
             image.setMask(cytoMask);
             ImageStatistics cytostats = ImageStatistics.getStatistics(image, measurements, null);
