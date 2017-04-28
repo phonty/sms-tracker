@@ -53,6 +53,7 @@ import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 import ij.process.ImageStatistics;
 import ij.process.ShortProcessor;
+import ij.process.TypeConverter;
 import ij.text.TextWindow;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -60,7 +61,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import ui.DetectionGUI;
@@ -68,7 +69,7 @@ import ui.DetectionGUI;
 public class Particle_Mapper extends Particle_Tracker {
 
     String outputDirName;
-    private ArrayList<Cell> cells;
+    private Cell[] cells;
     /**
      * Title of the application
      */
@@ -104,18 +105,18 @@ public class Particle_Mapper extends Particle_Tracker {
         File outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
         outputDirName = GenUtils.openResultsDirectory(outputDir + delimiter + title);
         try {
-            checkBinaryImage(nuclei);
-            IJ.saveAs(new ImagePlus("", nuclei), "PNG", outputDirName + "/Nuclei Mask");
-            findCells(nuclei.duplicate());
+            ByteProcessor binaryNuclei = checkBinaryImage(nuclei);
+            IJ.saveAs(new ImagePlus("", binaryNuclei), "PNG", outputDirName + "/Nuclei Mask");
+            findCells(binaryNuclei.duplicate());
             ParticleArray pa = findParticles();
-            ImageProcessor cellMap = buildTerritories(nuclei.duplicate()).getProcessor();
+            ImageProcessor cellMap = buildTerritories(binaryNuclei.duplicate()).getProcessor();
             IJ.saveAs(new ImagePlus("", cellMap), "PNG", outputDirName + "/Region IDs");
-            Collections.sort(cells);
+            Arrays.sort(cells);
             filterCells(IJ.openImage((new OpenDialog("Specify Region Index Image", null)).getPath()).getProcessor(),
-                    new Cytoplasm(), 50.0, Measurements.MEAN);
+                    new Cytoplasm(), 75.0, Measurements.MEAN);
             assignParticlesToCells(pa, cellMap);
             drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight());
-            double[][] distances = calcDistances(buildDistanceMap(nuclei));
+            double[][] distances = calcDistances(buildDistanceMap(binaryNuclei));
             buildHistograms(distances, 40, 20, -5);
             outputData(distances);
             saveValues(analyseCellFluorescenceDistribution(stacks[0].getProcessor(1), Measurements.MEAN + Measurements.STD_DEV), new File(outputDirName + "/data_vals.csv"));
@@ -135,7 +136,6 @@ public class Particle_Mapper extends Particle_Tracker {
      * form (x, y), is accessed as (centroids[0][n], centroids[1][n]).
      */
     public void findCells(ImageProcessor image) {
-        cells = new ArrayList();
         ImagePlus imp = new ImagePlus("", image);
         ResultsTable rt = Analyzer.getResultsTable();
         resetRoiManager();
@@ -143,6 +143,7 @@ public class Particle_Mapper extends Particle_Tracker {
         pa.setHideOutputImage(true);
         pa.analyze(imp);
         int n = rt.size();
+        cells = new Cell[n];
         RoiManager roimanager = RoiManager.getInstance();
         roimanager.setVisible(false);
         Roi[] rois = roimanager.getRoisAsArray();
@@ -150,10 +151,9 @@ public class Particle_Mapper extends Particle_Tracker {
         int y = rt.getColumnIndex("Y");
         for (int i = 0; i < n; i++) {
             double[] centroid = new double[]{rt.getValueAsDouble(x, i), rt.getValueAsDouble(y, i)};
-            cells.add(new Cell(new Nucleus(rois[i], centroid)));
+            cells[i] = (new Cell(new Nucleus(rois[i], centroid)));
         }
     }
-
 
     /**
      * Creates an indexed list of regions, based on a voronoi segmentation of
@@ -176,21 +176,37 @@ public class Particle_Mapper extends Particle_Tracker {
         ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_ROI_MASKS + ParticleAnalyzer.ADD_TO_MANAGER, 0, rt, 0, Double.MAX_VALUE);
         pa.setHideOutputImage(true);
         pa.analyze(imp);
-        int n = rt.size();
+        int n = cells.length;
         RoiManager roimanager = RoiManager.getInstance();
         roimanager.setVisible(false);
         Roi[] rois = roimanager.getRoisAsArray();
         ImageProcessor cellMap = pa.getOutputImage().getProcessor();
+        int duds = -1;
         for (int i = 0; i < n; i++) {
-            Cell c = cells.get(i);
+            Cell c = cells[i];
             double[] centroid = c.getNucleus().getCentroid();
             int xc = (int) Math.round(centroid[0]);
             int yc = (int) Math.round(centroid[1]);
-            int id = cellMap.getPixel(xc, yc) - 1;
+            int id = cellMap.getPixel(xc, yc);
+            if (id < 1 || cellExists(new Cell(id))) {
+                id = duds--;
+                IJ.log("The partition of the field of view into distinct cell bodies "
+                        + "was not completely successful, possibly due to the nuclei "
+                        + "image being excessively noisy.");
+            }
             c.setID(id);
-            c.addCellRegion(new Cytoplasm(rois[id]));
+            if (id > 0) {
+                c.addCellRegion(new Cytoplasm(rois[id - 1]));
+            }
         }
         return pa.getOutputImage();
+    }
+
+    boolean cellExists(Cell c) {
+        Cell[] cellsCopy = new Cell[cells.length];
+        System.arraycopy(cells, 0, cellsCopy, 0, cells.length);
+        Arrays.sort(cellsCopy);
+        return (Arrays.binarySearch(cellsCopy, c) > 0);
     }
 
     /**
@@ -208,16 +224,16 @@ public class Particle_Mapper extends Particle_Tracker {
         ArrayList<Particle> detections = pa.getLevel(0);
         int N = detections.size();
         LinkedHashMap<Integer, Integer> idToIndexMap = new LinkedHashMap();
-        for (int i = 0; i < cells.size(); i++) {
-            idToIndexMap.put(cells.get(i).getID(), i);
+        for (int i = 0; i < cells.length; i++) {
+            idToIndexMap.put(cells[i].getID(), i);
         }
         for (int i = 0; i < N; i++) {
             Particle p = detections.get(i);
             int xp = (int) Math.round(p.getX() / UserVariables.getSpatialRes());
             int yp = (int) Math.round(p.getY() / UserVariables.getSpatialRes());
-            Integer pIndex = idToIndexMap.get(cellMap.getPixel(xp, yp) - 1);
+            Integer pIndex = idToIndexMap.get(cellMap.getPixel(xp, yp));
             if (pIndex != null) {
-                Cell c = cells.get(pIndex);
+                Cell c = cells[pIndex];
                 double[] centroid = c.getNucleus().getCentroid();
                 map.drawLine(xp, yp,
                         (int) Math.round(centroid[0]), (int) Math.round(centroid[1]));
@@ -234,11 +250,11 @@ public class Particle_Mapper extends Particle_Tracker {
      * @return
      */
     double[][] calcDistances(ImageProcessor distanceMap) {
-        int N = cells.size();
+        int N = cells.length;
         double[][] distances = new double[N][];
         double res = UserVariables.getSpatialRes();
         for (int i = 0; i < N; i++) {
-            Cell c = cells.get(i);
+            Cell c = cells[i];
             ArrayList<Particle> particles = c.getParticles();
             if (particles != null) {
                 int M = particles.size();
@@ -378,7 +394,7 @@ public class Particle_Mapper extends Particle_Tracker {
         DecimalFormat df1 = new DecimalFormat("00");
         DecimalFormat df2 = new DecimalFormat("0.000");
         for (int i = 0; i < N; i++) {
-            Cell c = cells.get(i);
+            Cell c = cells[i];
             double[] centroid = c.getNucleus().getCentroid();
             ArrayList<Particle> particles = c.getParticles();
             String result = df1.format(Math.round(centroid[0])) + "\t" + df1.format(Math.round(centroid[1]));
@@ -400,58 +416,63 @@ public class Particle_Mapper extends Particle_Tracker {
         saveTextWindow(tw, new File(outputDirName + "/cell_data.csv"), resultsHeadings.replace("\t", ","));
     }
 
-
     /**
      *
      * @param binaryImage
      */
-    void checkBinaryImage(ImageProcessor binaryImage) {
-        ImageStatistics stats = binaryImage.getStatistics();
-        if (stats.histogram[0] + stats.histogram[255] < binaryImage.getWidth() * binaryImage.getHeight()) {
-            binaryImage.autoThreshold();
-        }
+    ByteProcessor checkBinaryImage(ImageProcessor image) {
+        ByteProcessor binaryImage = (ByteProcessor) (new TypeConverter(image, true)).convertToByte();
+        binaryImage.autoThreshold();
         if (binaryImage.isInvertedLut()) {
-//            binaryImage.invertLut();
+            binaryImage.invertLut();
         }
-        stats = binaryImage.getStatistics();
+        ImageStatistics stats = binaryImage.getStatistics();
         if (stats.histogram[0] > stats.histogram[255]) {
             binaryImage.invert();
         }
+        return binaryImage;
     }
 
     void filterCells(ImageProcessor image, CellRegion regionType, double threshold, int measurement) {
         DescriptiveStatistics ds = new DescriptiveStatistics();
+        boolean[] selected = new boolean[cells.length];
+        Arrays.fill(selected, false);
+        int b = 0;
         for (Cell cell : cells) {
             CellRegion cr = cell.getRegion(regionType);
-            image.setRoi(cr.getRoi());
-            ImageStatistics stats = ImageStatistics.getStatistics(image, measurement, null);
-            switch (measurement) {
-                case Measurements.MEAN:
-                    ds.addValue(stats.mean);
-                    break;
-                case Measurements.STD_DEV:
-                    ds.addValue(stats.stdDev);
-                    break;
-                default:
-                    ds.addValue(0.0);
+            if (cr != null) {
+                selected[b] = true;
+                image.setRoi(cr.getRoi());
+                ImageStatistics stats = ImageStatistics.getStatistics(image, measurement, null);
+                switch (measurement) {
+                    case Measurements.MEAN:
+                        ds.addValue(stats.mean);
+                        break;
+                    case Measurements.STD_DEV:
+                        ds.addValue(stats.stdDev);
+                        break;
+                    default:
+                        ds.addValue(0.0);
+                }
             }
+            b++;
         }
         double percentile = ds.getPercentile(threshold);
         double[] measures = ds.getValues();
         ArrayList<Cell> cells2 = new ArrayList();
-        for (int i = 0; i < cells.size(); i++) {
-            if (measures[i] > percentile) {
-                cells2.add(cells.get(i));
+        for (int i = 0, j = 0; i < cells.length; i++) {
+            if (selected[i] && measures[j++] > percentile) {
+                cells2.add(cells[i]);
             }
         }
-        cells = cells2;
+        cells = cells2.toArray(new Cell[]{});
     }
 
     double[][] analyseCellFluorescenceDistribution(ImageProcessor image, int measurements) {
-        int N = cells.size();
+        int N = cells.length;
         double[][] vals = new double[N][];
         for (int i = 0; i < N; i++) {
-            Cell cell = cells.get(i);
+            Cell cell = cells[i];
             Nucleus nucleus = (Nucleus) cell.getRegion(new Nucleus());
             Cytoplasm cyto = (Cytoplasm) cell.getRegion(new Cytoplasm());
             Roi nucRoi = nucleus.getRoi();
