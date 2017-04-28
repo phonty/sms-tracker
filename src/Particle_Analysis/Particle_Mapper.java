@@ -21,6 +21,8 @@ import Cell.CellRegion;
 import Cell.Cytoplasm;
 import Cell.Nucleus;
 import IAClasses.Utils;
+import static IJUtilities.IJUtils.closeAllOpenImages;
+import static IJUtilities.IJUtils.hideAllImages;
 import static IJUtilities.IJUtils.resetRoiManager;
 import static IO.DataWriter.saveTextWindow;
 import static IO.DataWriter.saveValues;
@@ -79,7 +81,7 @@ public class Particle_Mapper extends Particle_Tracker {
      * Title of the application
      */
     protected String title = "Particle Mapper";
-    private final String resultsHeadings = "X\t Y\t Number of Foci\t Mean Intensity of Foci\t Mean Foci Distance To Nuclear Boundary (" + IJ.micronSymbol + "m)";
+    private final String resultsHeadings = "Cell ID\t X\t Y\t Number of Foci\t Mean Intensity of Foci\t Mean Foci Distance To Nuclear Boundary (" + IJ.micronSymbol + "m)";
 
     /**
      * Default constructor.
@@ -97,11 +99,15 @@ public class Particle_Mapper extends Particle_Tracker {
             inputs[1] = IJ.openImage((new OpenDialog("Specify Foci Image", null)).getPath());
             inputs[2] = IJ.openImage((new OpenDialog("Specify Image For Thresholding", null)).getPath());
         }
+        if (!showDialog()) {
+            return;
+        }
+        hideAllImages();
         File inputDir = buildStacks();
         if (inputDir == null) {
             return;
         }
-        if (!showDialog()) {
+        if (isolateFoci && !showDetectionGui()) {
             return;
         }
         outputDirName = GenUtils.openResultsDirectory(Utilities.getFolder(inputDir,
@@ -127,7 +133,7 @@ public class Particle_Mapper extends Particle_Tracker {
                 saveValues(analyseCellFluorescenceDistribution(stacks[0].getProcessor(1),
                         Measurements.MEAN + Measurements.STD_DEV),
                         new File(outputDirName + "/fluorescence_distribution_data.csv"),
-                        new String[]{"Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
+                        new String[]{"Cell ID", "Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
                             "Cytosolic Std Dev", "Nuclear Mean / Cytosolic Mean",
                             "Nuclear Std Dev / Cytosolic Std Dev"});
             }
@@ -135,6 +141,7 @@ public class Particle_Mapper extends Particle_Tracker {
         } catch (IOException e) {
             IJ.error(e.getMessage());
         }
+        closeAllOpenImages();
     }
 
     /**
@@ -181,7 +188,10 @@ public class Particle_Mapper extends Particle_Tracker {
         edm.setup("voronoi", imp);
         edm.run(image);
         image.threshold(1);
-        IJ.saveAs(new ImagePlus("", image), "PNG", outputDirName + "/Cell Boundaries");
+        image.setColor(Color.white);
+        int fontsize = (int)Math.round(0.05 * Math.min(image.getWidth(), image.getHeight()));
+        Font font = new Font("Times",Font.BOLD,fontsize);
+        image.setFont(font);
         rt.reset();
         resetRoiManager();
         ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_ROI_MASKS + ParticleAnalyzer.ADD_TO_MANAGER, 0, rt, 0, Double.MAX_VALUE);
@@ -209,7 +219,9 @@ public class Particle_Mapper extends Particle_Tracker {
             if (id > 0) {
                 c.addCellRegion(new Cytoplasm(rois[id - 1]));
             }
+            image.drawString(String.valueOf(id), xc, yc);
         }
+        IJ.saveAs(new ImagePlus("", image), "PNG", outputDirName + "/Cell Boundaries");
         return pa.getOutputImage();
     }
 
@@ -394,11 +406,7 @@ public class Particle_Mapper extends Particle_Tracker {
         histMin = gd.getNextNumber();
         histMax = gd.getNextNumber();
         histNBins = (int) Math.round(gd.getNextNumber());
-        if (isolateFoci) {
-            return showDetectionGui();
-        } else {
-            return true;
-        }
+        return true;
     }
 
     boolean showDetectionGui() {
@@ -456,7 +464,7 @@ public class Particle_Mapper extends Particle_Tracker {
             Cell c = cells[i];
             double[] centroid = c.getNucleus().getCentroid();
             ArrayList<Particle> particles = c.getParticles();
-            String result = df1.format(Math.round(centroid[0])) + "\t" + df1.format(Math.round(centroid[1]));
+            String result = c.getID()+"\t"+df1.format(Math.round(centroid[0])) + "\t" + df1.format(Math.round(centroid[1]));
             if (particles != null) {
                 int L = particles.size();
                 DescriptiveStatistics intensitites = new DescriptiveStatistics();
@@ -472,7 +480,7 @@ public class Particle_Mapper extends Particle_Tracker {
             }
             tw.append(result);
         }
-        saveTextWindow(tw, new File(outputDirName + "/foci_distance_data.csv"), resultsHeadings.replace("\t", ","));
+        saveTextWindow(tw, new File(outputDirName + "/foci_distance_data.csv"), resultsHeadings);
     }
 
     /**
@@ -547,7 +555,7 @@ public class Particle_Mapper extends Particle_Tracker {
             image.setRoi(cytoRoi);
             image.setMask(cytoMask);
             ImageStatistics cytostats = ImageStatistics.getStatistics(image, measurements, null);
-            vals[i] = new double[]{nucstats.mean, nucstats.stdDev,
+            vals[i] = new double[]{cell.getID(), nucstats.mean, nucstats.stdDev,
                 cytostats.mean, cytostats.stdDev,
                 nucstats.mean / cytostats.mean,
                 nucstats.stdDev / cytostats.stdDev};
