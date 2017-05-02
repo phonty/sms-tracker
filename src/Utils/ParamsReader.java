@@ -14,25 +14,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package ParticleTracking;
+package Utils;
 
-import Particle_Analysis.Particle_Mapper;
+import ij.ImagePlus;
 
-public class Main {
+public class ParamsReader {
 
-//    public static void main(String args[]) {
-//        Particle_Mapper instance = new Particle_Mapper();
-//        instance.run(null);
-//        System.exit(0);
-//    }
-//    public static void main(String args[]) {
-//        TestGenerator tg = new TestGenerator();
-//        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
-//        System.exit(0);
-//    }
-    public static void main(String args[]) {
-        GPUAnalyse instance = new GPUAnalyse();
-        instance.run(null);
-        System.exit(0);
+    private ImagePlus imp;
+    private double spatialRes;
+    private double frameRate;
+
+    public ParamsReader(ImagePlus imp) {
+        this.imp = imp;
+        this.spatialRes = imp.getCalibration().pixelWidth;
+        this.frameRate = imp.getCalibration().fps;
     }
+
+    public double getSpatialRes() {
+        return spatialRes;
+    }
+
+    public double getFrameRate() {
+        return frameRate;
+    }
+
 }

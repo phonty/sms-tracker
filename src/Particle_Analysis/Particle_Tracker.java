@@ -14,6 +14,7 @@ import ParticleTracking.UserVariables;
 import Revision.Revision;
 import UtilClasses.GenUtils;
 import UtilClasses.Utilities;
+import Utils.ParamsReader;
 import goshtasby.Multi_Goshtasby;
 import ij.IJ;
 import ij.ImagePlus;
@@ -121,6 +122,7 @@ public class Particle_Tracker implements PlugIn {
                 return;
             }
         }
+         readParamsFromImage();
         if (showDialog()) {
             analyse(inputDir);
         }
@@ -132,19 +134,21 @@ public class Particle_Tracker implements PlugIn {
     protected File buildStacks() {
         String dirName = prepareInputs();
         File inputDir;
+        inputs = new ImagePlus[2];
         if (dirName != null) {
             inputDir = new File(dirName);
         } else {
             return null;
         }
         c0Dir = new File(inputDir.getAbsolutePath() + delimiter + C_0);
-        ImagePlus imp = Utils.buildStack(c0Dir);
-        stacks[0] = imp.getImageStack();
+        inputs[0] = Utils.buildStack(c0Dir);
+        stacks[0] = inputs[0].getImageStack();
 //        Utils.normaliseStack(stacks[0], IMAGE_MAX);
-        this.ext = imp.getTitle();
+        this.ext = inputs[0].getTitle();
         c1Dir = new File(inputDir.getAbsolutePath() + delimiter + C_1);
         if (c1Dir.exists()) {
-            stacks[1] = (Utils.buildStack(c1Dir)).getImageStack();
+            inputs[1] = Utils.buildStack(c1Dir);
+            stacks[1] = inputs[1].getImageStack();
 //            Utils.normaliseStack(stacks[1], IMAGE_MAX);
         }
         return inputDir;
@@ -1059,5 +1063,11 @@ public class Particle_Tracker implements PlugIn {
             return false;
         }
         return true;
+    }
+    
+    void readParamsFromImage(){
+        ParamsReader reader = new ParamsReader(inputs[0]);
+        UserVariables.setSpatialRes(reader.getSpatialRes());
+        UserVariables.setTimeRes(reader.getFrameRate());
     }
 }

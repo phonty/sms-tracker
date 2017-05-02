@@ -76,7 +76,6 @@ public class Particle_Mapper extends Particle_Tracker {
     private int histNBins = 40;
     String outputDirName;
     private Cell[] cells;
-    ImagePlus[] inputs = new ImagePlus[3];
     /**
      * Title of the application
      */
@@ -94,11 +93,15 @@ public class Particle_Mapper extends Particle_Tracker {
         Prefs.blackBackground = false;
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
         stacks = new ImageStack[2];
+        inputs = new ImagePlus[3];
         if (IJ.getInstance() == null) {
             inputs[0] = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath());
             inputs[1] = IJ.openImage((new OpenDialog("Specify Foci Image", null)).getPath());
             inputs[2] = IJ.openImage((new OpenDialog("Specify Image For Thresholding", null)).getPath());
+        } else {
+            inputs[0] = WindowManager.getCurrentImage();
         }
+        readParamsFromImage();
         if (!showDialog()) {
             return;
         }
@@ -189,8 +192,8 @@ public class Particle_Mapper extends Particle_Tracker {
         edm.run(image);
         image.threshold(1);
         image.setColor(Color.white);
-        int fontsize = (int)Math.round(0.05 * Math.min(image.getWidth(), image.getHeight()));
-        Font font = new Font("Times",Font.BOLD,fontsize);
+        int fontsize = (int) Math.round(0.05 * Math.min(image.getWidth(), image.getHeight()));
+        Font font = new Font("Times", Font.BOLD, fontsize);
         image.setFont(font);
         rt.reset();
         resetRoiManager();
@@ -464,7 +467,7 @@ public class Particle_Mapper extends Particle_Tracker {
             Cell c = cells[i];
             double[] centroid = c.getNucleus().getCentroid();
             ArrayList<Particle> particles = c.getParticles();
-            String result = c.getID()+"\t"+df1.format(Math.round(centroid[0])) + "\t" + df1.format(Math.round(centroid[1]));
+            String result = c.getID() + "\t" + df1.format(Math.round(centroid[0])) + "\t" + df1.format(Math.round(centroid[1]));
             if (particles != null) {
                 int L = particles.size();
                 DescriptiveStatistics intensitites = new DescriptiveStatistics();
@@ -524,7 +527,7 @@ public class Particle_Mapper extends Particle_Tracker {
             }
             b++;
         }
-        double percentile = ds.getPercentile(threshold);
+        double percentile = threshold > 0.0 ? ds.getPercentile(threshold) : 0.0;
         double[] measures = ds.getValues();
         ArrayList<Cell> cells2 = new ArrayList();
         for (int i = 0, j = 0; i < cells.length; i++) {
