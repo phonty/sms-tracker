@@ -112,6 +112,7 @@ public class Particle_Tracker implements PlugIn {
         File inputDir = null;
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
         stacks = new ImageStack[2];
+        inputs = new ImagePlus[2];
         if (IJ.getInstance() != null) {
             if (!getActiveImages()) {
                 return;
@@ -122,7 +123,7 @@ public class Particle_Tracker implements PlugIn {
                 return;
             }
         }
-         readParamsFromImage();
+        readParamsFromImage();
         if (showDialog()) {
             analyse(inputDir);
         }
@@ -134,7 +135,6 @@ public class Particle_Tracker implements PlugIn {
     protected File buildStacks() {
         String dirName = prepareInputs();
         File inputDir;
-        inputs = new ImagePlus[2];
         if (dirName != null) {
             inputDir = new File(dirName);
         } else {
@@ -327,22 +327,26 @@ public class Particle_Tracker implements PlugIn {
             }
             ParticleTrajectory.drawGlobalMSDPlot();
             trajProg.dispose();
-            ImageStack maps = mapTrajectories((new RGBStackMerge()).mergeStacks(stacks[0].getWidth(), stacks[0].getHeight(), stacks[0].getSize(), stacks[0], stacks[1], null, true),
-                    trajectories, UserVariables.getSpatialRes(), UserVariables.getMinTrajLength(),
-                    UserVariables.getTimeRes(), true, 0, trajectories.size() - 1, 1, false, calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed()));
-            resultSummary.append("\nAnalysis Time (s): " + numFormat.format((System.currentTimeMillis() - startTime) / 1000.0));
-            results.setVisible(true);
-            resultSummary.setVisible(true);
-            IJ.saveString(results.getTextPanel().getText(), parentDir + "/results.txt");
-            IJ.saveString(resultSummary.getTextPanel().getText(), parentDir + "/resultsSummary.txt");
-            try {
-                ParticleTrajectory.getMsdPlot().getResultsTable().saveAs(parentDir + "/MSD_Plot.csv");
-            } catch (IOException e) {
-            }
-            IJ.saveAs(ParticleTrajectory.getMsdPlot().makeHighResolution("", 10.0f, true, false), "PNG", parentDir + "/MSD_Plot");
-            if (maps != null) {
-                (new ImagePlus("Trajectory Maps", maps)).show();
-                IJ.saveAs((new ImagePlus("", maps)), "TIF", parentDir + "/trajectories.tif");
+            if (trajectories.size() > 0) {
+                ImageStack maps = mapTrajectories((new RGBStackMerge()).mergeStacks(stacks[0].getWidth(), stacks[0].getHeight(), stacks[0].getSize(), stacks[0], stacks[1], null, true),
+                        trajectories, UserVariables.getSpatialRes(), UserVariables.getMinTrajLength(),
+                        UserVariables.getTimeRes(), true, 0, trajectories.size() - 1, 1, false, calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed()));
+                resultSummary.append("\nAnalysis Time (s): " + numFormat.format((System.currentTimeMillis() - startTime) / 1000.0));
+                results.setVisible(true);
+                resultSummary.setVisible(true);
+                IJ.saveString(results.getTextPanel().getText(), parentDir + "/results.txt");
+                IJ.saveString(resultSummary.getTextPanel().getText(), parentDir + "/resultsSummary.txt");
+                try {
+                    ParticleTrajectory.getMsdPlot().getResultsTable().saveAs(parentDir + "/MSD_Plot.csv");
+                } catch (IOException e) {
+                }
+                IJ.saveAs(ParticleTrajectory.getMsdPlot().makeHighResolution("", 10.0f, true, false), "PNG", parentDir + "/MSD_Plot");
+                if (maps != null) {
+                    (new ImagePlus("Trajectory Maps", maps)).show();
+                    IJ.saveAs((new ImagePlus("", maps)), "TIF", parentDir + "/trajectories.tif");
+                }
+            } else {
+                IJ.log("No Particle Trajectories Constructed.");
             }
         }
         printParams(parentDir);
@@ -1064,8 +1068,8 @@ public class Particle_Tracker implements PlugIn {
         }
         return true;
     }
-    
-    void readParamsFromImage(){
+
+    void readParamsFromImage() {
         ParamsReader reader = new ParamsReader(inputs[0]);
         UserVariables.setSpatialRes(reader.getSpatialRes());
         UserVariables.setTimeRes(reader.getFrameRate());

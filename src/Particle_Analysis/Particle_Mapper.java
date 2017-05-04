@@ -76,6 +76,7 @@ public class Particle_Mapper extends Particle_Tracker {
     private int histNBins = 40;
     String outputDirName;
     private Cell[] cells;
+    private final int NUCLEI = 2, CYTO = 1, FOCI = 0;
     /**
      * Title of the application
      */
@@ -95,11 +96,15 @@ public class Particle_Mapper extends Particle_Tracker {
         stacks = new ImageStack[2];
         inputs = new ImagePlus[3];
         if (IJ.getInstance() == null) {
-            inputs[0] = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath());
-            inputs[1] = IJ.openImage((new OpenDialog("Specify Foci Image", null)).getPath());
-            inputs[2] = IJ.openImage((new OpenDialog("Specify Image For Thresholding", null)).getPath());
+            inputs[NUCLEI] = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath());
+            inputs[FOCI] = IJ.openImage((new OpenDialog("Specify Foci Image", null)).getPath());
+            inputs[CYTO] = IJ.openImage((new OpenDialog("Specify Image For Thresholding", null)).getPath());
         } else {
-            inputs[0] = WindowManager.getCurrentImage();
+            inputs[FOCI] = WindowManager.getCurrentImage();
+        }
+        if (inputs[FOCI] == null) {
+            GenUtils.error("No Images Open.");
+            return;
         }
         readParamsFromImage();
         if (!showDialog()) {
@@ -113,16 +118,18 @@ public class Particle_Mapper extends Particle_Tracker {
         if (isolateFoci && !showDetectionGui()) {
             return;
         }
-        outputDirName = GenUtils.openResultsDirectory(Utilities.getFolder(inputDir,
-                "Specify directory for output files...", true) + delimiter + title);
         try {
-            ByteProcessor binaryNuclei = checkBinaryImage(inputs[0].getProcessor());
+            outputDirName = GenUtils.openResultsDirectory(Utilities.getFolder(inputDir,
+                    "Specify directory for output files...", true) + delimiter + title);
+            ByteProcessor binaryNuclei = checkBinaryImage(inputs[NUCLEI].getProcessor());
             IJ.saveAs(new ImagePlus("", binaryNuclei), "PNG", outputDirName + "/Nuclei Mask");
-            findCells(binaryNuclei.duplicate());
+            if (!findCells(binaryNuclei.duplicate())) {
+                GenUtils.error("No Cells Found.");
+            }
             ImageProcessor cellMap = buildTerritories(binaryNuclei.duplicate()).getProcessor();
             Arrays.sort(cells);
             if (useThresh) {
-                filterCells(inputs[2].getProcessor(), new Cytoplasm(), threshLevel, Measurements.MEAN);
+                filterCells(inputs[CYTO].getProcessor(), new Cytoplasm(), threshLevel, Measurements.MEAN);
             }
             if (isolateFoci) {
                 ParticleArray pa = findParticles();
@@ -156,7 +163,7 @@ public class Particle_Mapper extends Particle_Tracker {
      * objects found in <code>image</code>. The n<sup>th</sup> centroid, in the
      * form (x, y), is accessed as (centroids[0][n], centroids[1][n]).
      */
-    public void findCells(ImageProcessor image) {
+    public boolean findCells(ImageProcessor image) {
         ImagePlus imp = new ImagePlus("", image);
         ResultsTable rt = Analyzer.getResultsTable();
         resetRoiManager();
@@ -164,6 +171,9 @@ public class Particle_Mapper extends Particle_Tracker {
         pa.setHideOutputImage(true);
         pa.analyze(imp);
         int n = rt.size();
+        if (!(n > 0)) {
+            return false;
+        }
         cells = new Cell[n];
         RoiManager roimanager = RoiManager.getInstance();
         roimanager.setVisible(false);
@@ -174,6 +184,7 @@ public class Particle_Mapper extends Particle_Tracker {
             double[] centroid = new double[]{rt.getValueAsDouble(x, i), rt.getValueAsDouble(y, i)};
             cells[i] = (new Cell(new Nucleus(rois[i], centroid)));
         }
+        return true;
     }
 
     /**
@@ -360,7 +371,10 @@ public class Particle_Mapper extends Particle_Tracker {
         if (IJ.getInstance() != null) {
             imageTitles = WindowManager.getImageTitles();
         } else {
-            imageTitles = new String[]{inputs[0].getTitle(), inputs[1].getTitle(), inputs[2].getTitle()};
+            imageTitles = new String[3];
+            imageTitles[NUCLEI] = inputs[NUCLEI].getTitle();
+            imageTitles[FOCI] = inputs[FOCI].getTitle();
+            imageTitles[CYTO] = inputs[CYTO].getTitle();
         }
         int N = imageTitles.length;
         if (N < 2) {
@@ -393,14 +407,17 @@ public class Particle_Mapper extends Particle_Tracker {
             return false;
         }
         if (IJ.getInstance() == null) {
-            ImagePlus[] inputsCopy = new ImagePlus[]{inputs[0].duplicate(), inputs[1].duplicate(), inputs[2].duplicate()};
-            inputs[0] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
-            inputs[1] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
-            inputs[2] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
+            ImagePlus[] inputsCopy = new ImagePlus[3];
+            inputsCopy[NUCLEI] = inputs[NUCLEI].duplicate();
+            inputsCopy[FOCI] = inputs[FOCI].duplicate();
+            inputsCopy[CYTO] = inputs[CYTO].duplicate();
+            inputs[NUCLEI] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
+            inputs[FOCI] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
+            inputs[CYTO] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
         } else {
-            inputs[0] = WindowManager.getImage(gd.getNextChoice());
-            inputs[1] = WindowManager.getImage(gd.getNextChoice());
-            inputs[2] = WindowManager.getImage(gd.getNextChoice());
+            inputs[NUCLEI] = WindowManager.getImage(gd.getNextChoice());
+            inputs[FOCI] = WindowManager.getImage(gd.getNextChoice());
+            inputs[CYTO] = WindowManager.getImage(gd.getNextChoice());
         }
         useThresh = gd.getNextBoolean();
         threshLevel = gd.getNextNumber();
@@ -445,10 +462,10 @@ public class Particle_Mapper extends Particle_Tracker {
      * @return absolute path to the normalised images
      */
     protected String prepareInputs() {
-        if (inputs[1] == null) {
+        if (inputs[FOCI] == null) {
             return null;
         }
-        return normaliseStacks(inputs[1].getImageStack(), null);
+        return normaliseStacks(inputs[FOCI].getImageStack(), null);
     }
 
     /**
@@ -491,6 +508,7 @@ public class Particle_Mapper extends Particle_Tracker {
      * @param binaryImage
      */
     ByteProcessor checkBinaryImage(ImageProcessor image) {
+        image.resetMinAndMax();
         ByteProcessor binaryImage = (ByteProcessor) (new TypeConverter(image, true)).convertToByte();
         binaryImage.autoThreshold();
         if (binaryImage.isInvertedLut()) {

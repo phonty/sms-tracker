@@ -254,7 +254,6 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 0;
         gridBagConstraints.gridwidth = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
         gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 0.8;
         gridBagConstraints.insets = new java.awt.Insets(10, 10, 0, 10);
