@@ -21,7 +21,6 @@ import Cell.CellRegion;
 import Cell.Cytoplasm;
 import Cell.Nucleus;
 import IAClasses.Utils;
-import static IJUtilities.IJUtils.closeAllOpenImages;
 import static IJUtilities.IJUtils.hideAllImages;
 import static IJUtilities.IJUtils.resetRoiManager;
 import static IO.DataWriter.saveTextWindow;
@@ -71,9 +70,9 @@ import ui.DetectionGUI;
 
 public class Particle_Mapper extends Particle_Tracker {
 
-    private double histMin = -5.0, histMax = 20.0, threshLevel = 50.0;
-    private boolean useThresh = true, isolateFoci = true, analyseFluorescence = true;
-    private int histNBins = 40;
+    private static double histMin = -5.0, histMax = 20.0, threshLevel = 50.0;
+    private static boolean useThresh = true, isolateFoci = true, analyseFluorescence = true;
+    private static int histNBins = 40;
     String outputDirName;
     private Cell[] cells;
     private final int NUCLEI = 2, CYTO = 1, FOCI = 0;
@@ -121,6 +120,10 @@ public class Particle_Mapper extends Particle_Tracker {
         try {
             outputDirName = GenUtils.openResultsDirectory(Utilities.getFolder(inputDir,
                     "Specify directory for output files...", true) + delimiter + title);
+            if (outputDirName == null) {
+                GenUtils.error("Failed to create output directory.");
+                return;
+            }
             ByteProcessor binaryNuclei = checkBinaryImage(inputs[NUCLEI].getProcessor());
             IJ.saveAs(new ImagePlus("", binaryNuclei), "PNG", outputDirName + "/Nuclei Mask");
             if (!findCells(binaryNuclei.duplicate())) {
@@ -148,10 +151,12 @@ public class Particle_Mapper extends Particle_Tracker {
                             "Nuclear Std Dev / Cytosolic Std Dev"});
             }
             cleanUp();
-        } catch (IOException e) {
-            IJ.error(e.getMessage());
+        } catch (Exception e) {
+            GenUtils.error(e.getMessage());
         }
-        closeAllOpenImages();
+        for (ImagePlus imp : inputs) {
+            imp.close();
+        }
     }
 
     /**
@@ -225,9 +230,10 @@ public class Particle_Mapper extends Particle_Tracker {
             int id = cellMap.getPixel(xc, yc);
             if (id < 1 || cellExists(new Cell(id))) {
                 id = duds--;
-                IJ.log("The partition of the field of view into distinct cell bodies "
-                        + "was not completely successful, possibly due to the nuclei "
-                        + "image being excessively noisy.");
+                IJ.log(String.format("The object detected at (%d, %d) could not be"
+                        + " assigned to a unique cell. This could indicate a multi-nucleate"
+                        + " cell, but could also suggest an excessively noisy image."
+                        + " Consider preprocessing your nuclei image to reduce noise.", xc, yc));
             }
             c.setID(id);
             if (id > 0) {
@@ -389,11 +395,11 @@ public class Particle_Mapper extends Particle_Tracker {
             bFont = bFont.deriveFont(Font.BOLD);
         }
         gd.centerDialog(true);
-        gd.addChoice("Nuclei: ", imageTitles, imageTitles[0]);
-        gd.addChoice("Protein distribution to be quantified: ", imageTitles, imageTitles[1]);
+        gd.addChoice("Nuclei: ", imageTitles, imageTitles[NUCLEI]);
+        gd.addChoice("Protein distribution to be quantified: ", imageTitles, imageTitles[FOCI]);
         gd.addMessage("Do you want to use a third image to select cells based on intensity threshold?", bFont);
         gd.addCheckbox("Use threshold image", useThresh);
-        gd.addChoice("Select threshold image: ", imageTitles, imageTitles[N > 2 ? 2 : 1]);
+        gd.addChoice("Select threshold image: ", imageTitles, imageTitles[N >= CYTO ? CYTO : 0]);
         gd.addSlider("Specify threshold level %", 0.0, 100.0, threshLevel);
         gd.addMessage("How do you want to analyse the protein distribution?", bFont);
         String[] checkBoxLabels = new String[]{"Attempt to isolate foci", "Just quantify the distribution"};

@@ -81,7 +81,8 @@ public class TailAnalyser {
     }
 
     public void run() {
-        File parentDir = Utilities.getFolder(new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails"), "Select input folder", true);
+        File parentDir=null;
+        try{parentDir = Utilities.getFolder(new File("C:\\Users\\barry05\\Desktop\\SuperRes Actin Tails"), "Select input folder", true);}catch(Exception e){GenUtils.error(e.getMessage());}
         if (parentDir == null) {
             return;
         }

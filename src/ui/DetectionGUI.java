@@ -30,8 +30,8 @@ import ij.ImageStack;
 import ij.gui.ImageCanvas;
 import ij.process.ImageProcessor;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.util.ArrayList;
-import javax.swing.DefaultBoundedRangeModel;
 
 public class DetectionGUI extends javax.swing.JDialog {
 
@@ -46,6 +46,7 @@ public class DetectionGUI extends javax.swing.JDialog {
     private static final String preprocessToggleText = "Pre-Process Images";
     private static final String gpuToggleText = "Use GPU";
     private static final String redSigEstText = "PSF Width (" + IJ.micronSymbol + "m):";
+    private static final int MAX_CANVAS_DIM = 256;
 
     /**
      * Creates new form UserInterface
@@ -90,10 +91,10 @@ public class DetectionGUI extends javax.swing.JDialog {
         redSigmaLabel = new javax.swing.JLabel();
         redSigmaTextField = new javax.swing.JTextField();
         jPanel2 = new javax.swing.JPanel();
-        canvas1 = new ImageCanvas(imp);
         previewTextField = new javax.swing.JTextField();
         previewScrollBar = new java.awt.Scrollbar();
         previewToggleButton = new javax.swing.JButton();
+        canvas1 = new ImageCanvas(imp);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle(title);
@@ -135,7 +136,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         getContentPane().add(jPanel3, gridBagConstraints);
 
         jSplitPane1.setDividerSize(3);
-        jSplitPane1.setResizeWeight(0.3);
+        jSplitPane1.setResizeWeight(0.5);
 
         detectionPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         detectionPanel.setLayout(new java.awt.GridBagLayout());
@@ -234,6 +235,8 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         detectionPanel.add(redSigmaLabel, gridBagConstraints);
 
@@ -250,25 +253,17 @@ public class DetectionGUI extends javax.swing.JDialog {
 
         jPanel2.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         jPanel2.setLayout(new java.awt.GridBagLayout());
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.gridwidth = 2;
-        gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.weighty = 0.8;
-        gridBagConstraints.insets = new java.awt.Insets(10, 10, 0, 10);
-        jPanel2.add(canvas1, gridBagConstraints);
 
         previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
         previewTextField.setEditable(false);
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.EAST;
         gridBagConstraints.weightx = 0.2;
         gridBagConstraints.weighty = 0.1;
-        gridBagConstraints.insets = new java.awt.Insets(0, 0, 10, 10);
+        gridBagConstraints.insets = new java.awt.Insets(0, 3, 10, 10);
         jPanel2.add(previewTextField, gridBagConstraints);
 
         previewScrollBar.setOrientation(java.awt.Scrollbar.HORIZONTAL);
@@ -280,13 +275,13 @@ public class DetectionGUI extends javax.swing.JDialog {
             }
         });
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
         gridBagConstraints.weightx = 0.8;
         gridBagConstraints.weighty = 0.1;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 0);
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 3);
         jPanel2.add(previewScrollBar, gridBagConstraints);
 
         previewToggleButton.setText("Preview");
@@ -296,11 +291,32 @@ public class DetectionGUI extends javax.swing.JDialog {
             }
         });
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 1;
         gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 0.1;
         gridBagConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
         jPanel2.add(previewToggleButton, gridBagConstraints);
+
+        canvas1.setPreferredSize(new Dimension(MAX_CANVAS_DIM,MAX_CANVAS_DIM));
+        canvas1.addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentResized(java.awt.event.ComponentEvent evt) {
+                canvas1ComponentResized(evt);
+            }
+            public void componentShown(java.awt.event.ComponentEvent evt) {
+                canvas1ComponentShown(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 0.8;
+        gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
+        jPanel2.add(canvas1, gridBagConstraints);
 
         jSplitPane1.setRightComponent(jPanel2);
 
@@ -336,6 +352,14 @@ public class DetectionGUI extends javax.swing.JDialog {
         }
         viewDetections();
     }//GEN-LAST:event_previewToggleButtonActionPerformed
+
+    private void canvas1ComponentResized(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_canvas1ComponentResized
+        ((ImageCanvas) canvas1).setMagnification(1.0 / UIMethods.getMagnification(imp.getProcessor(), canvas1));
+    }//GEN-LAST:event_canvas1ComponentResized
+
+    private void canvas1ComponentShown(java.awt.event.ComponentEvent evt) {//GEN-FIRST:event_canvas1ComponentShown
+//       canvas1ComponentResized(evt);
+    }//GEN-LAST:event_canvas1ComponentShown
 
     boolean setVariables() {
         try {

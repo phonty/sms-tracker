@@ -115,12 +115,17 @@ public class Particle_Tracker implements PlugIn {
             }
         }
         readParamsFromImage();
-        if (showDialog()) {
-            analyse(inputDir);
+        try {
+            if (showDialog()) {
+                analyse(inputDir);
+            }
+            if (IJ.getInstance() == null) {
+                cleanUp();
+            }
+        } catch (Exception e) {
+            GenUtils.error(e.getMessage());
         }
-        if (IJ.getInstance() == null) {
-            cleanUp();
-        }
+
     }
 
     protected File buildStacks() {
@@ -217,7 +222,7 @@ public class Particle_Tracker implements PlugIn {
     /**
      * Analyses the {@link ImageStack} specified by <code>stack</code>.
      */
-    public void analyse(File inputDir) {
+    public void analyse(File inputDir) throws Exception {
         ImageStack[] stacks = getStacks();
         File outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
         String parentDir = GenUtils.openResultsDirectory(outputDir + delimiter + title);
