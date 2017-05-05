@@ -20,19 +20,19 @@ import Particle_Analysis.Particle_Mapper;
 
 public class Main {
 
-    public static void main(String args[]) {
-        Particle_Mapper instance = new Particle_Mapper();
-        instance.run(null);
-        System.exit(0);
-    }
+//    public static void main(String args[]) {
+//        Particle_Mapper instance = new Particle_Mapper();
+//        instance.run(null);
+//        System.exit(0);
+//    }
 //    public static void main(String args[]) {
 //        TestGenerator tg = new TestGenerator();
 //        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
 //        System.exit(0);
 //    }
-//    public static void main(String args[]) {
-//        GPUAnalyse instance = new GPUAnalyse();
-//        instance.run(null);
-//        System.exit(0);
-//    }
+    public static void main(String args[]) {
+        GPUAnalyse instance = new GPUAnalyse();
+        instance.run(null);
+        System.exit(0);
+    }
 }

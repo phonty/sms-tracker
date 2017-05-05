@@ -93,7 +93,6 @@ public class Particle_Mapper extends Particle_Tracker {
     public void run(String arg) {
         Prefs.blackBackground = false;
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
-        stacks = new ImageStack[2];
         inputs = new ImagePlus[3];
         if (IJ.getInstance() == null) {
             inputs[NUCLEI] = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath());
@@ -110,6 +109,7 @@ public class Particle_Mapper extends Particle_Tracker {
         if (!showDialog()) {
             return;
         }
+        ImageStack[] stacks = getStacks();
         hideAllImages();
         File inputDir = buildStacks();
         if (inputDir == null) {
@@ -140,7 +140,7 @@ public class Particle_Mapper extends Particle_Tracker {
                 outputFociDistanceData(distances);
             }
             if (analyseFluorescence) {
-                saveValues(analyseCellFluorescenceDistribution(stacks[0].getProcessor(1),
+                saveValues(analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(1),
                         Measurements.MEAN + Measurements.STD_DEV),
                         new File(outputDirName + "/fluorescence_distribution_data.csv"),
                         new String[]{"Cell ID", "Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",

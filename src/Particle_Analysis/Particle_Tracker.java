@@ -69,7 +69,6 @@ public class Particle_Tracker implements PlugIn {
 //    public static final int VERSION = 5;
     private final double NORM_VAL = 0.99999;
     protected ArrayList<ParticleTrajectory> trajectories = new ArrayList(); //Trajectories of the detected particles
-    protected ImageStack stacks[];
     private long startTime;
     protected DecimalFormat numFormat = new DecimalFormat("0.000");
     protected DecimalFormat intFormat = new DecimalFormat("000");
@@ -88,18 +87,11 @@ public class Particle_Tracker implements PlugIn {
     private static File calFile;
     protected double normFactor;
 
-//    public static void main(String args[]) {
-////        if (imp != null) {
-//        Analyse_ instance = new Analyse_();
-//        instance.run(null);
-////        }
-//        System.exit(0);
-//    }
     public Particle_Tracker() {
     }
 
     public Particle_Tracker(ImageStack[] stacks) {
-        this.stacks = stacks;
+        this.inputs = new ImagePlus[]{new ImagePlus("C1", stacks[0]), new ImagePlus("C1", stacks[1])};
     }
 
     public Particle_Tracker(ImagePlus imp, String ext) {
@@ -111,7 +103,6 @@ public class Particle_Tracker implements PlugIn {
     public void run(String arg) {
         File inputDir = null;
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
-        stacks = new ImageStack[2];
         inputs = new ImagePlus[2];
         if (IJ.getInstance() != null) {
             if (!getActiveImages()) {
@@ -142,14 +133,10 @@ public class Particle_Tracker implements PlugIn {
         }
         c0Dir = new File(inputDir.getAbsolutePath() + delimiter + C_0);
         inputs[0] = Utils.buildStack(c0Dir);
-        stacks[0] = inputs[0].getImageStack();
-//        Utils.normaliseStack(stacks[0], IMAGE_MAX);
         this.ext = inputs[0].getTitle();
         c1Dir = new File(inputDir.getAbsolutePath() + delimiter + C_1);
         if (c1Dir.exists()) {
             inputs[1] = Utils.buildStack(c1Dir);
-            stacks[1] = inputs[1].getImageStack();
-//            Utils.normaliseStack(stacks[1], IMAGE_MAX);
         }
         return inputDir;
     }
@@ -222,12 +209,6 @@ public class Particle_Tracker implements PlugIn {
     }
 
     public boolean showDialog() {
-//        if (imp == null) {
-//            Toolkit.getDefaultToolkit().beep();
-//            IJ.error("No image stack open.");
-//            return false;
-//        }
-//        stack = imp.getImageStack();
         UserInterface ui = new UserInterface(null, true, title, this);
         ui.setVisible(true);
         return ui.isWasOKed();
@@ -237,6 +218,7 @@ public class Particle_Tracker implements PlugIn {
      * Analyses the {@link ImageStack} specified by <code>stack</code>.
      */
     public void analyse(File inputDir) {
+        ImageStack[] stacks = getStacks();
         File outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
         String parentDir = GenUtils.openResultsDirectory(outputDir + delimiter + title);
         String sigc0Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C0");
@@ -353,6 +335,7 @@ public class Particle_Tracker implements PlugIn {
     }
 
     protected ParticleArray findParticles() {
+        ImageStack[] stacks = getStacks();
         return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, false, false);
     }
 
@@ -458,7 +441,7 @@ public class Particle_Tracker implements PlugIn {
 
     protected void updateTrajs(ParticleArray particles, double spatialRes, boolean update) {
         if (update) {
-            TrajectoryBuilder.updateTrajectories(particles, UserVariables.getTimeRes(), UserVariables.getTrajMaxStep(), spatialRes, true, Utils.getStackMinMax(stacks[0])[1], trajectories);
+            TrajectoryBuilder.updateTrajectories(particles, UserVariables.getTimeRes(), UserVariables.getTrajMaxStep(), spatialRes, true, Utils.getStackMinMax(inputs[0].getImageStack())[1], trajectories);
         }
     }
 
@@ -564,7 +547,7 @@ public class Particle_Tracker implements PlugIn {
             return null;
         }
         for (i = 0; i < frames; i++) {
-            if (stacks[1] == null) {
+            if (inputs[1] == null) {
                 processor = (new TypeConverter(stack.getProcessor(i + 1).duplicate(), true).convertToByte());
             } else {
                 processor = (new TypeConverter(stack.getProcessor(i + 1).duplicate(), true).convertToRGB());
@@ -590,7 +573,7 @@ public class Particle_Tracker implements PlugIn {
                 while (current != null) {
                     for (j = frames - 1; j >= lastTP; j--) {
                         processor = outputStack.getProcessor(j + 1);
-                        if (!(stacks[1] == null) && !preview) {
+                        if (!(inputs[1] == null) && !preview) {
                             processor.setColor(thiscolor);
                         } else {
                             processor.setColor(Color.white);
@@ -612,7 +595,7 @@ public class Particle_Tracker implements PlugIn {
                     current = current.getLink();
                 }
                 processor = outputStack.getProcessor(lastTP + 1);
-                if (!(stacks[1] == null) && !preview) {
+                if (!(inputs[1] == null) && !preview) {
                     processor.setColor(thiscolor);
                 } else {
                     processor.setColor(Color.white);
@@ -659,11 +642,15 @@ public class Particle_Tracker implements PlugIn {
     }
 
     public ImageStack[] getStacks() {
+        ImageStack[] stacks = new ImageStack[inputs.length];
+        for (int i = 0; i < inputs.length; i++) {
+            stacks[i] = inputs[i] != null ? inputs[i].getImageStack() : null;
+        }
         return stacks;
     }
 
     public boolean isMonoChrome() {
-        return stacks[1] == null;
+        return inputs[1] == null;
     }
 
     /**
@@ -682,6 +669,7 @@ public class Particle_Tracker implements PlugIn {
      * @return
      */
     ImageStack[] extractTrajSignalValues(ParticleTrajectory ptraj, int signalLength, int signalWidth, float offset, int width, int height, int count) {
+        ImageStack[] stacks = getStacks();
         String calParent = calDir + delimiter + "goshtasby" + delimiter + GOSHTASBY_M + "_" + GOSHTASBY_N;
         TextReader reader = new TextReader();
         double xdiv = width * UserVariables.getSpatialRes() / GOSHTASBY_M;
@@ -1047,6 +1035,7 @@ public class Particle_Tracker implements PlugIn {
     }
 
     protected boolean getActiveImages() {
+        ImageStack[] stacks = new ImageStack[2];
         if (IJ.getInstance() != null) {
             inputs = GenUtils.specifyInputs(labels);
             if (inputs == null) {

@@ -26,6 +26,7 @@ import java.util.ArrayList;
 
 public class Bead_Calibration extends Particle_Tracker implements PlugIn {
 
+    protected ImageStack stacks[];
     protected ImagePlus imp;
 //    protected ImageStack[] stacks = new ImageStack[2];
     protected String title = "Colocaliser";

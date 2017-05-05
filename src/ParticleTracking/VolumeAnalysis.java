@@ -40,6 +40,7 @@ public class VolumeAnalysis extends Particle_Tracker {
     boolean colocal = UserVariables.isColocal();
     private int xyPartRad;
     ImagePlus imp;
+    private ImageStack[] stacks;
 
 //    public static void main(String args[]) {
 //        File image = Utilities.getFolder(new File("C:\\Users\\barry05\\Desktop\\Tracking Test Sequences"), null);

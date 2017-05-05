@@ -51,7 +51,7 @@ public class PSFEstimator extends Particle_Tracker {
     }
 
     public void analyse(File inputDir) {
-        stacks = new ImageStack[2];
+        ImageStack[] stacks = new ImageStack[]{inputs[0].getImageStack(), inputs[1].getImageStack()};
         stacks[0] = imp.getImageStack();
         if (stacks[0] != null) {
             calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
