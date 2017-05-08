@@ -16,15 +16,17 @@
  */
 package ParticleTracking;
 
-import Particle_Analysis.Particle_Mapper;
+import BlobDetection.Blob_Detector;
+import ij.IJ;
+import ij.ImagePlus;
 
 public class Main {
 
-    public static void main(String args[]) {
-        Particle_Mapper instance = new Particle_Mapper();
-        instance.run(null);
-        System.exit(0);
-    }
+//    public static void main(String args[]) {
+//        Particle_Mapper instance = new Particle_Mapper();
+//        instance.run(null);
+//        System.exit(0);
+//    }
 //    public static void main(String args[]) {
 //        TestGenerator tg = new TestGenerator();
 //        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
@@ -35,4 +37,10 @@ public class Main {
 //        instance.run(null);
 //        System.exit(0);
 //    }
+    public static void main(String args[]) {
+        Blob_Detector instance = new Blob_Detector(1.4, 4);
+        instance.outputKernel();
+        IJ.saveAs(new ImagePlus("", instance.laplacianOfGaussian(IJ.openImage().getProcessor())), "TIFF", "C:/users/barryd/desktop/log");
+        System.exit(0);
+    }
 }
