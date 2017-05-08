@@ -1,6 +1,6 @@
 package Particle_Analysis;
 
-import IAClasses.IsoGaussian;
+import Particle.IsoGaussian;
 import IAClasses.ProgressDialog;
 import IAClasses.Utils;
 import Particle.Particle;

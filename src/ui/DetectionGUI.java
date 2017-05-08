@@ -16,7 +16,7 @@
  */
 package ui;
 
-import IAClasses.IsoGaussian;
+import Particle.IsoGaussian;
 import IAClasses.Utils;
 import Particle_Analysis.Particle_Tracker;
 import ParticleTracking.GPUAnalyse;

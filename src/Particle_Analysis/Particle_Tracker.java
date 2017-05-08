@@ -2,7 +2,7 @@ package Particle_Analysis;
 
 import ui.ResultsPreviewInterface;
 import ui.UserInterface;
-import IAClasses.IsoGaussian;
+import Particle.IsoGaussian;
 import IAClasses.ProgressDialog;
 import IAClasses.Utils;
 import ParticleTracking.IsoGaussianFitter;

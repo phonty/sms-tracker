@@ -4,7 +4,7 @@
  */
 package ParticleTracking;
 
-import IAClasses.IsoGaussian;
+import Particle.IsoGaussian;
 import IAClasses.Utils;
 import ij.IJ;
 import ij.ImagePlus;
