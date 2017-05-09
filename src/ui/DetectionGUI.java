@@ -395,19 +395,17 @@ public class DetectionGUI extends javax.swing.JDialog {
             double sr = 1.0 / Double.parseDouble(spatResTextField.getText());
 //        int radius = (int)Math.round(sr);
             int radius = analyser.calcParticleRadius(UserVariables.getSpatialRes());
-            IsoGaussian c1, c2;
             ArrayList<Particle> particles = detections.getLevel(0);
             Color c1Color = !monoChrome ? Color.red : Color.white;
             Color c2Color = !monoChrome ? Color.green : Color.white;
             output.setLineWidth(1);
-            for (Particle particle : particles) {
-                c1 = particle.getC1Gaussian();
-                c2 = particle.getC2Gaussian();
-                drawDetections(output, (int) (Math.round(sr * c1.getX())), (int) (Math.round(sr * c1.getY())),
+            for (Particle p1 : particles) {
+                Particle p2 = p1.getColocalisedParticle();
+                drawDetections(output, (int) (Math.round(sr * p1.getX())), (int) (Math.round(sr * p1.getY())),
                         radius, true, c1Color);
-                if (c2 != null) {
-                    drawDetections(output, (int) (Math.round(sr * c2.getX())),
-                            (int) (Math.round(sr * c2.getY())), radius,
+                if (p2 != null) {
+                    drawDetections(output, (int) (Math.round(sr * p2.getX())),
+                            (int) (Math.round(sr * p2.getY())), radius,
                             false, c2Color);
                 }
             }

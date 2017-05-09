@@ -179,38 +179,40 @@ public class Bead_Calibration extends Particle_Tracker implements PlugIn {
                     UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, floatingSigma, true);
             FloatProcessor ch1proc = new FloatProcessor(width, height);
             FloatProcessor ch2proc = new FloatProcessor(width, height);
-            ArrayList detections = curves.getLevel(0);
+            ArrayList<Particle> detections = curves.getLevel(0);
 //            String fits;
             for (int j = 0; j < detections.size(); j++) {
-                IsoGaussian c1 = ((Particle) detections.get(j)).getC1Gaussian();
-                String coordString;
-                if (particleCoords == null) {
-                    particleCoords = new TextWindow(title + " Particle Coordinates", coordHeadings, new String(), 1000, 500);
-                    particleCoords.append("WIDTH\t" + (width * UserVariables.getSpatialRes()));
-                    particleCoords.append("HEIGHT\t" + (height * UserVariables.getSpatialRes()));
-                }
-                if (Utils.draw2DGaussian(ch1proc, c1, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false)) {
+                if (detections.get(j) instanceof IsoGaussian) {
+                    IsoGaussian c1 = (IsoGaussian) detections.get(j);
+                    String coordString;
+                    if (particleCoords == null) {
+                        particleCoords = new TextWindow(title + " Particle Coordinates", coordHeadings, new String(), 1000, 500);
+                        particleCoords.append("WIDTH\t" + (width * UserVariables.getSpatialRes()));
+                        particleCoords.append("HEIGHT\t" + (height * UserVariables.getSpatialRes()));
+                    }
+                    if (Utils.draw2DGaussian(ch1proc, c1, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false)) {
 //                    if (c1.getMagnitude() > displaymax) {
 //                        displaymax = c1.getMagnitude();
 //                    }
-                    count++;
-                    IsoGaussian c2 = ((Particle) detections.get(j)).getC2Gaussian();
-                    if (Utils.draw2DGaussian(ch2proc, c2, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false)) {
+                        count++;
+                        IsoGaussian c2 = (IsoGaussian)c1.getColocalisedParticle();
+                        if (Utils.draw2DGaussian(ch2proc, c2, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false)) {
 //                        if (c2.getMagnitude() > displaymax) {
 //                            displaymax = c2.getMagnitude();
 //                        }
-                        colocalisation++;
-                        sepsum += Utils.calcDistance(c1.getX(), c1.getY(), c2.getX(), c2.getY());
-                        coordString = String.valueOf(c1.getX()) + "\t" + String.valueOf(c1.getY())
-                                + "\t" + String.valueOf(c2.getX()) + "\t" + String.valueOf(c2.getY())
-                                + "\t" + String.valueOf(c1.getXSigma() * UserVariables.getSpatialRes())
-                                + "\t" + String.valueOf(c2.getXSigma() * UserVariables.getSpatialRes())
-                                + "\t" + String.valueOf(c1.getFit()) + "\t" + String.valueOf(c2.getFit());
-                        particleCoords.append(coordString);
+                            colocalisation++;
+                            sepsum += Utils.calcDistance(c1.getX(), c1.getY(), c2.getX(), c2.getY());
+                            coordString = String.valueOf(c1.getX()) + "\t" + String.valueOf(c1.getY())
+                                    + "\t" + String.valueOf(c2.getX()) + "\t" + String.valueOf(c2.getY())
+                                    + "\t" + String.valueOf(c1.getXSigma() * UserVariables.getSpatialRes())
+                                    + "\t" + String.valueOf(c2.getXSigma() * UserVariables.getSpatialRes())
+                                    + "\t" + String.valueOf(c1.getFit()) + "\t" + String.valueOf(c2.getFit());
+                            particleCoords.append(coordString);
 //                    } else {
 //                        coordString = String.valueOf(c1.getX()) + "\t" + String.valueOf(c1.getY())
 //                                + "\t \t \t" + String.valueOf(c1.getXSigma()) + "\t \t"
 //                                + String.valueOf(c1.getFit());
+                        }
                     }
                 }
             }

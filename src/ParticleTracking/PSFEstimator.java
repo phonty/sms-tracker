@@ -64,10 +64,12 @@ public class PSFEstimator extends Particle_Tracker {
             for (int i = 0; i < particles.getDepth(); i++) {
                 ArrayList detections = particles.getLevel(i);
                 for (int j = 0; j < detections.size(); j++) {
-                    IsoGaussian c1 = ((Particle) detections.get(j)).getC1Gaussian();
-                    results.append(String.valueOf(i) + "\t" + String.valueOf(c1.getX() * UserVariables.getSpatialRes())
-                            + "\t" + String.valueOf(c1.getY() * UserVariables.getSpatialRes()) + "\t" + String.valueOf(c1.getMagnitude())
-                            + "\t" + String.valueOf(c1.getXSigma() * UserVariables.getSpatialRes() * 1000.0) + "\t" + String.valueOf(c1.getFit()));
+                    if (detections.get(j) instanceof IsoGaussian) {
+                        IsoGaussian c1 = (IsoGaussian) detections.get(j);
+                        results.append(String.valueOf(i) + "\t" + String.valueOf(c1.getX() * UserVariables.getSpatialRes())
+                                + "\t" + String.valueOf(c1.getY() * UserVariables.getSpatialRes()) + "\t" + String.valueOf(c1.getMagnitude())
+                                + "\t" + String.valueOf(c1.getXSigma() * UserVariables.getSpatialRes() * 1000.0) + "\t" + String.valueOf(c1.getFit()));
+                    }
                 }
             }
             results.setVisible(true);
@@ -131,7 +133,7 @@ public class PSFEstimator extends Particle_Tracker {
                         ArrayList<IsoGaussian> c1Fits = c1Fitter.getFits(spatialRes, c1X - fitRad, c1Y - fitRad, c1Threshold, fitTol);
                         if (c1Fits != null) {
                             for (IsoGaussian c1Fit : c1Fits) {
-                                particles.addDetection(i - startSlice, new Particle(i - startSlice, c1Fit, null, null, -1));
+                                particles.addDetection(i - startSlice, new IsoGaussian(i - startSlice, c1Fit));
                             }
                         }
                     }

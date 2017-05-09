@@ -36,7 +36,6 @@ public class GPUAnalyse extends Particle_Tracker {
 //    static {
 //        System.loadLibrary("cuda_gauss_tracker"); // Load native library at runtime
 //    }
-
     private native boolean cudaGaussFitter(String folder, String ext, float spatialRes, float sigmaEst, float maxthresh, float fitTol, int startSlice, int endSlice);
 
 //    public static void main(String args[]) {
@@ -44,7 +43,6 @@ public class GPUAnalyse extends Particle_Tracker {
 //        instance.run(null);
 //        System.exit(0);
 //    }
-
     public GPUAnalyse() {
         super();
         gpuEnabled = true;
@@ -94,10 +92,10 @@ public class GPUAnalyse extends Particle_Tracker {
                 double y0 = c0CudaData[f].get(row)[2];
                 double mag = c0CudaData[f].get(row)[3];
                 double fit = c0CudaData[f].get(row)[4];
-                IsoGaussian c1Gaussian = new IsoGaussian(x0, y0, mag, UserVariables.getSigEstRed(), UserVariables.getSigEstRed(), fit);
-                IsoGaussian c2Gaussian = getC2Gaussian(x0, y0, ip2);
-                if (c1Gaussian.getFit() > UserVariables.getCurveFitTol()) {
-                    particles.addDetection(c0t - startSlice, new Particle(c0t, c1Gaussian, c2Gaussian, null, -1));
+                if (fit > UserVariables.getCurveFitTol()) {
+                    IsoGaussian g1 = new IsoGaussian(c0t - startSlice, x0, y0, mag, UserVariables.getSigEstRed(), UserVariables.getSigEstRed(), fit, null, -1);
+                    g1.setColocalisedParticle(getC2Gaussian(x0, y0, ip2));
+                    particles.addDetection(c0t - startSlice, g1);
 
                 }
             }

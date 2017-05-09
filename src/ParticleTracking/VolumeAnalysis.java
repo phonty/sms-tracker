@@ -239,7 +239,7 @@ public class VolumeAnalysis extends Particle_Tracker {
                          * be updated:
                          */
                         if (c1Gaussian != null) {
-                            particles.addDetection(i - startSlice, new Particle(i - startSlice, c1Gaussian, null, null, -1));
+                            particles.addDetection(i - startSlice, new IsoGaussian(i - startSlice, c1Gaussian));
                         }
                         //}
                     }
@@ -267,7 +267,7 @@ public class VolumeAnalysis extends Particle_Tracker {
         traj.calcAngleSpread();
         traj.calcStepSpread();
         traj.calcDirectionality(traj.getPoints()[0], traj.getPoints()[1]);
-        traj.calcFluorSpread();
+//        traj.calcFluorSpread();
         double fluorMaj = Math.max(traj.getxFluorSpread(), traj.getyFluorSpread());
         double fluorMin = Math.min(traj.getxFluorSpread(), traj.getyFluorSpread());
         double fluorArea = Math.PI * 4.0 * fluorMin * fluorMaj * spatialRes * spatialRes;

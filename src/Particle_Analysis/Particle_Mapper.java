@@ -26,6 +26,7 @@ import static IJUtilities.IJUtils.resetRoiManager;
 import static IO.DataWriter.saveTextWindow;
 import static IO.DataWriter.saveValues;
 import Math.Histogram;
+import Particle.IsoGaussian;
 import Particle.Particle;
 import Particle.ParticleArray;
 import ParticleTracking.UserVariables;
@@ -454,7 +455,9 @@ public class Particle_Mapper extends Particle_Tracker {
             ArrayList<Particle> level = pa.getLevel(d);
             ShortProcessor output = new ShortProcessor(width, height);
             for (Particle p : level) {
-                Utils.draw2DGaussian(output, p.getC1Gaussian(), 0.0, UserVariables.getSpatialRes(), false);
+                if (p instanceof IsoGaussian) {
+                    Utils.draw2DGaussian(output, (IsoGaussian)p, 0.0, UserVariables.getSpatialRes(), false);
+                }
             }
             output.multiply(1.0 / normFactor);
             IJ.saveAs(new ImagePlus("", output), "TIF", outputDirName + "/Foci Detections " + d);
@@ -497,7 +500,7 @@ public class Particle_Mapper extends Particle_Tracker {
                 DescriptiveStatistics dist = new DescriptiveStatistics();
                 for (int j = 0; j < L; j++) {
                     Particle p = particles.get(j);
-                    intensitites.addValue(p.getC1Intensity());
+                    intensitites.addValue(p.getMagnitude());
                     dist.addValue(distances[i][j]);
                 }
                 result = result.concat("\t" + L + "\t" + df2.format(intensitites.getMean()) + "\t" + df2.format(dist.getMean()));

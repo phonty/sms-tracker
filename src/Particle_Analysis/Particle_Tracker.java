@@ -419,7 +419,8 @@ public class Particle_Tracker implements PlugIn {
                         if (c1Fits != null) {
                             for (IsoGaussian c1Fit : c1Fits) {
                                 if (c1Fit.getFit() > c1FitTol) {
-                                    particles.addDetection(i - startSlice, new Particle(i - startSlice, c1Fit, c2Gaussian, null, -1));
+                                    c1Fit.setColocalisedParticle(c2Gaussian);
+                                    particles.addDetection(i - startSlice, c1Fit);
                                 }
                             }
                         }
@@ -727,10 +728,10 @@ public class Particle_Tracker implements PlugIn {
                 vel = 0.0;
             }
             for (int index = 1; index <= size && current != null; index++) {
-                double xg = current.getC1Gaussian().getX();
-                double yg = current.getC1Gaussian().getY();
+                double xg = current.getX();
+                double yg = current.getY();
                 if (UserVariables.isUseCals()) {
-                    double x = current.getC1Gaussian().getX(), y = current.getC1Gaussian().getY();
+                    double x = current.getX(), y = current.getY();
                     int xi = 1 + (int) Math.floor(x / xdiv);
                     int yi = 1 + (int) Math.floor(y / ydiv);
                     if (new File(calParent + delimiter + "xcoeffs" + xi + "_" + yi + ".txt").exists()) {
@@ -748,8 +749,8 @@ public class Particle_Tracker implements PlugIn {
                 }
                 xSigPoints.add((float) (xg / UserVariables.getSpatialRes()));
                 ySigPoints.add((float) (yg / UserVariables.getSpatialRes()));
-                xVirPoints.add((float) (current.getC1Gaussian().getX() / UserVariables.getSpatialRes()));
-                yVirPoints.add((float) (current.getC1Gaussian().getY() / UserVariables.getSpatialRes()));
+                xVirPoints.add((float) (current.getX() / UserVariables.getSpatialRes()));
+                yVirPoints.add((float) (current.getY() / UserVariables.getSpatialRes()));
                 current = current.getLink();
             }
             xSigArray = new float[xSigPoints.size() + 2];
@@ -823,8 +824,8 @@ public class Particle_Tracker implements PlugIn {
                     double xinc = 0.0;
                     double yinc = 0.0;
                     if (UserVariables.isUseCals()) {
-                        xinc = alignmentParticle.getC1Gaussian().getX() / UserVariables.getSpatialRes() - xc;
-                        yinc = alignmentParticle.getC1Gaussian().getY() / UserVariables.getSpatialRes() - yc;
+                        xinc = alignmentParticle.getX() / UserVariables.getSpatialRes() - xc;
+                        yinc = alignmentParticle.getY() / UserVariables.getSpatialRes() - yc;
                     }
                     virTemps[j].translate(-xinc, -yinc);
                     sigTemps[j].translate(-xinc, -yinc);
