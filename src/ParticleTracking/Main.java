@@ -32,15 +32,15 @@ public class Main {
 //        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
 //        System.exit(0);
 //    }
-//    public static void main(String args[]) {
-//        GPUAnalyse instance = new GPUAnalyse();
-//        instance.run(null);
-//        System.exit(0);
-//    }
     public static void main(String args[]) {
-        Blob_Detector instance = new Blob_Detector(1.4, 4);
-        instance.outputKernel();
-        IJ.saveAs(new ImagePlus("", instance.laplacianOfGaussian(IJ.openImage().getProcessor())), "TIFF", "C:/users/barryd/desktop/log");
+        GPUAnalyse instance = new GPUAnalyse();
+        instance.run(null);
         System.exit(0);
     }
+//    public static void main(String args[]) {
+//        Blob_Detector instance = new Blob_Detector(1.4, 4);
+//        instance.outputKernel();
+//        IJ.saveAs(new ImagePlus("", instance.laplacianOfGaussian(IJ.openImage().getProcessor())), "TIFF", "C:/users/barryd/desktop/log");
+//        System.exit(0);
+//    }
 }

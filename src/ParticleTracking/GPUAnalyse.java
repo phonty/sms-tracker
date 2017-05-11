@@ -93,7 +93,7 @@ public class GPUAnalyse extends Particle_Tracker {
                 double mag = c0CudaData[f].get(row)[3];
                 double fit = c0CudaData[f].get(row)[4];
                 if (fit > UserVariables.getCurveFitTol()) {
-                    IsoGaussian g1 = new IsoGaussian(c0t - startSlice, x0, y0, mag, UserVariables.getSigEstRed(), UserVariables.getSigEstRed(), fit, null, -1);
+                    IsoGaussian g1 = new IsoGaussian(c0t - startSlice, x0, y0, mag, UserVariables.getSigEstRed(), UserVariables.getSigEstRed(), fit, null, -1, null);
                     g1.setColocalisedParticle(getC2Gaussian(x0, y0, ip2));
                     particles.addDetection(c0t - startSlice, g1);
 
