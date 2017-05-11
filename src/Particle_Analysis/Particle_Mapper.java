@@ -456,7 +456,7 @@ public class Particle_Mapper extends Particle_Tracker {
             ShortProcessor output = new ShortProcessor(width, height);
             for (Particle p : level) {
                 if (p instanceof IsoGaussian) {
-                    Utils.draw2DGaussian(output, (IsoGaussian)p, 0.0, UserVariables.getSpatialRes(), false);
+                    Utils.draw2DGaussian(output, (IsoGaussian) p, 0.0, UserVariables.getSpatialRes(), false);
                 }
             }
             output.multiply(1.0 / normFactor);
@@ -570,25 +570,27 @@ public class Particle_Mapper extends Particle_Tracker {
         double[][] vals = new double[N][];
         for (int i = 0; i < N; i++) {
             Cell cell = cells[i];
-            Nucleus nucleus = (Nucleus) cell.getRegion(new Nucleus());
-            Cytoplasm cyto = (Cytoplasm) cell.getRegion(new Cytoplasm());
-            Roi nucRoi = nucleus.getRoi();
-            ByteProcessor nucMask = (ByteProcessor) nucRoi.getMask();
-            image.setRoi(nucRoi);
-            image.setMask(nucMask);
-            ImageStatistics nucstats = ImageStatistics.getStatistics(image, measurements, null);
-            Roi cytoRoi = cyto.getRoi();
-            ByteProcessor cytoMask = (ByteProcessor) cytoRoi.getMask();
-            int xc = nucRoi.getBounds().x - cytoRoi.getBounds().x;
-            int yc = nucRoi.getBounds().y - cytoRoi.getBounds().y;
-            (new ByteBlitter(cytoMask)).copyBits(nucMask, xc, yc, Blitter.SUBTRACT);
-            image.setRoi(cytoRoi);
-            image.setMask(cytoMask);
-            ImageStatistics cytostats = ImageStatistics.getStatistics(image, measurements, null);
-            vals[i] = new double[]{cell.getID(), nucstats.mean, nucstats.stdDev,
-                cytostats.mean, cytostats.stdDev,
-                nucstats.mean / cytostats.mean,
-                nucstats.stdDev / cytostats.stdDev};
+            if (cell.getID() > 0) {
+                Nucleus nucleus = (Nucleus) cell.getRegion(new Nucleus());
+                Cytoplasm cyto = (Cytoplasm) cell.getRegion(new Cytoplasm());
+                Roi nucRoi = nucleus.getRoi();
+                ByteProcessor nucMask = (ByteProcessor) nucRoi.getMask();
+                image.setRoi(nucRoi);
+                image.setMask(nucMask);
+                ImageStatistics nucstats = ImageStatistics.getStatistics(image, measurements, null);
+                Roi cytoRoi = cyto.getRoi();
+                ByteProcessor cytoMask = (ByteProcessor) cytoRoi.getMask();
+                int xc = nucRoi.getBounds().x - cytoRoi.getBounds().x;
+                int yc = nucRoi.getBounds().y - cytoRoi.getBounds().y;
+                (new ByteBlitter(cytoMask)).copyBits(nucMask, xc, yc, Blitter.SUBTRACT);
+                image.setRoi(cytoRoi);
+                image.setMask(cytoMask);
+                ImageStatistics cytostats = ImageStatistics.getStatistics(image, measurements, null);
+                vals[i] = new double[]{cell.getID(), nucstats.mean, nucstats.stdDev,
+                    cytostats.mean, cytostats.stdDev,
+                    nucstats.mean / cytostats.mean,
+                    nucstats.stdDev / cytostats.stdDev};
+            }
         }
         return vals;
     }
