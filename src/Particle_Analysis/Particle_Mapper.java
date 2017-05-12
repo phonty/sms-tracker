@@ -74,9 +74,13 @@ public class Particle_Mapper extends Particle_Tracker {
     private static double histMin = -5.0, histMax = 20.0, threshLevel = 50.0;
     private static boolean useThresh = true, isolateFoci = true, analyseFluorescence = true;
     private static int histNBins = 40;
-    String outputDirName;
+    String resultsDir;
     private Cell[] cells;
     private final int NUCLEI = 2, CYTO = 1, FOCI = 0;
+    private final String NUCLEI_MASK = "Nuclei Mask", FLUO_DIST = "fluorescence_distribution_data.csv",
+            FOCI_DIST = "foci_distance_data.csv", FOCI_DETECTIONS = "Foci Detections", DIST_MAP = "Distance Map",
+            FOCI_DIST_HIST = "foci_distance_histogram.csv", FOCI_NUC_ASS = "Foci-Nuclei Associations",
+            CELL_BOUNDS = "Cell Boundaries";
     /**
      * Title of the application
      */
@@ -105,11 +109,20 @@ public class Particle_Mapper extends Particle_Tracker {
             GenUtils.error("No Images Open.");
             return;
         }
+        ImageStack[] stacks = getStacks();
+        for (ImageStack a : stacks) {
+            for (ImageStack b : stacks) {
+                if (a.size() != b.size()) {
+                    GenUtils.error("All stacks must have same number of slices.");
+                    return;
+                }
+            }
+        }
         readParamsFromImage();
         if (!showDialog()) {
             return;
         }
-        ImageStack[] stacks = getStacks();
+//        ImageStack[] stacks = getStacks();
         hideAllImages();
         File inputDir = buildStacks();
         if (inputDir == null) {
@@ -119,37 +132,41 @@ public class Particle_Mapper extends Particle_Tracker {
             return;
         }
         try {
-            outputDirName = GenUtils.openResultsDirectory(Utilities.getFolder(inputDir,
+            resultsDir = GenUtils.openResultsDirectory(Utilities.getFolder(inputDir,
                     "Specify directory for output files...", true) + delimiter + title);
-            if (outputDirName == null) {
+            if (resultsDir == null) {
                 GenUtils.error("Failed to create output directory.");
                 return;
             }
-            ByteProcessor binaryNuclei = checkBinaryImage(inputs[NUCLEI].getProcessor());
-            IJ.saveAs(new ImagePlus("", binaryNuclei), "PNG", outputDirName + "/Nuclei Mask");
-            if (!findCells(binaryNuclei.duplicate())) {
-                GenUtils.error("No Cells Found.");
-            }
-            ImageProcessor cellMap = buildTerritories(binaryNuclei.duplicate()).getProcessor();
-            Arrays.sort(cells);
-            if (useThresh) {
-                filterCells(inputs[CYTO].getProcessor(), new Cytoplasm(), threshLevel, Measurements.MEAN);
-            }
-            if (isolateFoci) {
-                ParticleArray pa = findParticles();
-                assignParticlesToCells(pa, cellMap);
-                drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight());
-                double[][] distances = calcDistances(buildDistanceMap(binaryNuclei));
-                buildHistograms(distances, histNBins, histMax, histMin);
-                outputFociDistanceData(distances);
-            }
-            if (analyseFluorescence) {
-                saveValues(analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(1),
-                        Measurements.MEAN + Measurements.STD_DEV),
-                        new File(outputDirName + "/fluorescence_distribution_data.csv"),
-                        new String[]{"Cell ID", "Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
-                            "Cytosolic Std Dev", "Nuclear Mean / Cytosolic Mean",
-                            "Nuclear Std Dev / Cytosolic Std Dev"});
+            for (int i = 1; i <= stacks[0].size(); i++) {
+                File thisDir = GenUtils.createDirectory(String.format("%s%sSlice_%d", resultsDir, File.separator, i), true);
+                ByteProcessor binaryNuclei = checkBinaryImage(stacks[NUCLEI].getProcessor(i));
+                IJ.saveAs(new ImagePlus("", binaryNuclei), "PNG", String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, NUCLEI_MASK));
+                if (!findCells(binaryNuclei.duplicate())) {
+                    IJ.log(String.format("No cells found in image %d.", i));
+                } else {
+                    ImageProcessor cellMap = buildTerritories(binaryNuclei.duplicate(), thisDir.getAbsolutePath()).getProcessor();
+                    Arrays.sort(cells);
+                    if (useThresh) {
+                        filterCells(stacks[CYTO].getProcessor(i), new Cytoplasm(), threshLevel, Measurements.MEAN);
+                    }
+                    if (isolateFoci) {
+                        ParticleArray pa = findParticles();
+                        assignParticlesToCells(pa, cellMap, thisDir.getAbsolutePath());
+                        drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight(), thisDir.getAbsolutePath());
+                        double[][] distances = calcDistances(buildDistanceMap(binaryNuclei, thisDir.getAbsolutePath()));
+                        buildHistograms(distances, histNBins, histMax, histMin, thisDir.getAbsoluteFile());
+                        outputFociDistanceData(distances, thisDir.getAbsolutePath(), resultsHeadings);
+                    }
+                    if (analyseFluorescence) {
+                        saveValues(analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(1),
+                                Measurements.MEAN + Measurements.STD_DEV),
+                                new File(String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, FLUO_DIST)),
+                                new String[]{"Cell ID", "Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
+                                    "Cytosolic Std Dev", "Nuclear Mean / Cytosolic Mean",
+                                    "Nuclear Std Dev / Cytosolic Std Dev"});
+                    }
+                }
             }
             cleanUp();
         } catch (Exception e) {
@@ -201,7 +218,7 @@ public class Particle_Mapper extends Particle_Tracker {
      * unique label
      * @return
      */
-    public ImagePlus buildTerritories(ImageProcessor image) {
+    public ImagePlus buildTerritories(ImageProcessor image, String resultsDir) {
         ImagePlus imp = new ImagePlus("", image);
         ResultsTable rt = Analyzer.getResultsTable();
         EDM edm = new EDM();
@@ -242,7 +259,7 @@ public class Particle_Mapper extends Particle_Tracker {
             }
             image.drawString(String.valueOf(id), xc, yc);
         }
-        IJ.saveAs(new ImagePlus("", image), "PNG", outputDirName + "/Cell Boundaries");
+        IJ.saveAs(new ImagePlus("", image), "PNG", String.format("%s%s%s", resultsDir, File.separator,CELL_BOUNDS));
         return pa.getOutputImage();
     }
 
@@ -260,7 +277,7 @@ public class Particle_Mapper extends Particle_Tracker {
      * @param cellCentroids
      * @return
      */
-    void assignParticlesToCells(ParticleArray pa, ImageProcessor cellMap) {
+    void assignParticlesToCells(ParticleArray pa, ImageProcessor cellMap, String resultsDir) {
         ByteProcessor map = new ByteProcessor(cellMap.getWidth(), cellMap.getHeight());
         map.setValue(0);
         map.fill();
@@ -284,7 +301,7 @@ public class Particle_Mapper extends Particle_Tracker {
                 c.addParticle(p);
             }
         }
-        IJ.saveAs(new ImagePlus("", map), "PNG", outputDirName + "/Foci-Nuclei Associations");
+        IJ.saveAs(new ImagePlus("", map), "PNG", String.format("%s%s%s", resultsDir, File.separator, FOCI_NUC_ASS));
     }
 
     /**
@@ -319,7 +336,7 @@ public class Particle_Mapper extends Particle_Tracker {
      * @param max
      * @param min
      */
-    void buildHistograms(double[][] distances, int nBins, double max, double min) {
+    void buildHistograms(double[][] distances, int nBins, double max, double min, File resultsDir) {
         int N = distances.length;
         int[][] histograms = new int[N][nBins];
         float[] meanHistogram = new float[nBins];
@@ -348,7 +365,7 @@ public class Particle_Mapper extends Particle_Tracker {
         histPlot.draw();
         histPlot.show();
         ResultsTable rt = histPlot.getResultsTable();
-        rt.save(outputDirName + "/foci_distance_histogram.csv");
+        rt.save(String.format("%s%s%s", resultsDir, File.separator, FOCI_DIST_HIST));
     }
 
     /**
@@ -356,7 +373,7 @@ public class Particle_Mapper extends Particle_Tracker {
      * @param image
      * @return
      */
-    ImageProcessor buildDistanceMap(ImageProcessor image) {
+    ImageProcessor buildDistanceMap(ImageProcessor image, String resultsDir) {
         image.invert();
         ImageProcessor invertedImage = image.duplicate();
         invertedImage.invert();
@@ -364,7 +381,7 @@ public class Particle_Mapper extends Particle_Tracker {
         FloatProcessor fgDistanceMap = edm.makeFloatEDM(image, 0, false);
         FloatProcessor distanceMap = edm.makeFloatEDM(invertedImage, 0, false);
         (new FloatBlitter(distanceMap)).copyBits(fgDistanceMap, 0, 0, Blitter.SUBTRACT);
-        IJ.saveAs(new ImagePlus("", distanceMap), "TIF", outputDirName + "/Distance Map");
+        IJ.saveAs(new ImagePlus("", distanceMap), "TIF", String.format("%s%s%s", resultsDir, File.separator, DIST_MAP));
         return distanceMap;
     }
 
@@ -449,7 +466,7 @@ public class Particle_Mapper extends Particle_Tracker {
      * @param width width of output image
      * @param height height of output image
      */
-    public void drawDetections(ParticleArray pa, int width, int height) {
+    public void drawDetections(ParticleArray pa, int width, int height, String resultsDir) {
         int depth = pa.getDepth();
         for (int d = 0; d < depth; d++) {
             ArrayList<Particle> level = pa.getLevel(d);
@@ -460,7 +477,7 @@ public class Particle_Mapper extends Particle_Tracker {
                 }
             }
             output.multiply(1.0 / normFactor);
-            IJ.saveAs(new ImagePlus("", output), "TIF", outputDirName + "/Foci Detections " + d);
+            IJ.saveAs(new ImagePlus("", output), "TIF", String.format("%s%s%s", resultsDir, File.separator, FOCI_DETECTIONS));
         }
     }
 
@@ -484,7 +501,7 @@ public class Particle_Mapper extends Particle_Tracker {
      * @param assignments
      * @throws IOException
      */
-    void outputFociDistanceData(double[][] distances) throws IOException {
+    void outputFociDistanceData(double[][] distances, String resultsDir, String resultsHeadings) throws IOException {
         int N = distances.length;
         TextWindow tw = new TextWindow(title + " Results", resultsHeadings, new String(), 640, 480);
         DecimalFormat df1 = new DecimalFormat("00");
@@ -509,7 +526,7 @@ public class Particle_Mapper extends Particle_Tracker {
             }
             tw.append(result);
         }
-        saveTextWindow(tw, new File(outputDirName + "/foci_distance_data.csv"), resultsHeadings);
+        saveTextWindow(tw, new File(String.format("%s%s%s", resultsDir, File.separator, FOCI_DIST)), resultsHeadings);
     }
 
     /**
