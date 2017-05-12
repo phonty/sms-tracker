@@ -23,6 +23,8 @@ import Cell.Nucleus;
 import IAClasses.Utils;
 import static IJUtilities.IJUtils.hideAllImages;
 import static IJUtilities.IJUtils.resetRoiManager;
+import static IO.DataWriter.getAverageValues;
+import static IO.DataWriter.convertArrayToString;
 import static IO.DataWriter.saveTextWindow;
 import static IO.DataWriter.saveValues;
 import Math.Histogram;
@@ -72,7 +74,8 @@ import ui.DetectionGUI;
 public class Particle_Mapper extends Particle_Tracker {
 
     private static double histMin = -5.0, histMax = 20.0, threshLevel = 50.0;
-    private static boolean useThresh = true, isolateFoci = true, analyseFluorescence = true;
+    private static boolean useThresh = true, isolateFoci = true, analyseFluorescence = true,
+            averageImage = false;
     private static int histNBins = 40;
     String resultsDir;
     private Cell[] cells;
@@ -80,7 +83,11 @@ public class Particle_Mapper extends Particle_Tracker {
     private final String NUCLEI_MASK = "Nuclei Mask", FLUO_DIST = "fluorescence_distribution_data.csv",
             FOCI_DIST = "foci_distance_data.csv", FOCI_DETECTIONS = "Foci Detections", DIST_MAP = "Distance Map",
             FOCI_DIST_HIST = "foci_distance_histogram.csv", FOCI_NUC_ASS = "Foci-Nuclei Associations",
-            CELL_BOUNDS = "Cell Boundaries";
+            CELL_BOUNDS = "Cell Boundaries", FOCI_DIST_DATA = "Mean Foci Data";
+    private final String FLUO_HEADINGS[] = new String[]{"Cell ID", "Cell Mean", "Cell Std Dev",
+        "Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
+        "Cytosolic Std Dev", "Nuclear Mean / Cytosolic Mean",
+        "Nuclear Std Dev / Cytosolic Std Dev"};
     /**
      * Title of the application
      */
@@ -131,6 +138,11 @@ public class Particle_Mapper extends Particle_Tracker {
         if (isolateFoci && !showDetectionGui()) {
             return;
         }
+        TextWindow tw = null;
+        boolean hideOutputs = stacks[0].size()>1;
+        if (analyseFluorescence && averageImage) {
+            tw = new TextWindow("Average Fluorescence Distributions", convertArrayToString("N\t", FLUO_HEADINGS, "\t"), new String(), 640, 480);
+        }
         try {
             resultsDir = GenUtils.openResultsDirectory(Utilities.getFolder(inputDir,
                     "Specify directory for output files...", true) + delimiter + title);
@@ -153,20 +165,24 @@ public class Particle_Mapper extends Particle_Tracker {
                     if (isolateFoci) {
                         ParticleArray pa = findParticles();
                         assignParticlesToCells(pa, cellMap, thisDir.getAbsolutePath());
-                        drawDetections(pa, stacks[0].getWidth(), stacks[0].getHeight(), thisDir.getAbsolutePath());
+                        drawDetections(pa, stacks[FOCI].getWidth(), stacks[FOCI].getHeight(), thisDir.getAbsolutePath());
                         double[][] distances = calcDistances(buildDistanceMap(binaryNuclei, thisDir.getAbsolutePath()));
-                        buildHistograms(distances, histNBins, histMax, histMin, thisDir.getAbsoluteFile());
-                        outputFociDistanceData(distances, thisDir.getAbsolutePath(), resultsHeadings);
+                        buildHistograms(distances, histNBins, histMax, histMin, thisDir.getAbsoluteFile(), hideOutputs);
+                        outputFociDistanceData(distances, thisDir.getAbsolutePath(), resultsHeadings, hideOutputs);
                     }
                     if (analyseFluorescence) {
-                        saveValues(analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(1),
-                                Measurements.MEAN + Measurements.STD_DEV),
-                                new File(String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, FLUO_DIST)),
-                                new String[]{"Cell ID", "Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
-                                    "Cytosolic Std Dev", "Nuclear Mean / Cytosolic Mean",
-                                    "Nuclear Std Dev / Cytosolic Std Dev"});
+                        double[][] vals = analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(i),
+                                Measurements.MEAN + Measurements.STD_DEV);
+                        String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, FLUO_DIST);
+                        saveValues(vals, new File(outputFileName), FLUO_HEADINGS);
+                        if (averageImage) {
+                            tw.append(convertArrayToString(null, getAverageValues(vals, FLUO_HEADINGS.length), "\t"));
+                        }
                     }
                 }
+            }
+            if (tw != null) {
+                saveTextWindow(tw, new File(String.format("%s%s%s", resultsDir, File.separator, "Mean Image Data.csv")), convertArrayToString("N\t", FLUO_HEADINGS, "\t"));
             }
             cleanUp();
         } catch (Exception e) {
@@ -259,7 +275,7 @@ public class Particle_Mapper extends Particle_Tracker {
             }
             image.drawString(String.valueOf(id), xc, yc);
         }
-        IJ.saveAs(new ImagePlus("", image), "PNG", String.format("%s%s%s", resultsDir, File.separator,CELL_BOUNDS));
+        IJ.saveAs(new ImagePlus("", image), "PNG", String.format("%s%s%s", resultsDir, File.separator, CELL_BOUNDS));
         return pa.getOutputImage();
     }
 
@@ -336,7 +352,7 @@ public class Particle_Mapper extends Particle_Tracker {
      * @param max
      * @param min
      */
-    void buildHistograms(double[][] distances, int nBins, double max, double min, File resultsDir) {
+    void buildHistograms(double[][] distances, int nBins, double max, double min, File resultsDir, boolean hidePlot) {
         int N = distances.length;
         int[][] histograms = new int[N][nBins];
         float[] meanHistogram = new float[nBins];
@@ -363,7 +379,9 @@ public class Particle_Mapper extends Particle_Tracker {
         histPlot.setColor(Color.blue);
         histPlot.addPoints(bins, meanHistogram, Plot.CONNECTED_CIRCLES);
         histPlot.draw();
-        histPlot.show();
+        if (!hidePlot) {
+            histPlot.show();
+        }
         ResultsTable rt = histPlot.getResultsTable();
         rt.save(String.format("%s%s%s", resultsDir, File.separator, FOCI_DIST_HIST));
     }
@@ -420,12 +438,15 @@ public class Particle_Mapper extends Particle_Tracker {
         gd.addChoice("Select threshold image: ", imageTitles, imageTitles[CYTO < N ? CYTO : 0]);
         gd.addSlider("Specify threshold level %", 0.0, 100.0, threshLevel);
         gd.addMessage("How do you want to analyse the protein distribution?", bFont);
-        String[] checkBoxLabels = new String[]{"Attempt to isolate foci", "Just quantify the distribution"};
+        String[] checkBoxLabels = new String[]{"Attempt to isolate foci", "Quantify entire distribution"};
         gd.addCheckboxGroup(1, 2, checkBoxLabels, new boolean[]{isolateFoci, analyseFluorescence});
         gd.addMessage("Specify ranges and bin size for distance histogram", bFont);
         gd.addNumericField("Minimum Value:", histMin, 1);
         gd.addNumericField("Maximum Value:", histMax, 1);
         gd.addNumericField("Number of Bins:", histNBins, 0);
+        gd.addMessage("How do you want results to be output?", bFont);
+        String[] radioButtonLabels = new String[]{"Show me data for each cell", "Summarise data for each image"};
+        gd.addRadioButtonGroup(null, radioButtonLabels, 1, 2, radioButtonLabels[averageImage ? 1 : 0]);
         gd.showDialog();
         if (gd.wasCanceled()) {
             return false;
@@ -450,6 +471,7 @@ public class Particle_Mapper extends Particle_Tracker {
         histMin = gd.getNextNumber();
         histMax = gd.getNextNumber();
         histNBins = (int) Math.round(gd.getNextNumber());
+        averageImage = gd.getNextRadioButton().equals(radioButtonLabels[1]);
         return true;
     }
 
@@ -501,9 +523,9 @@ public class Particle_Mapper extends Particle_Tracker {
      * @param assignments
      * @throws IOException
      */
-    void outputFociDistanceData(double[][] distances, String resultsDir, String resultsHeadings) throws IOException {
+    void outputFociDistanceData(double[][] distances, String resultsDir, String resultsHeadings, boolean hideTextWindow) throws IOException {
         int N = distances.length;
-        TextWindow tw = new TextWindow(title + " Results", resultsHeadings, new String(), 640, 480);
+        TextWindow tw = new TextWindow("Mean Foci Data", resultsHeadings, new String(), 640, 480);
         DecimalFormat df1 = new DecimalFormat("00");
         DecimalFormat df2 = new DecimalFormat("0.000");
         for (int i = 0; i < N; i++) {
@@ -526,6 +548,7 @@ public class Particle_Mapper extends Particle_Tracker {
             }
             tw.append(result);
         }
+        tw.setVisible(!hideTextWindow);
         saveTextWindow(tw, new File(String.format("%s%s%s", resultsDir, File.separator, FOCI_DIST)), resultsHeadings);
     }
 
@@ -595,15 +618,22 @@ public class Particle_Mapper extends Particle_Tracker {
                 image.setRoi(nucRoi);
                 image.setMask(nucMask);
                 ImageStatistics nucstats = ImageStatistics.getStatistics(image, measurements, null);
+
                 Roi cytoRoi = cyto.getRoi();
                 ByteProcessor cytoMask = (ByteProcessor) cytoRoi.getMask();
+                image.setRoi(cytoRoi);
+                image.setMask(cytoMask);
+                ImageStatistics cellstats = ImageStatistics.getStatistics(image, measurements, null);
+
                 int xc = nucRoi.getBounds().x - cytoRoi.getBounds().x;
                 int yc = nucRoi.getBounds().y - cytoRoi.getBounds().y;
                 (new ByteBlitter(cytoMask)).copyBits(nucMask, xc, yc, Blitter.SUBTRACT);
                 image.setRoi(cytoRoi);
                 image.setMask(cytoMask);
                 ImageStatistics cytostats = ImageStatistics.getStatistics(image, measurements, null);
-                vals[i] = new double[]{cell.getID(), nucstats.mean, nucstats.stdDev,
+
+                vals[i] = new double[]{cell.getID(), cellstats.mean, cellstats.stdDev,
+                    nucstats.mean, nucstats.stdDev,
                     cytostats.mean, cytostats.stdDev,
                     nucstats.mean / cytostats.mean,
                     nucstats.stdDev / cytostats.stdDev};
