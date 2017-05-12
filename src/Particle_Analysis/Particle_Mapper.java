@@ -396,11 +396,11 @@ public class Particle_Mapper extends Particle_Tracker {
             bFont = bFont.deriveFont(Font.BOLD);
         }
         gd.centerDialog(true);
-        gd.addChoice("Nuclei: ", imageTitles, imageTitles[NUCLEI]);
-        gd.addChoice("Protein distribution to be quantified: ", imageTitles, imageTitles[FOCI]);
+        gd.addChoice("Nuclei: ", imageTitles, imageTitles[NUCLEI < N ? NUCLEI : 0]);
+        gd.addChoice("Protein distribution to be quantified: ", imageTitles, imageTitles[FOCI < N ? FOCI : 0]);
         gd.addMessage("Do you want to use a third image to select cells based on intensity threshold?", bFont);
         gd.addCheckbox("Use threshold image", useThresh);
-        gd.addChoice("Select threshold image: ", imageTitles, imageTitles[N >= CYTO ? CYTO : 0]);
+        gd.addChoice("Select threshold image: ", imageTitles, imageTitles[CYTO < N ? CYTO : 0]);
         gd.addSlider("Specify threshold level %", 0.0, 100.0, threshLevel);
         gd.addMessage("How do you want to analyse the protein distribution?", bFont);
         String[] checkBoxLabels = new String[]{"Attempt to isolate foci", "Just quantify the distribution"};
