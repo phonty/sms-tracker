@@ -104,8 +104,8 @@ public class Particle_Mapper extends Particle_Tracker {
     public void run(String arg) {
         Prefs.blackBackground = false;
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
+        inputs = new ImagePlus[3];
         if (IJ.getInstance() == null) {
-            inputs = new ImagePlus[3];
             inputs[NUCLEI] = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath());
             inputs[FOCI] = IJ.openImage((new OpenDialog("Specify Foci Image", null)).getPath());
             inputs[CYTO] = IJ.openImage((new OpenDialog("Specify Image For Thresholding", null)).getPath());
@@ -115,7 +115,6 @@ public class Particle_Mapper extends Particle_Tracker {
                 GenUtils.error("No Images Open.");
                 return;
             }
-            inputs = new ImagePlus[idList.length];
             for (int i = 0; i < idList.length; i++) {
                 inputs[i] = WindowManager.getImage(idList[i]);
             }
@@ -126,10 +125,14 @@ public class Particle_Mapper extends Particle_Tracker {
         }
         ImageStack[] stacks = getStacks();
         for (ImageStack a : stacks) {
-            for (ImageStack b : stacks) {
-                if (a.size() != b.size()) {
-                    GenUtils.error("All stacks must have same number of slices.");
-                    return;
+            if (a != null) {
+                for (ImageStack b : stacks) {
+                    if (b != null) {
+                        if (a.size() != b.size()) {
+                            GenUtils.error("All stacks must have same number of slices.");
+                            return;
+                        }
+                    }
                 }
             }
         }
@@ -192,7 +195,9 @@ public class Particle_Mapper extends Particle_Tracker {
             GenUtils.error(e.getMessage());
         }
         for (ImagePlus imp : inputs) {
-            imp.close();
+            if (imp != null) {
+                imp.close();
+            }
         }
         IJ.showStatus(String.format("%s done.", title));
     }
@@ -418,9 +423,9 @@ public class Particle_Mapper extends Particle_Tracker {
             imageTitles = WindowManager.getImageTitles();
         } else {
             imageTitles = new String[3];
-            imageTitles[NUCLEI] = inputs[NUCLEI].getTitle();
-            imageTitles[FOCI] = inputs[FOCI].getTitle();
-            imageTitles[CYTO] = inputs[CYTO].getTitle();
+            imageTitles[NUCLEI] = inputs[NUCLEI] != null ? inputs[NUCLEI].getTitle() : " ";
+            imageTitles[FOCI] = inputs[FOCI] != null ? inputs[FOCI].getTitle() : " ";
+            imageTitles[CYTO] = inputs[CYTO] != null ? inputs[CYTO].getTitle() : " ";
         }
         int N = imageTitles.length;
         if (N < 2) {
@@ -455,18 +460,16 @@ public class Particle_Mapper extends Particle_Tracker {
         if (gd.wasCanceled()) {
             return false;
         }
+        boolean c1, c2, c3;
+        int choice1 = gd.getNextChoiceIndex(), choice2 = gd.getNextChoiceIndex(), choice3 = gd.getNextChoiceIndex();
         if (IJ.getInstance() == null) {
-        ImagePlus[] inputsCopy = new ImagePlus[3];
-        inputsCopy[NUCLEI] = inputs[NUCLEI].duplicate();
-        inputsCopy[FOCI] = inputs[FOCI].duplicate();
-        inputsCopy[CYTO] = inputs[CYTO].duplicate();
-        inputs[NUCLEI] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
-        inputs[FOCI] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
-        inputs[CYTO] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
+            c1 = inputs[choice1] != null;
+            c2 = inputs[choice2] != null;
+            c3 = inputs[choice3] != null;
         } else {
-            inputs[NUCLEI] = WindowManager.getImage(gd.getNextChoice());
-            inputs[FOCI] = WindowManager.getImage(gd.getNextChoice());
-            inputs[CYTO] = WindowManager.getImage(gd.getNextChoice());
+            c1 = WindowManager.getImage(imageTitles[choice1]) != null;
+            c2 = WindowManager.getImage(imageTitles[choice2]) != null;
+            c3 = WindowManager.getImage(imageTitles[choice3]) != null;
         }
         useThresh = gd.getNextBoolean();
         threshLevel = gd.getNextNumber();
@@ -476,7 +479,31 @@ public class Particle_Mapper extends Particle_Tracker {
         histMax = gd.getNextNumber();
         histNBins = (int) Math.round(gd.getNextNumber());
         averageImage = gd.getNextRadioButton().equals(radioButtonLabels[1]);
-        return true;
+        if (!c1) {
+            GenUtils.error("You have not specified a nuclei image.");
+            return showDialog();
+        } else if (!c2) {
+            GenUtils.error("You have not specified a protein distribution image.");
+            return showDialog();
+        } else if (!c3 && useThresh) {
+            GenUtils.error("You have not specified an image for thresholding.");
+            return showDialog();
+        } else {
+            if (IJ.getInstance() == null) {
+                ImagePlus[] inputsCopy = new ImagePlus[3];
+                inputsCopy[NUCLEI] = inputs[NUCLEI] != null ? inputs[NUCLEI].duplicate() : null;
+                inputsCopy[FOCI] = inputs[FOCI] != null ? inputs[FOCI].duplicate() : null;
+                inputsCopy[CYTO] = inputs[CYTO] != null ? inputs[CYTO].duplicate() : null;
+                inputs[NUCLEI] = inputs[choice1] != null ? inputsCopy[choice1].duplicate() : null;
+                inputs[FOCI] = inputs[choice2] != null ? inputsCopy[choice2].duplicate() : null;
+                inputs[CYTO] = inputs[choice3] != null ? inputsCopy[choice3].duplicate() : null;
+            } else {
+                inputs[NUCLEI] = WindowManager.getImage(imageTitles[choice1]);
+                inputs[FOCI] = WindowManager.getImage(imageTitles[choice2]);
+                inputs[CYTO] = WindowManager.getImage(imageTitles[choice3]);
+            }
+            return true;
+        }
     }
 
     boolean showDetectionGui() {
