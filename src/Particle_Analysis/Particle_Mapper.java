@@ -120,6 +120,10 @@ public class Particle_Mapper extends Particle_Tracker {
                 inputs[i] = WindowManager.getImage(idList[i]);
             }
         }
+        readParamsFromImage();
+        if (!showDialog()) {
+            return;
+        }
         ImageStack[] stacks = getStacks();
         for (ImageStack a : stacks) {
             for (ImageStack b : stacks) {
@@ -129,11 +133,6 @@ public class Particle_Mapper extends Particle_Tracker {
                 }
             }
         }
-        readParamsFromImage();
-        if (!showDialog()) {
-            return;
-        }
-//        ImageStack[] stacks = getStacks();
         hideAllImages();
         File inputDir = buildStacks();
         if (inputDir == null) {
@@ -195,6 +194,7 @@ public class Particle_Mapper extends Particle_Tracker {
         for (ImagePlus imp : inputs) {
             imp.close();
         }
+        IJ.showStatus(String.format("%s done.", title));
     }
 
     /**
@@ -456,13 +456,13 @@ public class Particle_Mapper extends Particle_Tracker {
             return false;
         }
         if (IJ.getInstance() == null) {
-            ImagePlus[] inputsCopy = new ImagePlus[3];
-            inputsCopy[NUCLEI] = inputs[NUCLEI].duplicate();
-            inputsCopy[FOCI] = inputs[FOCI].duplicate();
-            inputsCopy[CYTO] = inputs[CYTO].duplicate();
-            inputs[NUCLEI] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
-            inputs[FOCI] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
-            inputs[CYTO] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
+        ImagePlus[] inputsCopy = new ImagePlus[3];
+        inputsCopy[NUCLEI] = inputs[NUCLEI].duplicate();
+        inputsCopy[FOCI] = inputs[FOCI].duplicate();
+        inputsCopy[CYTO] = inputs[CYTO].duplicate();
+        inputs[NUCLEI] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
+        inputs[FOCI] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
+        inputs[CYTO] = inputsCopy[gd.getNextChoiceIndex()].duplicate();
         } else {
             inputs[NUCLEI] = WindowManager.getImage(gd.getNextChoice());
             inputs[FOCI] = WindowManager.getImage(gd.getNextChoice());
