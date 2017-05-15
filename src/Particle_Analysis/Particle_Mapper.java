@@ -104,17 +104,21 @@ public class Particle_Mapper extends Particle_Tracker {
     public void run(String arg) {
         Prefs.blackBackground = false;
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
-        inputs = new ImagePlus[3];
         if (IJ.getInstance() == null) {
+            inputs = new ImagePlus[3];
             inputs[NUCLEI] = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath());
             inputs[FOCI] = IJ.openImage((new OpenDialog("Specify Foci Image", null)).getPath());
             inputs[CYTO] = IJ.openImage((new OpenDialog("Specify Image For Thresholding", null)).getPath());
         } else {
-            inputs[FOCI] = WindowManager.getCurrentImage();
-        }
-        if (inputs[FOCI] == null) {
-            GenUtils.error("No Images Open.");
-            return;
+            int[] idList = WindowManager.getIDList();
+            if (idList == null) {
+                GenUtils.error("No Images Open.");
+                return;
+            }
+            inputs = new ImagePlus[idList.length];
+            for (int i = 0; i < idList.length; i++) {
+                inputs[i] = WindowManager.getImage(idList[i]);
+            }
         }
         ImageStack[] stacks = getStacks();
         for (ImageStack a : stacks) {
@@ -139,7 +143,7 @@ public class Particle_Mapper extends Particle_Tracker {
             return;
         }
         TextWindow tw = null;
-        boolean hideOutputs = stacks[0].size()>1;
+        boolean hideOutputs = stacks[0].size() > 1;
         if (analyseFluorescence && averageImage) {
             tw = new TextWindow("Average Fluorescence Distributions", convertArrayToString("N\t", FLUO_HEADINGS, "\t"), new String(), 640, 480);
         }
