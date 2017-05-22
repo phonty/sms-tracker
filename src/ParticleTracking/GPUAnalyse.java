@@ -17,7 +17,6 @@
  */
 package ParticleTracking;
 
-import Particle.Particle;
 import Particle.ParticleArray;
 import Particle_Analysis.Particle_Tracker;
 import Particle.IsoGaussian;
@@ -51,7 +50,7 @@ public class GPUAnalyse extends Particle_Tracker {
     protected ParticleArray findParticles() {
         ImageStack[] stacks = getStacks();
         if (UserVariables.isGpu()) {
-            return GPUAnalyse.this.cudaFindParticles(true, 0, stacks[0].getSize() - 1, stacks[1]);
+            return cudaFindParticles(true, 0, stacks[0].getSize() - 1, stacks[1]);
         } else {
             return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, false, false);
         }

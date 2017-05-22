@@ -16,18 +16,19 @@
  */
 package ParticleTracking;
 
-import Particle_Analysis.Particle_Mapper;
+import Particle_Analysis.Particle_Colocaliser;
 
 public class Main {
 
-    public static void main(String args[]) {
-        Particle_Mapper instance = new Particle_Mapper();
-        instance.run(null);
-        System.exit(0);
-    }
+//    public static void main(String args[]) {
+//        Particle_Mapper instance = new Particle_Mapper();
+//        instance.run(null);
+//        System.exit(0);
+//    }
 //    public static void main(String args[]) {
 //        TestGenerator tg = new TestGenerator();
-//        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
+//        tg.generateMulti(10, 512, 512, 100);
+////        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
 //        System.exit(0);
 //    }
 //    public static void main(String args[]) {
@@ -36,9 +37,15 @@ public class Main {
 //        System.exit(0);
 //    }
 //    public static void main(String args[]) {
-//        Blob_Detector instance = new Blob_Detector(1.4, 4);
+//        Blob_Detector instance = new Blob_Detector(5, 20);
 //        instance.outputKernel();
 //        IJ.saveAs(new ImagePlus("", instance.laplacianOfGaussian(IJ.openImage().getProcessor())), "TIFF", "C:/users/barryd/desktop/log");
 //        System.exit(0);
 //    }
+    
+        public static void main(String args[]) {
+        Particle_Colocaliser instance = new Particle_Colocaliser();
+        instance.run(null);
+        System.exit(0);
+    }
 }

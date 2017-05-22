@@ -551,7 +551,6 @@ public class UserInterface extends javax.swing.JDialog {
 
         previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
         previewTextField.setEditable(false);
-        previewTextField.setEnabled(previewToggleButton.isSelected());
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 2;
         gridBagConstraints.gridy = 2;
@@ -577,9 +576,7 @@ public class UserInterface extends javax.swing.JDialog {
         jPanel2.add(previewToggleButton, gridBagConstraints);
 
         previewScrollBar.setOrientation(java.awt.Scrollbar.HORIZONTAL);
-        previewScrollBar.setMinimum(1);
-        previewScrollBar.setMaximum(analyser.getStacks()[0].getSize());
-        previewScrollBar.setEnabled(previewToggleButton.isSelected());
+        previewScrollBar.setValues(1, 1, 1, analyser.getStacks()[0].getSize());
         previewScrollBar.addAdjustmentListener(new java.awt.event.AdjustmentListener() {
             public void adjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {
                 previewScrollBarAdjustmentValueChanged(evt);
@@ -607,8 +604,6 @@ public class UserInterface extends javax.swing.JDialog {
     }// </editor-fold>//GEN-END:initComponents
 
     private void previewToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_previewToggleButtonActionPerformed
-        previewScrollBar.setEnabled(previewToggleButton.isSelected());
-        previewTextField.setEnabled(previewToggleButton.isSelected());
         previewScrollBarAdjustmentValueChanged(null);
     }//GEN-LAST:event_previewToggleButtonActionPerformed
 
@@ -627,10 +622,9 @@ public class UserInterface extends javax.swing.JDialog {
 
     private void previewScrollBarAdjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {//GEN-FIRST:event_previewScrollBarAdjustmentValueChanged
         previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
-        if (previewScrollBar.getValueIsAdjusting() || !setVariables()) {
-            return;
+        if (previewToggleButton.isSelected() && !previewScrollBar.getValueIsAdjusting() && setVariables()) {
+            viewDetections();
         }
-        viewDetections();
     }//GEN-LAST:event_previewScrollBarAdjustmentValueChanged
 
     boolean setVariables() {

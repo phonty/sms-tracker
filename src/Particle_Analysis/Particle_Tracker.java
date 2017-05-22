@@ -69,7 +69,7 @@ public class Particle_Tracker implements PlugIn {
 //    public static final int VERSION = 5;
     private final double NORM_VAL = 0.99999;
     protected ArrayList<ParticleTrajectory> trajectories = new ArrayList(); //Trajectories of the detected particles
-    private long startTime;
+    protected long startTime;
     protected DecimalFormat numFormat = new DecimalFormat("0.000");
     protected DecimalFormat intFormat = new DecimalFormat("000");
     protected String title = "Particle Tracker", ext;
@@ -400,16 +400,19 @@ public class Particle_Tracker implements PlugIn {
                          * <code>xyPartRad</code> pixels of maxima in red image:
                          */
                         Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan1Proc);
-                        ArrayList<IsoGaussian> c1Fits = doFitting(xCoords, yCoords, pixValues, floatingSigma, c1X, c1Y, fitRad, spatialRes, c1Threshold, i - startSlice);
+                        ArrayList<IsoGaussian> c1Fits = doFitting(xCoords, yCoords, pixValues,
+                                floatingSigma, c1X, c1Y, fitRad, spatialRes, c1Threshold, i - startSlice,
+                                UserVariables.getSigEstRed() / UserVariables.getSpatialRes());
                         Particle p2 = chan2Proc != null ? new Particle(i - startSlice, c1X, c1Y, chan2Proc.getPixelValue(c1X, c1Y)) : null;
                         if (fitC2Gaussian) {
                             Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan2Proc);
-                            IsoGaussianFitter c2Fitter = new IsoGaussianFitter(xCoords, yCoords, pixValues, floatingSigma);
-                            c2Fitter.doFit(UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
-                            double x1 = (c1X - fitRad + c2Fitter.getX0()) * spatialRes;
-                            double y1 = (c1Y - fitRad + c2Fitter.getY0()) * spatialRes;
-                            p2 = new IsoGaussian(x1, y1, c2Fitter.getMag(), c2Fitter.getXsig(),
-                                    c2Fitter.getYsig(), c2Fitter.getRSquared());
+                            ArrayList<IsoGaussian> c2Fits = doFitting(xCoords, yCoords, pixValues,
+                                    floatingSigma, c1X, c1Y, fitRad, spatialRes, c1Threshold, i - startSlice,
+                                    UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
+                            p2 = c2Fits.get(0);
+                            if (((IsoGaussian) p2).getFit() < c1FitTol) {
+                                p2 = null;
+                            }
                         }
 
                         /*
@@ -433,15 +436,17 @@ public class Particle_Tracker implements PlugIn {
         return particles;
     }
 
-    protected ArrayList<IsoGaussian> doFitting(double[] xCoords, double[] yCoords, double[][] pixValues, boolean floatingSigma, int c1X, int c1Y, int fitRad, double spatialRes, double c1Threshold, int t) {
-        IsoGaussianFitter c1Fitter = new IsoGaussianFitter(xCoords, yCoords, pixValues, floatingSigma);
-        c1Fitter.doFit(UserVariables.getSigEstRed() / UserVariables.getSpatialRes());
-        ArrayList<IsoGaussian> c1Fits = new ArrayList();
-        double x0 = (c1X - fitRad + c1Fitter.getX0()) * spatialRes;
-        double y0 = (c1Y - fitRad + c1Fitter.getY0()) * spatialRes;
-        c1Fits.add(new IsoGaussian(t, x0, y0, c1Fitter.getMag(), c1Fitter.getXsig(),
-                c1Fitter.getYsig(), c1Fitter.getRSquared(), null, -1, null));
-        return c1Fits;
+    protected ArrayList<IsoGaussian> doFitting(double[] xCoords, double[] yCoords,
+            double[][] pixValues, boolean floatingSigma, int x0, int y0, int fitRad,
+            double spatialRes, double c1Threshold, int t, double sigma) {
+        IsoGaussianFitter fitter = new IsoGaussianFitter(xCoords, yCoords, pixValues, floatingSigma);
+        fitter.doFit(sigma);
+        ArrayList<IsoGaussian> fits = new ArrayList();
+        double x = (x0 - fitRad + fitter.getX0()) * spatialRes;
+        double y = (y0 - fitRad + fitter.getY0()) * spatialRes;
+        fits.add(new IsoGaussian(t, x, y, fitter.getMag(), fitter.getXsig(),
+                fitter.getYsig(), fitter.getRSquared(), null, -1, null));
+        return fits;
     }
 
     protected void updateTrajs(ParticleArray particles, double spatialRes, boolean update) {
@@ -969,7 +974,7 @@ public class Particle_Tracker implements PlugIn {
         return coeffs.getPixelValue(0, 0) + coeffs.getPixelValue(0, 1) * x + coeffs.getPixelValue(0, 2) * y + sum;
     }
 
-    void printParams(String dir) {
+    protected void printParams(String dir) {
         File paramFile;
         PrintWriter paramStream;
         try {
