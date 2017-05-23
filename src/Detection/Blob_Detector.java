@@ -14,12 +14,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package BlobDetection;
+package Detection;
 
 import ij.IJ;
 import ij.ImagePlus;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
+import java.io.File;
 
 public class Blob_Detector {
 
@@ -39,7 +40,7 @@ public class Blob_Detector {
         sig4 = Math.pow(this.sigma, 4.0);
     }
 
-    public ImageProcessor laplacianOfGaussian(ImageProcessor input) {
+    public ImageProcessor laplacianOfGaussian(ImageProcessor input, String directory) {
         ImageProcessor output = input.convertToFloat();
         int height = input.getHeight();
         int width = input.getWidth();
@@ -48,7 +49,7 @@ public class Blob_Detector {
                 output.putPixelValue(x, y, laplacianOfGaussianNeighbourhood(input, x, y));
             }
         }
-        IJ.saveAs(new ImagePlus("", output), "TIFF", String.format("C:/Users/barryd/particle_mapper_debug/log_%1.3f_%d", sigma, radius));
+        IJ.saveAs(new ImagePlus("", output), "TIFF", String.format("%s%slog_%1.3f_%d", directory, File.separator, sigma, radius));
         return output;
     }
 

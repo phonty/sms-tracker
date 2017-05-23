@@ -16,7 +16,9 @@
  */
 package ParticleTracking;
 
-import Particle_Analysis.Particle_Colocaliser;
+import Detection.Filament_Detector;
+import ij.IJ;
+import ij.process.ImageProcessor;
 
 public class Main {
 
@@ -36,16 +38,25 @@ public class Main {
 //        instance.run(null);
 //        System.exit(0);
 //    }
-//    public static void main(String args[]) {
-//        Blob_Detector instance = new Blob_Detector(5, 20);
-//        instance.outputKernel();
-//        IJ.saveAs(new ImagePlus("", instance.laplacianOfGaussian(IJ.openImage().getProcessor())), "TIFF", "C:/users/barryd/desktop/log");
-//        System.exit(0);
-//    }
-    
-        public static void main(String args[]) {
-        Particle_Colocaliser instance = new Particle_Colocaliser();
-        instance.run(null);
+    public static void main(String args[]) {
+        int radius = 5;
+        double[] sigmas = new double[10];
+        for (int i = 0; i < sigmas.length; i++) {
+            sigmas[i] = 5.0 / (i + 1);
+        }
+        ImageProcessor ip = IJ.openImage().getProcessor();
+        for (int sIndex = 0; sIndex < sigmas.length; sIndex++) {
+            Filament_Detector instance = new Filament_Detector(sigmas[sIndex], radius);
+            instance.convolve(ip.duplicate(), "C://Users/barryd/filament_detector_debug");
+//            instance.outputKernel();
+//            instance.laplacianOfGaussian(ip.duplicate(), "C://Users/barryd/blob_detector_debug");
+        }
         System.exit(0);
     }
+
+//        public static void main(String args[]) {
+//        Particle_Colocaliser instance = new Particle_Colocaliser();
+//        instance.run(null);
+//        System.exit(0);
+//    }
 }
