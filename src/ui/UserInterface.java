@@ -671,6 +671,8 @@ public class UserInterface extends javax.swing.JDialog {
         }
         if (analyser instanceof GPUAnalyse && UserVariables.isGpu()) {
             detections = ((GPUAnalyse) analyser).cudaFindParticles(true, psv - 1, psv - 1, stacks[1]);
+        } else if (UserVariables.isBlobs()) {
+            detections = analyser.findBlobs(true, psv - 1, psv - 1, stacks[0], stacks[1]);
         } else {
             detections = analyser.findParticles(true, psv - 1, psv - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1]);
         }

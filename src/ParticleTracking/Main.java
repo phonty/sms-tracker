@@ -33,26 +33,26 @@ public class Main {
 ////        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
 //        System.exit(0);
 //    }
-//    public static void main(String args[]) {
-//        GPUAnalyse instance = new GPUAnalyse();
-//        instance.run(null);
-//        System.exit(0);
-//    }
     public static void main(String args[]) {
-        int radius = 5;
-        double[] sigmas = new double[10];
-        for (int i = 0; i < sigmas.length; i++) {
-            sigmas[i] = 5.0 / (i + 1);
-        }
-        ImageProcessor ip = IJ.openImage().getProcessor();
-        for (int sIndex = 0; sIndex < sigmas.length; sIndex++) {
-            Filament_Detector instance = new Filament_Detector(sigmas[sIndex], radius);
-            instance.convolve(ip.duplicate(), "C://Users/barryd/filament_detector_debug");
-//            instance.outputKernel();
-//            instance.laplacianOfGaussian(ip.duplicate(), "C://Users/barryd/blob_detector_debug");
-        }
+        GPUAnalyse instance = new GPUAnalyse();
+        instance.run(null);
         System.exit(0);
     }
+//    public static void main(String args[]) {
+//        int radius = 5;
+//        double[] sigmas = new double[10];
+//        for (int i = 0; i < sigmas.length; i++) {
+//            sigmas[i] = 5.0 / (i + 1);
+//        }
+//        ImageProcessor ip = IJ.openImage().getProcessor();
+//        for (int sIndex = 0; sIndex < sigmas.length; sIndex++) {
+//            Filament_Detector instance = new Filament_Detector(sigmas[sIndex], radius);
+//            instance.convolve(ip.duplicate(), "C://Users/barryd/filament_detector_debug");
+////            instance.outputKernel();
+////            instance.laplacianOfGaussian(ip.duplicate(), "C://Users/barryd/blob_detector_debug");
+//        }
+//        System.exit(0);
+//    }
 
 //        public static void main(String args[]) {
 //        Particle_Colocaliser instance = new Particle_Colocaliser();

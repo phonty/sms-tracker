@@ -16,11 +16,7 @@
  */
 package Detection;
 
-import ij.IJ;
-import ij.ImagePlus;
-import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
-import java.io.File;
 
 public class Blob_Detector {
 
@@ -40,42 +36,54 @@ public class Blob_Detector {
         sig4 = Math.pow(this.sigma, 4.0);
     }
 
-    public ImageProcessor laplacianOfGaussian(ImageProcessor input, String directory) {
+    public ImageProcessor laplacianOfGaussian(ImageProcessor input) {
         ImageProcessor output = input.convertToFloat();
+        float[] inputPix = (float[]) output.getPixels();
         int height = input.getHeight();
         int width = input.getWidth();
+        double[] kernel = createKernel();
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                output.putPixelValue(x, y, laplacianOfGaussianNeighbourhood(input, x, y));
+                output.putPixelValue(x, y, laplacianOfGaussianNeighbourhood(inputPix, x, y, kernel, new int[]{width, height}));
             }
         }
-        IJ.saveAs(new ImagePlus("", output), "TIFF", String.format("%s%slog_%1.3f_%d", directory, File.separator, sigma, radius));
         return output;
     }
 
-    private double laplacianOfGaussianNeighbourhood(ImageProcessor input, int x0, int y0) {
+    private double laplacianOfGaussianNeighbourhood(float[] pixels, int x, int y, double[] kernel, int[] dims) {
         double output = 0.0;
-        for (int y = y0 - radius; y <= y0 + radius; y++) {
-            double y2 = Math.pow(y - y0, 2.0);
-            for (int x = x0 - radius; x <= x0 + radius; x++) {
-                double x2 = Math.pow(x - x0, 2.0);
-                output += input.getPixelValue(x, y) * lOGOperator(x2, y2);
+        int x0 = x - radius;
+        int y0 = y - radius;
+        int kernelSize = 2 * radius + 1;
+        for (int j = y0 < 0 ? 0 : y0; j <= y + radius && j < dims[1]; j++) {
+            int iOffset = j * dims[0];
+            int kOffset = (j - y0) * kernelSize - x0;
+            for (int i = x0 < 0 ? 0 : x0; i <= x + radius && i < dims[0]; i++) {
+                output += pixels[iOffset + i] * kernel[i + kOffset];
             }
         }
         return output;
     }
 
-    public void outputKernel() {
-        FloatProcessor output = new FloatProcessor(2 * radius + 1, 2 * radius + 1);
+    public double[] createKernel() {
+        int size = 2 * radius + 1;
+        int size2 = size * size;
+        double[] kernel = new double[size2];
         int x0 = radius, y0 = radius;
-        for (int y = y0 - radius; y <= y0 + radius; y++) {
+        double sum = 0.0;
+        for (int y = 0; y < size; y++) {
             double y2 = Math.pow(y - y0, 2.0);
-            for (int x = x0 - radius; x <= x0 + radius; x++) {
+            int offset = y * size;
+            for (int x = 0; x < size; x++) {
                 double x2 = Math.pow(x - x0, 2.0);
-                output.putPixelValue(x, y, lOGOperator(x2, y2));
+                kernel[x + offset] = lOGOperator(x2, y2);
+                sum += Math.abs(kernel[x + offset]);
             }
         }
-        IJ.saveAs(new ImagePlus("", output), "TIFF", String.format("C:/Users/barryd/particle_mapper_debug/kernel_%1.3f_%d", sigma, radius));
+        for (int i = 0; i < size2; i++) {
+            kernel[i] /= sum;
+        }
+        return kernel;
     }
 
     private double lOGOperator(double x, double y) {

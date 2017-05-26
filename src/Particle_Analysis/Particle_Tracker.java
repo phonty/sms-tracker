@@ -1,5 +1,6 @@
 package Particle_Analysis;
 
+import Detection.Blob_Detector;
 import ui.ResultsPreviewInterface;
 import ui.UserInterface;
 import Particle.IsoGaussian;
@@ -114,7 +115,7 @@ public class Particle_Tracker implements PlugIn {
                 return;
             }
         }
-        readParamsFromImage();
+//        readParamsFromImage();
         try {
             if (showDialog()) {
                 analyse(inputDir);
@@ -323,11 +324,14 @@ public class Particle_Tracker implements PlugIn {
                 resultSummary.setVisible(true);
                 IJ.saveString(results.getTextPanel().getText(), parentDir + "/results.txt");
                 IJ.saveString(resultSummary.getTextPanel().getText(), parentDir + "/resultsSummary.txt");
+                Plot msdPlot = ParticleTrajectory.getMsdPlot();
                 try {
-                    ParticleTrajectory.getMsdPlot().getResultsTable().saveAs(parentDir + "/MSD_Plot.csv");
+                    if (msdPlot != null) {
+                        msdPlot.getResultsTable().saveAs(parentDir + "/MSD_Plot.csv");
+                        IJ.saveAs(msdPlot.makeHighResolution("", 10.0f, true, false), "PNG", parentDir + "/MSD_Plot");
+                    }
                 } catch (IOException e) {
                 }
-                IJ.saveAs(ParticleTrajectory.getMsdPlot().makeHighResolution("", 10.0f, true, false), "PNG", parentDir + "/MSD_Plot");
                 if (maps != null) {
                     (new ImagePlus("Trajectory Maps", maps)).show();
                     IJ.saveAs((new ImagePlus("", maps)), "TIF", parentDir + "/trajectories.tif");
@@ -427,6 +431,60 @@ public class Particle_Tracker implements PlugIn {
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+        progress.dispose();
+        updateTrajs(particles, spatialRes, update);
+        return particles;
+    }
+
+    public ParticleArray findBlobs(boolean update, int startSlice, int endSlice, ImageStack channel1, ImageStack channel2) {
+        return findBlobs(update, startSlice, endSlice, channel1, channel2, false);
+    }
+
+    public ParticleArray findBlobs(boolean update, int startSlice, int endSlice, ImageStack channel1, ImageStack channel2, boolean showProgress) {
+        if (channel1 == null) {
+            return null;
+        }
+        int i, noOfImages = channel1.getSize(), width = channel1.getWidth(), height = channel1.getHeight(),
+                arraySize = endSlice - startSlice + 1;
+        int searchRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
+        int fitRad = searchRad;
+        int c1X, c1Y, pSize = 2 * fitRad + 1;
+        double spatialRes = UserVariables.getSpatialRes();
+        ParticleArray particles = new ParticleArray(arraySize);
+        ProgressDialog progress = new ProgressDialog(null, "Finding Particles...", false, title, false);
+        if (showProgress) {
+            progress.setVisible(true);
+        }
+        for (i = startSlice; i < noOfImages && i <= endSlice; i++) {
+            IJ.freeMemory();
+            progress.updateProgress(i - startSlice, arraySize);
+            ImageProcessor chan1Proc = channel1.getProcessor(i + 1).duplicate();
+            ImageProcessor chan2Proc = channel2 != null ? channel2.getProcessor(i + 1).duplicate() : null;
+//            if (!UserVariables.isBlobs()) {
+            chan1Proc = (FloatProcessor) preProcess(chan1Proc, UserVariables.getSigEstRed());
+            chan2Proc = (channel2 != null) ? (FloatProcessor) preProcess(channel2.getProcessor(i + 1).duplicate(), UserVariables.getSigEstGreen()) : null;
+//            }
+            Blob_Detector bd = new Blob_Detector(UserVariables.getSigEstRed(), pSize);
+            ImageProcessor log = bd.laplacianOfGaussian(chan1Proc.duplicate());
+            log.invert();
+            double c1Threshold = Utils.getPercentileThresh(log, UserVariables.getChan1MaxThresh());
+            ByteProcessor thisC1Max = Utils.findLocalMaxima(searchRad, searchRad, UserVariables.FOREGROUND, log, c1Threshold, false, fitRad - searchRad);
+//            IJ.saveAs(new ImagePlus("", chan1Proc), "TIFF", String.format("C:\\Users\\barryd\\Debugging\\particle_tracker_debug\\input_%d", i));
+//            IJ.saveAs(new ImagePlus("", log), "TIFF", String.format("C:\\Users\\barryd\\Debugging\\particle_tracker_debug\\log_%d", i));
+//            IJ.saveAs(new ImagePlus("", thisC1Max), "TIFF", String.format("C:\\Users\\barryd\\Debugging\\particle_tracker_debug\\maxima_%d", i));
+            for (c1X = 0; c1X < width; c1X++) {
+                for (c1Y = 0; c1Y < height; c1Y++) {
+                    if (thisC1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
+                        double px = c1X * UserVariables.getSpatialRes();
+                        double py = c1Y * UserVariables.getSpatialRes();
+                        Particle p1 = new Particle(i - startSlice, px, py, chan1Proc.getPixelValue(c1X, c1Y));
+                        Particle p2 = chan2Proc != null ? new Particle(i - startSlice, px, py, chan2Proc.getPixelValue(c1X, c1Y)) : null;
+                        p1.setColocalisedParticle(p2);
+                        particles.addDetection(i - startSlice, p1);
                     }
                 }
             }
@@ -557,11 +615,7 @@ public class Particle_Tracker implements PlugIn {
             return null;
         }
         for (i = 0; i < frames; i++) {
-            if (inputs[1] == null) {
-                processor = (new TypeConverter(stack.getProcessor(i + 1).duplicate(), true).convertToByte());
-            } else {
-                processor = (new TypeConverter(stack.getProcessor(i + 1).duplicate(), true).convertToRGB());
-            }
+            processor = (new TypeConverter(stack.getProcessor(i + 1).duplicate(), true).convertToRGB());
             processor.setInterpolationMethod(ImageProcessor.BICUBIC);
             processor.setInterpolate(true);
             outputStack.addSlice("" + i, processor.resize(width, height));
@@ -583,11 +637,7 @@ public class Particle_Tracker implements PlugIn {
                 while (current != null) {
                     for (j = frames - 1; j >= lastTP; j--) {
                         processor = outputStack.getProcessor(j + 1);
-                        if (!(inputs[1] == null) && !preview) {
-                            processor.setColor(thiscolor);
-                        } else {
-                            processor.setColor(Color.white);
-                        }
+                        processor.setColor(thiscolor);
                         if (j - 1 < lastTP) {
                             markParticle(processor, (int) Math.round(lastX / spatialRes) - radius,
                                     (int) Math.round(lastY / spatialRes) - radius, radius, true, "" + index);
@@ -605,11 +655,7 @@ public class Particle_Tracker implements PlugIn {
                     current = current.getLink();
                 }
                 processor = outputStack.getProcessor(lastTP + 1);
-                if (!(inputs[1] == null) && !preview) {
-                    processor.setColor(thiscolor);
-                } else {
-                    processor.setColor(Color.white);
-                }
+                processor.setColor(thiscolor);
                 markParticle(processor, (int) Math.round(lastX / spatialRes) - radius,
                         (int) Math.round(lastY / spatialRes) - radius, radius, true, "" + index);
                 index++;
