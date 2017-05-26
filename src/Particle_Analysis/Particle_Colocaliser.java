@@ -54,14 +54,14 @@ public class Particle_Colocaliser extends GPUAnalyse {
 
     }
 
-    public ParticleArray findParticles(boolean update, int startSlice, int endSlice, double c1FitTol, ImageStack channel1, ImageStack channel2) {
+    public ParticleArray findParticles(boolean update, int startSlice, int endSlice, double c1FitTol, ImageStack channel1, ImageStack channel2, boolean blobs) {
         return findParticles(update, startSlice, endSlice, c1FitTol,
-                channel1, channel2, true, false, true);
+                channel1, channel2, true, false, true, UserVariables.isBlobs());
     }
 
     protected ParticleArray findParticles() {
         ImageStack[] stacks = getStacks();
-        return findParticles(false, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1]);
+        return findParticles(false, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], UserVariables.isBlobs());
     }
 
     public void analyse(File inputDir) throws Exception {

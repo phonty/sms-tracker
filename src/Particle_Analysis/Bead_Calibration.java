@@ -176,7 +176,7 @@ public class Bead_Calibration extends Particle_Tracker implements PlugIn {
             count = 0;
             sepsum = 0.0;
             ParticleArray curves = analyser.findParticles(false, i, i,
-                    UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, floatingSigma, true);
+                    UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, floatingSigma, true, UserVariables.isBlobs());
             FloatProcessor ch1proc = new FloatProcessor(width, height);
             FloatProcessor ch2proc = new FloatProcessor(width, height);
             ArrayList<Particle> detections = curves.getLevel(0);

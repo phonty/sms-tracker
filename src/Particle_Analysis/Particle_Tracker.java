@@ -345,7 +345,7 @@ public class Particle_Tracker implements PlugIn {
 
     protected ParticleArray findParticles() {
         ImageStack[] stacks = getStacks();
-        return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, false, false);
+        return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, false, UserVariables.isFitC2(), UserVariables.isBlobs());
     }
 
     /**
@@ -366,12 +366,15 @@ public class Particle_Tracker implements PlugIn {
         return fp;
     }
 
-    public ParticleArray findParticles(boolean update, int startSlice, int endSlice, double c1FitTol, ImageStack channel1, ImageStack channel2) {
+    public ParticleArray findParticles(boolean update, int startSlice, int endSlice,
+            double c1FitTol, ImageStack channel1, ImageStack channel2, boolean blobs) {
         return findParticles(update, startSlice, endSlice, c1FitTol,
-                channel1, channel2, true, false, false);
+                channel1, channel2, true, false, UserVariables.isFitC2(), blobs);
     }
 
-    public ParticleArray findParticles(boolean update, int startSlice, int endSlice, double c1FitTol, ImageStack channel1, ImageStack channel2, boolean showProgress, boolean floatingSigma, boolean fitC2Gaussian) {
+    public ParticleArray findParticles(boolean update, int startSlice, int endSlice,
+            double c1FitTol, ImageStack channel1, ImageStack channel2, boolean showProgress,
+            boolean floatingSigma, boolean fitC2, boolean blobs) {
         if (channel1 == null) {
             return null;
         }
@@ -379,119 +382,111 @@ public class Particle_Tracker implements PlugIn {
                 arraySize = endSlice - startSlice + 1;
         int searchRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
         int fitRad = searchRad;
-        int c1X, c1Y, pSize = 2 * fitRad + 1;
+        int pSize = 2 * fitRad + 1;
+        double spatialRes = UserVariables.getSpatialRes();
+        ParticleArray particles = new ParticleArray(arraySize);
+        ProgressDialog progress = new ProgressDialog(null, "Finding Particles...", false, title, false);
+        if (showProgress) {
+            progress.setVisible(true);
+        }
+        for (i = startSlice; i < noOfImages && i <= endSlice; i++) {
+            IJ.freeMemory();
+            progress.updateProgress(i - startSlice, arraySize);
+            if (UserVariables.isBlobs()) {
+                detectBlobs(startSlice, channel1, channel2, i, pSize,
+                        width, height, searchRad, fitRad, particles, fitC2);
+            } else {
+                detectParticles(startSlice, channel1, channel2, i,
+                        width, height, searchRad, fitRad, particles,
+                        floatingSigma, spatialRes, fitC2, c1FitTol);
+            }
+        }
+        progress.dispose();
+        updateTrajs(particles, spatialRes, update);
+        return particles;
+    }
+
+    public void detectBlobs(int startSlice, ImageStack channel1, ImageStack channel2,
+            int i, int pSize, int width, int height, int searchRad, int fitRad,
+            ParticleArray particles, boolean fitC2) {
+        ImageProcessor chan1Proc = (FloatProcessor) preProcess(channel1.getProcessor(i + 1).duplicate(), UserVariables.getSigEstRed());
+        ImageProcessor chan2Proc = (channel2 != null) ? (FloatProcessor) preProcess(channel2.getProcessor(i + 1).duplicate(), UserVariables.getSigEstGreen()) : null;
+        ByteProcessor C2Max = null, C1Max = getMaxima(pSize, chan1Proc.duplicate(), searchRad, fitRad);
+        if (fitC2) {
+            C2Max = getMaxima(pSize, chan2Proc.duplicate(), searchRad, fitRad);
+        }
+        for (int c1X = 0; c1X < width; c1X++) {
+            for (int c1Y = 0; c1Y < height; c1Y++) {
+                if (C1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
+                    double px = c1X * UserVariables.getSpatialRes();
+                    double py = c1Y * UserVariables.getSpatialRes();
+                    Particle p1 = new Particle(i - startSlice, px, py, chan1Proc.getPixelValue(c1X, c1Y));
+                    Particle p2 = chan2Proc != null ? new Particle(i - startSlice, px, py, chan2Proc.getPixelValue(c1X, c1Y)) : null;
+                    if (fitC2) {
+                        int[][] c2Points = Utils.searchNeighbourhood(c1X, c1Y, searchRad, UserVariables.FOREGROUND, C2Max);
+                        if (c2Points != null) {
+                            px = c2Points[0][0] * UserVariables.getSpatialRes();
+                            py = c2Points[0][1] * UserVariables.getSpatialRes();
+                            p2 = new Particle(i - startSlice, px, py, chan2Proc.getPixelValue(c2Points[0][0], c2Points[0][1]));
+                        } else {
+                            p2 = null;
+                        }
+                    }
+                    p1.setColocalisedParticle(p2);
+                    particles.addDetection(i - startSlice, p1);
+                }
+            }
+        }
+    }
+
+    ByteProcessor getMaxima(int pSize, ImageProcessor ip, int searchRad, int fitRad) {
+        Blob_Detector bd1 = new Blob_Detector(UserVariables.getSigEstRed(), pSize);
+        ImageProcessor log1 = bd1.laplacianOfGaussian(ip);
+        log1.invert();
+        double c1Threshold = Utils.getPercentileThresh(log1, UserVariables.getChan1MaxThresh());
+        return Utils.findLocalMaxima(searchRad, searchRad, UserVariables.FOREGROUND, log1, c1Threshold, false, fitRad - searchRad);
+    }
+
+    public void detectParticles(int startSlice, ImageStack channel1, ImageStack channel2, int i,
+            int width, int height, int searchRad, int fitRad, ParticleArray particles,
+            boolean floatingSigma, double spatialRes, boolean fitC2Gaussian, double c1FitTol) {
+        int pSize = 2 * fitRad + 1;
         double[] xCoords = new double[pSize];
         double[] yCoords = new double[pSize];
         double[][] pixValues = new double[pSize][pSize];
-        double spatialRes = UserVariables.getSpatialRes();
-        ParticleArray particles = new ParticleArray(arraySize);
-        ProgressDialog progress = new ProgressDialog(null, "Finding Particles...", false, title, false);
-        if (showProgress) {
-            progress.setVisible(true);
-        }
-        for (i = startSlice; i < noOfImages && i <= endSlice; i++) {
-            IJ.freeMemory();
-            progress.updateProgress(i - startSlice, arraySize);
-            FloatProcessor chan1Proc = (FloatProcessor) preProcess(channel1.getProcessor(i + 1).duplicate(), UserVariables.getSigEstRed());
-            FloatProcessor chan2Proc = (channel2 != null) ? (FloatProcessor) preProcess(channel2.getProcessor(i + 1).duplicate(), UserVariables.getSigEstGreen()) : null;
-            double c1Threshold = Utils.getPercentileThresh(chan1Proc, UserVariables.getChan1MaxThresh());
-            ByteProcessor thisC1Max = Utils.findLocalMaxima(searchRad, searchRad, UserVariables.FOREGROUND, chan1Proc, c1Threshold, false, fitRad - searchRad);
-            for (c1X = 0; c1X < width; c1X++) {
-                for (c1Y = 0; c1Y < height; c1Y++) {
-                    if (thisC1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
-                        /*
-                         * Search for local maxima in green image within
-                         * <code>xyPartRad</code> pixels of maxima in red image:
-                         */
-                        Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan1Proc);
-                        ArrayList<IsoGaussian> c1Fits = doFitting(xCoords, yCoords, pixValues,
+        FloatProcessor chan1Proc = (FloatProcessor) preProcess(channel1.getProcessor(i + 1).duplicate(), UserVariables.getSigEstRed());
+        FloatProcessor chan2Proc = (channel2 != null) ? (FloatProcessor) preProcess(channel2.getProcessor(i + 1).duplicate(), UserVariables.getSigEstGreen()) : null;
+        double c1Threshold = Utils.getPercentileThresh(chan1Proc, UserVariables.getChan1MaxThresh());
+        ByteProcessor thisC1Max = Utils.findLocalMaxima(searchRad, searchRad, UserVariables.FOREGROUND, chan1Proc, c1Threshold, false, fitRad - searchRad);
+        for (int c1X = 0; c1X < width; c1X++) {
+            for (int c1Y = 0; c1Y < height; c1Y++) {
+                if (thisC1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
+                    Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan1Proc);
+                    ArrayList<IsoGaussian> c1Fits = doFitting(xCoords, yCoords, pixValues,
+                            floatingSigma, c1X, c1Y, fitRad, spatialRes, c1Threshold, i - startSlice,
+                            UserVariables.getSigEstRed() / UserVariables.getSpatialRes());
+                    Particle p2 = chan2Proc != null ? new Particle(i - startSlice, c1X, c1Y, chan2Proc.getPixelValue(c1X, c1Y)) : null;
+                    if (fitC2Gaussian) {
+                        Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan2Proc);
+                        ArrayList<IsoGaussian> c2Fits = doFitting(xCoords, yCoords, pixValues,
                                 floatingSigma, c1X, c1Y, fitRad, spatialRes, c1Threshold, i - startSlice,
-                                UserVariables.getSigEstRed() / UserVariables.getSpatialRes());
-                        Particle p2 = chan2Proc != null ? new Particle(i - startSlice, c1X, c1Y, chan2Proc.getPixelValue(c1X, c1Y)) : null;
-                        if (fitC2Gaussian) {
-                            Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan2Proc);
-                            ArrayList<IsoGaussian> c2Fits = doFitting(xCoords, yCoords, pixValues,
-                                    floatingSigma, c1X, c1Y, fitRad, spatialRes, c1Threshold, i - startSlice,
-                                    UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
-                            p2 = c2Fits.get(0);
-                            if (((IsoGaussian) p2).getFit() < c1FitTol) {
-                                p2 = null;
-                            }
+                                UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
+                        p2 = c2Fits.get(0);
+                        if (((IsoGaussian) p2).getFit() < c1FitTol) {
+                            p2 = null;
                         }
-
-                        /*
-                         * A particle has been isolated - trajectories need to
-                         * be updated:
-                         */
-                        if (c1Fits != null) {
-                            for (IsoGaussian c1Fit : c1Fits) {
-                                if (c1Fit.getFit() > c1FitTol) {
-                                    c1Fit.setColocalisedParticle(p2);
-                                    particles.addDetection(i - startSlice, c1Fit);
-                                }
+                    }
+                    if (c1Fits != null) {
+                        for (IsoGaussian c1Fit : c1Fits) {
+                            if (c1Fit.getFit() > c1FitTol) {
+                                c1Fit.setColocalisedParticle(p2);
+                                particles.addDetection(i - startSlice, c1Fit);
                             }
                         }
                     }
                 }
             }
         }
-        progress.dispose();
-        updateTrajs(particles, spatialRes, update);
-        return particles;
-    }
-
-    public ParticleArray findBlobs(boolean update, int startSlice, int endSlice, ImageStack channel1, ImageStack channel2) {
-        return findBlobs(update, startSlice, endSlice, channel1, channel2, false);
-    }
-
-    public ParticleArray findBlobs(boolean update, int startSlice, int endSlice, ImageStack channel1, ImageStack channel2, boolean showProgress) {
-        if (channel1 == null) {
-            return null;
-        }
-        int i, noOfImages = channel1.getSize(), width = channel1.getWidth(), height = channel1.getHeight(),
-                arraySize = endSlice - startSlice + 1;
-        int searchRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
-        int fitRad = searchRad;
-        int c1X, c1Y, pSize = 2 * fitRad + 1;
-        double spatialRes = UserVariables.getSpatialRes();
-        ParticleArray particles = new ParticleArray(arraySize);
-        ProgressDialog progress = new ProgressDialog(null, "Finding Particles...", false, title, false);
-        if (showProgress) {
-            progress.setVisible(true);
-        }
-        for (i = startSlice; i < noOfImages && i <= endSlice; i++) {
-            IJ.freeMemory();
-            progress.updateProgress(i - startSlice, arraySize);
-            ImageProcessor chan1Proc = channel1.getProcessor(i + 1).duplicate();
-            ImageProcessor chan2Proc = channel2 != null ? channel2.getProcessor(i + 1).duplicate() : null;
-//            if (!UserVariables.isBlobs()) {
-            chan1Proc = (FloatProcessor) preProcess(chan1Proc, UserVariables.getSigEstRed());
-            chan2Proc = (channel2 != null) ? (FloatProcessor) preProcess(channel2.getProcessor(i + 1).duplicate(), UserVariables.getSigEstGreen()) : null;
-//            }
-            Blob_Detector bd = new Blob_Detector(UserVariables.getSigEstRed(), pSize);
-            ImageProcessor log = bd.laplacianOfGaussian(chan1Proc.duplicate());
-            log.invert();
-            double c1Threshold = Utils.getPercentileThresh(log, UserVariables.getChan1MaxThresh());
-            ByteProcessor thisC1Max = Utils.findLocalMaxima(searchRad, searchRad, UserVariables.FOREGROUND, log, c1Threshold, false, fitRad - searchRad);
-//            IJ.saveAs(new ImagePlus("", chan1Proc), "TIFF", String.format("C:\\Users\\barryd\\Debugging\\particle_tracker_debug\\input_%d", i));
-//            IJ.saveAs(new ImagePlus("", log), "TIFF", String.format("C:\\Users\\barryd\\Debugging\\particle_tracker_debug\\log_%d", i));
-//            IJ.saveAs(new ImagePlus("", thisC1Max), "TIFF", String.format("C:\\Users\\barryd\\Debugging\\particle_tracker_debug\\maxima_%d", i));
-            for (c1X = 0; c1X < width; c1X++) {
-                for (c1Y = 0; c1Y < height; c1Y++) {
-                    if (thisC1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
-                        double px = c1X * UserVariables.getSpatialRes();
-                        double py = c1Y * UserVariables.getSpatialRes();
-                        Particle p1 = new Particle(i - startSlice, px, py, chan1Proc.getPixelValue(c1X, c1Y));
-                        Particle p2 = chan2Proc != null ? new Particle(i - startSlice, px, py, chan2Proc.getPixelValue(c1X, c1Y)) : null;
-                        p1.setColocalisedParticle(p2);
-                        particles.addDetection(i - startSlice, p1);
-                    }
-                }
-            }
-        }
-        progress.dispose();
-        updateTrajs(particles, spatialRes, update);
-        return particles;
     }
 
     protected ArrayList<IsoGaussian> doFitting(double[] xCoords, double[] yCoords,
@@ -848,7 +843,7 @@ public class Particle_Tracker implements PlugIn {
                 if (UserVariables.isUseCals()) {
                     ImageStack virStack = new ImageStack(virTemps[j].getWidth(), virTemps[j].getHeight());
                     virStack.addSlice(virTemps[j]);
-                    ParticleArray particles = findParticles(false, 0, 0, 0.0, virStack, null, false, false, false);
+                    ParticleArray particles = findParticles(false, 0, 0, 0.0, virStack, null, false, false, false, UserVariables.isBlobs());
                     ArrayList<Particle> detections = particles.getLevel(0);
                     double mindist = Double.MAX_VALUE;
                     int minindex = -1;
