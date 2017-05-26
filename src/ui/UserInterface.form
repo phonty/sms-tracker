@@ -265,7 +265,7 @@
                     </Constraint>
                   </Constraints>
                 </Component>
-                <Component class="javax.swing.JLabel" name="jLabel1">
+                <Component class="javax.swing.JLabel" name="chan2MaxThreshLabel">
                   <Properties>
                     <Property name="text" type="java.lang.String" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
                       <Connection code="chan2MaxThreshLabelText" type="code"/>
@@ -277,10 +277,10 @@
                     </Constraint>
                   </Constraints>
                 </Component>
-                <Component class="javax.swing.JTextField" name="medianThreshTextField">
+                <Component class="javax.swing.JTextField" name="chan2MaxThreshTextField">
                   <Properties>
                     <Property name="text" type="java.lang.String" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
-                      <Connection code="String.valueOf(UserVariables.getMedianThresh())" type="code"/>
+                      <Connection code="String.valueOf(UserVariables.getChan2MaxThresh())" type="code"/>
                     </Property>
                   </Properties>
                   <Constraints>

@@ -109,8 +109,8 @@ public class UserInterface extends javax.swing.JDialog {
         greenSigmaLabel = new javax.swing.JLabel();
         redSigmaTextField = new javax.swing.JTextField();
         greenSigmaTextField = new javax.swing.JTextField();
-        jLabel1 = new javax.swing.JLabel();
-        medianThreshTextField = new javax.swing.JTextField();
+        chan2MaxThreshLabel = new javax.swing.JLabel();
+        chan2MaxThreshTextField = new javax.swing.JTextField();
         trackingPanel = new javax.swing.JPanel();
         timeResLabel = new javax.swing.JLabel();
         timeResTextField = new javax.swing.JTextField();
@@ -309,7 +309,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         detectionPanel.add(greenSigmaTextField, gridBagConstraints);
 
-        jLabel1.setText(chan2MaxThreshLabelText);
+        chan2MaxThreshLabel.setText(chan2MaxThreshLabelText);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 4;
@@ -318,9 +318,9 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.weightx = 0.5;
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
-        detectionPanel.add(jLabel1, gridBagConstraints);
+        detectionPanel.add(chan2MaxThreshLabel, gridBagConstraints);
 
-        medianThreshTextField.setText(String.valueOf(UserVariables.getMedianThresh()));
+        chan2MaxThreshTextField.setText(String.valueOf(UserVariables.getChan2MaxThresh()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 4;
@@ -329,7 +329,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.weightx = 0.5;
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
-        detectionPanel.add(medianThreshTextField, gridBagConstraints);
+        detectionPanel.add(chan2MaxThreshTextField, gridBagConstraints);
 
         jTabbedPane1.addTab("Detection", detectionPanel);
 
@@ -630,7 +630,7 @@ public class UserInterface extends javax.swing.JDialog {
     boolean setVariables() {
         try {
             UserVariables.setChan1MaxThresh(Double.parseDouble(chan1MaxThreshTextField.getText()));
-            UserVariables.setMedianThresh(Double.parseDouble(medianThreshTextField.getText()));
+            UserVariables.setChan2MaxThresh(Double.parseDouble(chan2MaxThreshTextField.getText()));
 //            UserVariables.setChan2MaxThresh(Double.parseDouble(chan2MaxThreshTextField.getText()));
             UserVariables.setMinTrajLength(Double.parseDouble(minTrajLengthTextField.getText()));
             UserVariables.setMinTrajDist(Double.parseDouble(minTrajDistTextField.getText()));
@@ -808,6 +808,8 @@ public class UserInterface extends javax.swing.JDialog {
     private java.awt.Canvas canvas1;
     private javax.swing.JLabel chan1MaxThreshLabel;
     private javax.swing.JTextField chan1MaxThreshTextField;
+    private javax.swing.JLabel chan2MaxThreshLabel;
+    private javax.swing.JTextField chan2MaxThreshTextField;
     private javax.swing.JLabel colocalThreshLabel;
     private javax.swing.JTextField colocalThreshTextField;
     private javax.swing.JToggleButton colocalToggleButton;
@@ -816,14 +818,12 @@ public class UserInterface extends javax.swing.JDialog {
     private javax.swing.JToggleButton gpuToggleButton;
     private javax.swing.JLabel greenSigmaLabel;
     private javax.swing.JTextField greenSigmaTextField;
-    private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JSplitPane jSplitPane1;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JLabel maxTrajStepLabel;
     private javax.swing.JTextField maxTrajStepTextField;
-    private javax.swing.JTextField medianThreshTextField;
     private javax.swing.JLabel minMSDPointsLabel;
     private javax.swing.JTextField minMSDPointsTextField;
     private javax.swing.JLabel minTrajDistLabel;

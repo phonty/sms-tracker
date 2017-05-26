@@ -345,7 +345,7 @@ public class Particle_Tracker implements PlugIn {
 
     protected ParticleArray findParticles() {
         ImageStack[] stacks = getStacks();
-        return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, false, UserVariables.isFitC2(), UserVariables.isBlobs());
+        return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], UserVariables.isBlobs());
     }
 
     /**
@@ -411,9 +411,9 @@ public class Particle_Tracker implements PlugIn {
             ParticleArray particles, boolean fitC2) {
         ImageProcessor chan1Proc = (FloatProcessor) preProcess(channel1.getProcessor(i + 1).duplicate(), UserVariables.getSigEstRed());
         ImageProcessor chan2Proc = (channel2 != null) ? (FloatProcessor) preProcess(channel2.getProcessor(i + 1).duplicate(), UserVariables.getSigEstGreen()) : null;
-        ByteProcessor C2Max = null, C1Max = getMaxima(pSize, chan1Proc.duplicate(), searchRad, fitRad);
+        ByteProcessor C2Max = null, C1Max = getMaxima(pSize, chan1Proc.duplicate(), searchRad, fitRad, UserVariables.getChan1MaxThresh());
         if (fitC2) {
-            C2Max = getMaxima(pSize, chan2Proc.duplicate(), searchRad, fitRad);
+            C2Max = getMaxima(pSize, chan2Proc.duplicate(), searchRad, fitRad, UserVariables.getChan2MaxThresh());
         }
         for (int c1X = 0; c1X < width; c1X++) {
             for (int c1Y = 0; c1Y < height; c1Y++) {
@@ -439,12 +439,12 @@ public class Particle_Tracker implements PlugIn {
         }
     }
 
-    ByteProcessor getMaxima(int pSize, ImageProcessor ip, int searchRad, int fitRad) {
+    ByteProcessor getMaxima(int pSize, ImageProcessor ip, int searchRad, int fitRad, double pThreshold) {
         Blob_Detector bd1 = new Blob_Detector(UserVariables.getSigEstRed(), pSize);
         ImageProcessor log1 = bd1.laplacianOfGaussian(ip);
         log1.invert();
-        double c1Threshold = Utils.getPercentileThresh(log1, UserVariables.getChan1MaxThresh());
-        return Utils.findLocalMaxima(searchRad, searchRad, UserVariables.FOREGROUND, log1, c1Threshold, false, fitRad - searchRad);
+        double t = Utils.getPercentileThresh(log1, pThreshold);
+        return Utils.findLocalMaxima(searchRad, searchRad, UserVariables.FOREGROUND, log1, t, false, fitRad - searchRad);
     }
 
     public void detectParticles(int startSlice, ImageStack channel1, ImageStack channel2, int i,
@@ -469,8 +469,9 @@ public class Particle_Tracker implements PlugIn {
                     if (fitC2Gaussian) {
                         Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan2Proc);
                         ArrayList<IsoGaussian> c2Fits = doFitting(xCoords, yCoords, pixValues,
-                                floatingSigma, c1X, c1Y, fitRad, spatialRes, c1Threshold, i - startSlice,
-                                UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
+                                floatingSigma, c1X, c1Y, fitRad, spatialRes,
+                                Utils.getPercentileThresh(chan2Proc, UserVariables.getChan2MaxThresh()),
+                                i - startSlice, UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
                         p2 = c2Fits.get(0);
                         if (((IsoGaussian) p2).getFit() < c1FitTol) {
                             p2 = null;
@@ -1033,7 +1034,7 @@ public class Particle_Tracker implements PlugIn {
         paramStream.println(UserInterface.getGreenSigEstText() + "," + UserVariables.getSigEstGreen());
         paramStream.println(UserInterface.getSpatResLabelText() + "," + UserVariables.getSpatialRes());
         paramStream.println(UserInterface.getChan1MaxThreshLabelText() + "," + UserVariables.getChan1MaxThresh());
-        paramStream.println(UserInterface.getChan2MaxThreshLabelText() + "," + UserVariables.getMedianThresh());
+        paramStream.println(UserInterface.getChan2MaxThreshLabelText() + "," + UserVariables.getChan2MaxThresh());
         paramStream.println(UserInterface.getCurveFitTolLabelText() + "," + UserVariables.getCurveFitTol());
         paramStream.println(UserInterface.getPreprocessToggleText() + "," + UserVariables.isPreProcess());
         paramStream.println(UserInterface.getGpuToggleText() + "," + UserVariables.isGpu());
@@ -1069,7 +1070,7 @@ public class Particle_Tracker implements PlugIn {
         FloatStatistics stats1 = new FloatStatistics(ip3, ImageStatistics.MEDIAN, null);
         ip3.multiply(1.0 / stats1.median);
         FloatStatistics stats2 = new FloatStatistics(ip3, ImageStatistics.MIN_MAX, null);
-        if (stats2.max > UserVariables.getMedianThresh()) {
+        if (stats2.max > UserVariables.getChan2MaxThresh()) {
             c2Gaussian = new IsoGaussian(x0, y0, stats2.max * stats1.median, UserVariables.getSigEstGreen(), UserVariables.getSigEstGreen(), 0.0);
         }
         return c2Gaussian;
