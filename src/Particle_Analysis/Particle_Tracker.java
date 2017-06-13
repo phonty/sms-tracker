@@ -1,10 +1,13 @@
 package Particle_Analysis;
 
+import Adapt.Analyse_Movie;
+import Adapt.CellData;
 import Detection.Blob_Detector;
 import ui.ResultsPreviewInterface;
 import ui.UserInterface;
 import Particle.IsoGaussian;
 import IAClasses.ProgressDialog;
+import IAClasses.Region;
 import IAClasses.Utils;
 import ParticleTracking.IsoGaussianFitter;
 import Particle.Particle;
@@ -21,13 +24,16 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.Plot;
+import ij.gui.PointRoi;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
+import ij.measure.Measurements;
 import ij.plugin.PlugIn;
 import ij.plugin.RGBStackMerge;
 import ij.plugin.Straightener;
 import ij.plugin.TextReader;
 import ij.plugin.filter.GaussianBlur;
+import ij.process.AutoThresholder;
 import ij.process.Blitter;
 import ij.process.ByteProcessor;
 import ij.process.FloatBlitter;
@@ -69,7 +75,7 @@ public class Particle_Tracker implements PlugIn {
     public final int GOSHTASBY_M = 2, GOSHTASBY_N = 4;
 //    public static final int VERSION = 5;
     private final double NORM_VAL = 0.99999;
-    protected ArrayList<ParticleTrajectory> trajectories = new ArrayList(); //Trajectories of the detected particles
+    protected ArrayList<ParticleTrajectory> trajectories; //Trajectories of the detected particles
     protected long startTime;
     protected DecimalFormat numFormat = new DecimalFormat("0.000");
     protected DecimalFormat intFormat = new DecimalFormat("000");
@@ -244,6 +250,7 @@ public class Particle_Tracker implements PlugIn {
         if (stacks != null) {
             IJ.register(this.getClass());
             startTime = System.currentTimeMillis();
+            trajectories = new ArrayList();
             findParticles();
             TextWindow results = new TextWindow(title + " Results", "X\tY\tFrame\tChannel 1\tChannel 2\tChannel 1 " + '\u03C3'
                     + "\tChannel 2 " + '\u03C3',
@@ -402,17 +409,19 @@ public class Particle_Tracker implements PlugIn {
             }
         }
         progress.dispose();
-        updateTrajs(particles, spatialRes, update);
+        if (update) {
+            updateTrajs(particles, spatialRes, update);
+        }
         return particles;
     }
 
     public void detectBlobs(int startSlice, ImageStack channel1, ImageStack channel2,
             int i, int pSize, int width, int height, int searchRad, int fitRad,
             ParticleArray particles, boolean fitC2) {
-        ImageProcessor chan1Proc = (FloatProcessor) preProcess(channel1.getProcessor(i + 1).duplicate(), UserVariables.getSigEstRed());
-        ImageProcessor chan2Proc = (channel2 != null) ? (FloatProcessor) preProcess(channel2.getProcessor(i + 1).duplicate(), UserVariables.getSigEstGreen()) : null;
+        ImageProcessor chan1Proc = channel1.getProcessor(i + 1).convertToFloat();
+        ImageProcessor chan2Proc = (channel2 != null) ? channel2.getProcessor(i + 1).convertToFloat() : null;
         ByteProcessor C2Max = null, C1Max = getMaxima(pSize, chan1Proc.duplicate(), searchRad, fitRad, UserVariables.getChan1MaxThresh());
-        if (fitC2) {
+        if (chan2Proc != null && fitC2) {
             C2Max = getMaxima(pSize, chan2Proc.duplicate(), searchRad, fitRad, UserVariables.getChan2MaxThresh());
         }
         for (int c1X = 0; c1X < width; c1X++) {
@@ -422,7 +431,7 @@ public class Particle_Tracker implements PlugIn {
                     double py = c1Y * UserVariables.getSpatialRes();
                     Particle p1 = new Particle(i - startSlice, px, py, chan1Proc.getPixelValue(c1X, c1Y));
                     Particle p2 = chan2Proc != null ? new Particle(i - startSlice, px, py, chan2Proc.getPixelValue(c1X, c1Y)) : null;
-                    if (fitC2) {
+                    if (chan2Proc != null && fitC2) {
                         int[][] c2Points = Utils.searchNeighbourhood(c1X, c1Y, searchRad, UserVariables.FOREGROUND, C2Max);
                         if (c2Points != null) {
                             px = c2Points[0][0] * UserVariables.getSpatialRes();
@@ -436,6 +445,39 @@ public class Particle_Tracker implements PlugIn {
                     particles.addDetection(i - startSlice, p1);
                 }
             }
+        }
+        if (UserVariables.isTrackRegions()) {
+            findRegions(particles.getLevel(i - startSlice), i - startSlice, chan1Proc);
+        }
+    }
+
+    void findRegions(ArrayList<Particle> particles, int frame, ImageProcessor inputProc) {
+        Analyse_Movie am = new Analyse_Movie();
+        PointRoi points = null;
+        int N = particles.size();
+        for (Particle p : particles) {
+            if (points == null) {
+                points = new PointRoi(p.getX(), p.getY());
+            } else {
+                points.addPoint(p.getX(), p.getY());
+            }
+        }
+        am.initialiseROIs(null, -1, frame + 1, null, points, inputProc.getWidth(), inputProc.getHeight(), frame + 1);
+        ArrayList<CellData> cd = am.getCellData();
+        int t = am.getThreshold(inputProc, true, -1, AutoThresholder.Method.Default.toString());
+        ArrayList<Region> regions = am.findCellRegions(inputProc, t, am.getCellData());
+        for (int i = 0; i < cd.size(); i++) {
+            Region[] allRegions = new Region[inputs[0].getImageStackSize()];
+            allRegions[frame] = regions.get(i);
+            cd.get(i).setCellRegions(allRegions);
+            cd.get(i).setGreyThresholds(new int[]{t});
+        }
+        try {
+            am.getMorphologyData(cd, false, Measurements.MEAN + Measurements.SHAPE_DESCRIPTORS, inputProc.duplicate(), UserVariables.getSigEstRed());
+        } catch (Exception e) {
+        }
+        for (int i = 0; i < N; i++) {
+            particles.get(i).setRegion(regions.get(i));
         }
     }
 
