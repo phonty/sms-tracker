@@ -83,6 +83,7 @@ public class Particle_Mapper extends Particle_Tracker {
     private final String NUCLEI_MASK = "Nuclei Mask", FLUO_DIST = "fluorescence_distribution_data.csv",
             FOCI_DIST = "foci_distance_data.csv", FOCI_DETECTIONS = "Foci Detections", DIST_MAP = "Distance Map",
             FOCI_DIST_HIST = "foci_distance_histogram.csv", FOCI_NUC_ASS = "Foci-Nuclei Associations",
+            CELL_CELL_ASS = "Cell-Cell Associations",
             CELL_BOUNDS = "Cell Boundaries", FOCI_DIST_DATA = "Mean Foci Data";
     private final String FLUO_HEADINGS[] = new String[]{"Cell ID", "Cell Mean", "Cell Std Dev",
         "Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
@@ -168,6 +169,7 @@ public class Particle_Mapper extends Particle_Tracker {
                     if (useThresh) {
                         filterCells(stacks[CYTO].getProcessor(i), new Cytoplasm(), threshLevel, Measurements.MEAN);
                     }
+                    linkCells(new ArrayList(), cellMap);
                     if (isolateFoci) {
                         ParticleArray pa = findParticles();
                         assignParticlesToCells(pa, cellMap, thisDir.getAbsolutePath());
@@ -177,6 +179,7 @@ public class Particle_Mapper extends Particle_Tracker {
                         outputFociDistanceData(distances, thisDir.getAbsolutePath(), resultsHeadings, hideOutputs);
                     }
                     if (analyseFluorescence) {
+                        extractCellCellProfiles(stacks[FOCI].getProcessor(i), 250, 1);
                         double[][] vals = analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(i),
                                 Measurements.MEAN + Measurements.STD_DEV);
                         String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, FLUO_DIST);
@@ -327,6 +330,83 @@ public class Particle_Mapper extends Particle_Tracker {
             }
         }
         IJ.saveAs(new ImagePlus("", map), "PNG", String.format("%s%s%s", resultsDir, File.separator, FOCI_NUC_ASS));
+    }
+
+    void linkCells(ArrayList<int[]> links, ImageProcessor cellMap) {
+        ByteProcessor map = new ByteProcessor(cellMap.getWidth(), cellMap.getHeight());
+        map.setValue(0);
+        map.fill();
+        map.setValue(255);
+        LinkedHashMap<Integer, Integer> idToIndexMap = new LinkedHashMap();
+        for (int i = 0; i < cells.length; i++) {
+            idToIndexMap.put(cells[i].getID(), i);
+        }
+        for (int y = 0; y < cellMap.getHeight(); y++) {
+            for (int x = 0; x < cellMap.getWidth(); x++) {
+                if (cellMap.getPixel(x, y) == 0) {
+                    int[] ids = checkEdge(x, y, cellMap, 0);
+                    if (ids != null && !links.contains(ids)) {
+                        Integer index1 = idToIndexMap.get(ids[0]);
+                        Integer index2 = idToIndexMap.get(ids[1]);
+                        if (index1 != null && index2 != null) {
+                            Cell c1 = cells[index1];
+                            Cell c2 = cells[index2];
+                            c1.addLink(c2);
+                            double[] centroid1 = c1.getNucleus().getCentroid();
+                            double[] centroid2 = c2.getNucleus().getCentroid();
+                            map.drawLine((int) Math.round(centroid1[0]), (int) Math.round(centroid1[1]),
+                                    (int) Math.round(centroid2[0]), (int) Math.round(centroid2[1]));
+                        }
+                    }
+                }
+            }
+        }
+        IJ.saveAs(new ImagePlus("", map), "PNG", String.format("%s%s%s", resultsDir, File.separator, CELL_CELL_ASS));
+    }
+
+    private int[] checkEdge(int x, int y, ImageProcessor regionImage, int REGION_BORDER) {
+        ArrayList<Integer> values = new ArrayList();
+        for (int i = x - 1; i <= x + 1; i++) {
+            for (int j = y - 1; j <= y + 1; j++) {
+                int current = regionImage.getPixel(i, j);
+                if (current > REGION_BORDER && !values.contains(current)) {
+                    values.add(current);
+                }
+            }
+        }
+        if (values.size() == 2) {
+            return new int[]{values.get(0), values.get(1)};
+        } else {
+            return null;
+        }
+    }
+
+    public void extractCellCellProfiles(ImageProcessor ip, int finalWidth, int lineWidth) {
+        ip.setLineWidth(lineWidth);
+        ip.setInterpolate(true);
+        ip.setInterpolationMethod(ImageProcessor.BILINEAR);
+        int N = cells.length;
+        for (int i = 0; i < N; i++) {
+            Cell current = cells[i];
+            ArrayList<Cell> links = current.getLinks();
+            for (int j = 0; j < links.size(); j++) {
+                Cell link = links.get(j);
+                if (current.getID() > link.getID()) {
+                    continue;
+                }
+                double[] centroid1 = current.getNucleus().getCentroid();
+                double[] centroid2 = link.getNucleus().getCentroid();
+                double[] lineVals = ip.getLine(centroid1[0], centroid1[1], centroid2[0], centroid2[1]);
+                FloatProcessor lineImage = new FloatProcessor(lineVals.length, 1);
+                for (int x = 0; x < lineVals.length; x++) {
+                    lineImage.putPixelValue(x, 0, lineVals[x]);
+                }
+                lineImage.setInterpolate(true);
+                lineImage.setInterpolationMethod(ImageProcessor.BILINEAR);
+                IJ.saveAs(new ImagePlus("", lineImage.resize(finalWidth, 1)), "TIF",
+                        String.format("%s%s%s_%d_%d", resultsDir, File.separator, "Cell-Cell", current.getID(), link.getID()));
+            }
+        }
     }
 
     /**

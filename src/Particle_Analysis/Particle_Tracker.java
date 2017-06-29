@@ -499,6 +499,7 @@ public class Particle_Tracker implements PlugIn {
         FloatProcessor chan1Proc = (FloatProcessor) preProcess(channel1.getProcessor(i + 1).duplicate(), UserVariables.getSigEstRed());
         FloatProcessor chan2Proc = (channel2 != null) ? (FloatProcessor) preProcess(channel2.getProcessor(i + 1).duplicate(), UserVariables.getSigEstGreen()) : null;
         double c1Threshold = Utils.getPercentileThresh(chan1Proc, UserVariables.getChan1MaxThresh());
+        double c2Threshold = chan2Proc == null ? 0.0 : Utils.getPercentileThresh(chan2Proc, UserVariables.getChan2MaxThresh());
         ByteProcessor thisC1Max = Utils.findLocalMaxima(searchRad, searchRad, UserVariables.FOREGROUND, chan1Proc, c1Threshold, false, fitRad - searchRad);
         for (int c1X = 0; c1X < width; c1X++) {
             for (int c1Y = 0; c1Y < height; c1Y++) {
@@ -507,16 +508,19 @@ public class Particle_Tracker implements PlugIn {
                     ArrayList<IsoGaussian> c1Fits = doFitting(xCoords, yCoords, pixValues,
                             floatingSigma, c1X, c1Y, fitRad, spatialRes, c1Threshold, i - startSlice,
                             UserVariables.getSigEstRed() / UserVariables.getSpatialRes());
-                    Particle p2 = chan2Proc != null ? new Particle(i - startSlice, c1X, c1Y, chan2Proc.getPixelValue(c1X, c1Y)) : null;
-                    if (fitC2Gaussian) {
-                        Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan2Proc);
-                        ArrayList<IsoGaussian> c2Fits = doFitting(xCoords, yCoords, pixValues,
-                                floatingSigma, c1X, c1Y, fitRad, spatialRes,
-                                Utils.getPercentileThresh(chan2Proc, UserVariables.getChan2MaxThresh()),
-                                i - startSlice, UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
-                        p2 = c2Fits.get(0);
-                        if (((IsoGaussian) p2).getFit() < c1FitTol) {
-                            p2 = null;
+                    Particle p2 = null;
+                    if (chan2Proc != null && chan2Proc.getPixelValue(c1X, c1Y) > c2Threshold) {
+                        p2 = new Particle(i - startSlice, c1X * UserVariables.getSpatialRes(), c1Y * UserVariables.getSpatialRes(), chan2Proc.getPixelValue(c1X, c1Y));
+                        if (fitC2Gaussian) {
+                            Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan2Proc);
+                            ArrayList<IsoGaussian> c2Fits = doFitting(xCoords, yCoords, pixValues,
+                                    floatingSigma, c1X, c1Y, fitRad, spatialRes,
+                                    Utils.getPercentileThresh(chan2Proc, UserVariables.getChan2MaxThresh()),
+                                    i - startSlice, UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
+                            p2 = c2Fits.get(0);
+                            if (((IsoGaussian) p2).getFit() < c1FitTol) {
+                                p2 = null;
+                            }
                         }
                     }
                     if (c1Fits != null) {

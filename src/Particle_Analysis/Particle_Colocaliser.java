@@ -19,20 +19,15 @@ package Particle_Analysis;
 import IAClasses.ProgressDialog;
 import IAClasses.Utils;
 import IO.DataWriter;
-import Particle.IsoGaussian;
+import Particle.Particle;
 import Particle.ParticleArray;
 import ParticleTracking.GPUAnalyse;
 import ParticleTracking.UserVariables;
-import static ParticleTracking.UserVariables.BLUE;
-import static ParticleTracking.UserVariables.GREEN;
-import static ParticleTracking.UserVariables.RED;
 import UtilClasses.GenUtils;
-import UtilClasses.Utilities;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.ByteProcessor;
-import ij.process.ColorProcessor;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 import ij.process.TypeConverter;
@@ -43,7 +38,7 @@ import java.util.ArrayList;
 public class Particle_Colocaliser extends GPUAnalyse {
 
     private String resultsHeadings = String.format("Image\tChannel 1 Detections\tColocalised Channel 2 Detections\t%% Colocalisation\t%c (nm)", '\u0394'),
-            coordHeadings = "C0_X\tC0_Y\tC1_X\tC1_Y\tC0_\u03c3\tC1_\u03c3\tC0 Fit\tC1 Fit";
+            coordHeadings = "C0_X\tC0_Y\tC1_X\tC1_Y";
 
     public Particle_Colocaliser() {
         super();
@@ -56,7 +51,7 @@ public class Particle_Colocaliser extends GPUAnalyse {
 
     public ParticleArray findParticles(boolean update, int startSlice, int endSlice, double c1FitTol, ImageStack channel1, ImageStack channel2, boolean blobs) {
         return findParticles(update, startSlice, endSlice, c1FitTol,
-                channel1, channel2, true, false, true, UserVariables.isBlobs());
+                channel1, channel2, true, false, UserVariables.isFitC2(), UserVariables.isBlobs());
     }
 
     protected ParticleArray findParticles() {
@@ -91,39 +86,26 @@ public class Particle_Colocaliser extends GPUAnalyse {
             sepsum = 0.0;
             FloatProcessor ch1proc = new FloatProcessor(width, height);
             FloatProcessor ch2proc = new FloatProcessor(width, height);
-            ArrayList detections = curves.getLevel(i);
+            ArrayList<Particle> detections = curves.getLevel(i);
             for (int j = 0; j < detections.size(); j++) {
-                IsoGaussian c1 = (IsoGaussian) detections.get(j);
-                String coordString;
-                if (Utils.draw2DGaussian(ch1proc, c1, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false)) {
-                    count++;
-                    IsoGaussian c2 = (IsoGaussian) c1.getColocalisedParticle();
-                    if (Utils.draw2DGaussian(ch2proc, c2, UserVariables.getCurveFitTol(),
-                            UserVariables.getSpatialRes(), false)) {
-                        colocalisation++;
-                        sepsum += Utils.calcDistance(c1.getX(), c1.getY(), c2.getX(), c2.getY());
-                        coordString = String.valueOf(c1.getX()) + "\t" + String.valueOf(c1.getY())
-                                + "\t" + String.valueOf(c2.getX()) + "\t" + String.valueOf(c2.getY())
-                                + "\t" + String.valueOf(c1.getXSigma() * UserVariables.getSpatialRes())
-                                + "\t" + String.valueOf(c2.getXSigma() * UserVariables.getSpatialRes())
-                                + "\t" + String.valueOf(c1.getFit()) + "\t" + String.valueOf(c2.getFit());
-                    } else {
-                        coordString = String.valueOf(c1.getX()) + "\t" + String.valueOf(c1.getY())
-                                + "\t \t \t" + String.valueOf(c1.getXSigma()) + "\t \t"
-                                + String.valueOf(c1.getFit());
-                    }
-                    particleCoords.append(coordString);
+                Particle p1 = detections.get(j);
+                String coordString = String.format("%3.3f\t%3.3f", p1.getX(), p1.getY());
+                Utils.drawParticle(ch1proc, p1, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false);
+                count++;
+                Particle p2 = p1.getColocalisedParticle();
+                if (p2 != null) {
+                    Utils.drawParticle(ch2proc, p2, UserVariables.getCurveFitTol(), UserVariables.getSpatialRes(), false);
+                    colocalisation++;
+                    sepsum += Utils.calcDistance(p1.getX(), p1.getY(), p2.getX(), p2.getY());
+                    coordString = String.format("%s\t%3.3f\t%3.3f", coordString, p2.getX(), p2.getY());
                 }
+                particleCoords.append(coordString);
             }
-            results.append("Slice " + i + "\t" + count + "\t" + colocalisation
-                    + "\t" + numFormat.format(100.0 * colocalisation / count)
-                    + "\t" + numFormat.format(1000.0 * sepsum / count));
-
+            results.append(String.format("Slice %d\t%d\t%d\t%3.3f\t%3.3f", i, count, colocalisation, (100.0 * colocalisation / count), (1000.0 * sepsum / count)));
             outStack[0].addSlice("" + i, ch1proc);
             outStack[1].addSlice("" + i, ch2proc);
         }
         progress.dispose();
-        results.append("\n" + toString());
         results.setVisible(true);
         particleCoords.setVisible(true);
         try {

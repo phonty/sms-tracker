@@ -16,9 +16,7 @@
  */
 package ParticleTracking;
 
-import Detection.Filament_Detector;
-import ij.IJ;
-import ij.process.ImageProcessor;
+import Particle_Analysis.Particle_Colocaliser;
 
 public class Main {
 
@@ -33,11 +31,11 @@ public class Main {
 ////        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
 //        System.exit(0);
 //    }
-    public static void main(String args[]) {
-        GPUAnalyse instance = new GPUAnalyse();
-        instance.run(null);
-        System.exit(0);
-    }
+//    public static void main(String args[]) {
+//        GPUAnalyse instance = new GPUAnalyse();
+//        instance.run(null);
+//        System.exit(0);
+//    }
 //    public static void main(String args[]) {
 //        int radius = 5;
 //        double[] sigmas = new double[10];
@@ -54,9 +52,9 @@ public class Main {
 //        System.exit(0);
 //    }
 
-//        public static void main(String args[]) {
-//        Particle_Colocaliser instance = new Particle_Colocaliser();
-//        instance.run(null);
-//        System.exit(0);
-//    }
+        public static void main(String args[]) {
+        Particle_Colocaliser instance = new Particle_Colocaliser();
+        instance.run(null);
+        System.exit(0);
+    }
 }
