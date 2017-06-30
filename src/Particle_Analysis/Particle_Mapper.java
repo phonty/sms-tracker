@@ -48,6 +48,7 @@ import ij.measure.Measurements;
 import ij.measure.ResultsTable;
 import ij.plugin.filter.Analyzer;
 import ij.plugin.filter.EDM;
+import ij.plugin.filter.GaussianBlur;
 import ij.plugin.filter.ParticleAnalyzer;
 import ij.plugin.frame.RoiManager;
 import ij.process.Blitter;
@@ -75,11 +76,11 @@ public class Particle_Mapper extends Particle_Tracker {
 
     private static double histMin = -5.0, histMax = 20.0, threshLevel = 50.0;
     private static boolean useThresh = true, isolateFoci = true, analyseFluorescence = true,
-            averageImage = false;
+            averageImage = false, junctions = false;
     private static int histNBins = 40;
     String resultsDir;
     private Cell[] cells;
-    private final int NUCLEI = 2, CYTO = 1, FOCI = 0;
+    private final int N_INPUTS = 5, NUCLEI = 2, CYTO = 1, FOCI = 0, JUNCTION_ALIGN = FOCI, JUNCTION_QUANT = CYTO;
     private final String NUCLEI_MASK = "Nuclei Mask", FLUO_DIST = "fluorescence_distribution_data.csv",
             FOCI_DIST = "foci_distance_data.csv", FOCI_DETECTIONS = "Foci Detections", DIST_MAP = "Distance Map",
             FOCI_DIST_HIST = "foci_distance_histogram.csv", FOCI_NUC_ASS = "Foci-Nuclei Associations",
@@ -105,7 +106,7 @@ public class Particle_Mapper extends Particle_Tracker {
     public void run(String arg) {
         Prefs.blackBackground = false;
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
-        inputs = new ImagePlus[3];
+        inputs = new ImagePlus[N_INPUTS];
         if (IJ.getInstance() == null) {
             inputs[NUCLEI] = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath());
             inputs[FOCI] = IJ.openImage((new OpenDialog("Specify Foci Image", null)).getPath());
@@ -169,7 +170,7 @@ public class Particle_Mapper extends Particle_Tracker {
                     if (useThresh) {
                         filterCells(stacks[CYTO].getProcessor(i), new Cytoplasm(), threshLevel, Measurements.MEAN);
                     }
-                    linkCells(new ArrayList(), cellMap);
+                    linkCells(new ArrayList(), cellMap, thisDir.getAbsolutePath());
                     if (isolateFoci) {
                         ParticleArray pa = findParticles();
                         assignParticlesToCells(pa, cellMap, thisDir.getAbsolutePath());
@@ -179,7 +180,7 @@ public class Particle_Mapper extends Particle_Tracker {
                         outputFociDistanceData(distances, thisDir.getAbsolutePath(), resultsHeadings, hideOutputs);
                     }
                     if (analyseFluorescence) {
-                        extractCellCellProfiles(stacks[FOCI].getProcessor(i), 250, 1);
+                        extractCellCellProfiles(stacks[JUNCTION_QUANT].getProcessor(i), stacks[JUNCTION_ALIGN].getProcessor(i), 250, 1, thisDir.getAbsolutePath());
                         double[][] vals = analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(i),
                                 Measurements.MEAN + Measurements.STD_DEV);
                         String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, FLUO_DIST);
@@ -332,7 +333,7 @@ public class Particle_Mapper extends Particle_Tracker {
         IJ.saveAs(new ImagePlus("", map), "PNG", String.format("%s%s%s", resultsDir, File.separator, FOCI_NUC_ASS));
     }
 
-    void linkCells(ArrayList<int[]> links, ImageProcessor cellMap) {
+    void linkCells(ArrayList<int[]> links, ImageProcessor cellMap, String dir) {
         ByteProcessor map = new ByteProcessor(cellMap.getWidth(), cellMap.getHeight());
         map.setValue(0);
         map.fill();
@@ -361,7 +362,7 @@ public class Particle_Mapper extends Particle_Tracker {
                 }
             }
         }
-        IJ.saveAs(new ImagePlus("", map), "PNG", String.format("%s%s%s", resultsDir, File.separator, CELL_CELL_ASS));
+        IJ.saveAs(new ImagePlus("", map), "PNG", String.format("%s%s%s", dir, File.separator, CELL_CELL_ASS));
     }
 
     private int[] checkEdge(int x, int y, ImageProcessor regionImage, int REGION_BORDER) {
@@ -381,32 +382,56 @@ public class Particle_Mapper extends Particle_Tracker {
         }
     }
 
-    public void extractCellCellProfiles(ImageProcessor ip, int finalWidth, int lineWidth) {
-        ip.setLineWidth(lineWidth);
-        ip.setInterpolate(true);
-        ip.setInterpolationMethod(ImageProcessor.BILINEAR);
+    public void extractCellCellProfiles(ImageProcessor image, ImageProcessor refImage, int finalWidth, int lineWidth, String dir) {
+        File profilesDir = GenUtils.createDirectory(String.format("%s%sJunction-Junction Profiles", dir, File.separator), true);
+        setWidthAndInterpolation(image, lineWidth, ImageProcessor.BILINEAR);
+        setWidthAndInterpolation(refImage, lineWidth, ImageProcessor.BILINEAR);
         int N = cells.length;
         for (int i = 0; i < N; i++) {
             Cell current = cells[i];
             ArrayList<Cell> links = current.getLinks();
+            if (links == null) {
+                continue;
+            }
             for (int j = 0; j < links.size(); j++) {
                 Cell link = links.get(j);
                 if (current.getID() > link.getID()) {
                     continue;
                 }
-                double[] centroid1 = current.getNucleus().getCentroid();
-                double[] centroid2 = link.getNucleus().getCentroid();
-                double[] lineVals = ip.getLine(centroid1[0], centroid1[1], centroid2[0], centroid2[1]);
-                FloatProcessor lineImage = new FloatProcessor(lineVals.length, 1);
-                for (int x = 0; x < lineVals.length; x++) {
-                    lineImage.putPixelValue(x, 0, lineVals[x]);
-                }
-                lineImage.setInterpolate(true);
-                lineImage.setInterpolationMethod(ImageProcessor.BILINEAR);
-                IJ.saveAs(new ImagePlus("", lineImage.resize(finalWidth, 1)), "TIF",
-                        String.format("%s%s%s_%d_%d", resultsDir, File.separator, "Cell-Cell", current.getID(), link.getID()));
+                ImageProcessor output = alignProfile(extractProfilePoints(current, link, image),
+                        10.0, extractProfilePoints(current, link, refImage));
+                output.setInterpolate(true);
+                output.setInterpolationMethod(ImageProcessor.BILINEAR);
+                IJ.saveAs(new ImagePlus("", output.resize(finalWidth, 1)), "TIF",
+                        String.format("%s%s%s_%d_%d", profilesDir, File.separator, "Cell-Cell", current.getID(), link.getID()));
             }
         }
+    }
+
+    void setWidthAndInterpolation(ImageProcessor image, int lineWidth, int interpolation) {
+        image.setLineWidth(lineWidth);
+        image.setInterpolate(true);
+        image.setInterpolationMethod(interpolation);
+    }
+
+    FloatProcessor extractProfilePoints(Cell cell1, Cell cell2, ImageProcessor image) {
+        double[] centroid1 = cell1.getNucleus().getCentroid();
+        double[] centroid2 = cell2.getNucleus().getCentroid();
+        double[] lineVals1 = image.getLine(centroid1[0], centroid1[1], centroid2[0], centroid2[1]);
+        FloatProcessor lineImage = new FloatProcessor(lineVals1.length, 1);
+        for (int x = 0; x < lineVals1.length; x++) {
+            lineImage.putPixelValue(x, 0, lineVals1[x]);
+        }
+        return lineImage;
+    }
+
+    ImageProcessor alignProfile(FloatProcessor inputImage, double radius, FloatProcessor refImage) {
+        ImageProcessor blurredRef = refImage.duplicate();
+        (new GaussianBlur()).blurGaussian(blurredRef, radius);
+        int[] max = Utils.findImageMaxima(blurredRef);
+        int xc = blurredRef.getWidth() / 2;
+        inputImage.translate(xc - max[0], 0);
+        return inputImage;
     }
 
     /**
@@ -506,6 +531,8 @@ public class Particle_Mapper extends Particle_Tracker {
             imageTitles[NUCLEI] = inputs[NUCLEI] != null ? inputs[NUCLEI].getTitle() : " ";
             imageTitles[FOCI] = inputs[FOCI] != null ? inputs[FOCI].getTitle() : " ";
             imageTitles[CYTO] = inputs[CYTO] != null ? inputs[CYTO].getTitle() : " ";
+            imageTitles[JUNCTION_ALIGN] = inputs[JUNCTION_ALIGN] != null ? inputs[JUNCTION_ALIGN].getTitle() : " ";
+            imageTitles[JUNCTION_QUANT] = inputs[JUNCTION_QUANT] != null ? inputs[JUNCTION_QUANT].getTitle() : " ";
         }
         int N = imageTitles.length;
         if (N < 2) {
@@ -529,10 +556,14 @@ public class Particle_Mapper extends Particle_Tracker {
         gd.addMessage("How do you want to analyse the protein distribution?", bFont);
         String[] checkBoxLabels = new String[]{"Attempt to isolate foci", "Quantify entire distribution"};
         gd.addCheckboxGroup(1, 2, checkBoxLabels, new boolean[]{isolateFoci, analyseFluorescence});
-        gd.addMessage("Specify ranges and bin size for distance histogram", bFont);
+        gd.addMessage("Specify ranges and bin size for foci distance histogram", bFont);
         gd.addNumericField("Minimum Value:", histMin, 1);
         gd.addNumericField("Maximum Value:", histMax, 1);
         gd.addNumericField("Number of Bins:", histNBins, 0);
+        gd.addMessage("Analyse cell-cell junctions?", bFont);
+        gd.addCheckbox("Extract fluorescence profiles?", junctions);
+        gd.addChoice("Align junctions according to: ", imageTitles, imageTitles[JUNCTION_ALIGN < N ? JUNCTION_ALIGN : 0]);
+        gd.addChoice("Extract junction profiles from: ", imageTitles, imageTitles[JUNCTION_QUANT < N ? JUNCTION_QUANT : 0]);
         gd.addMessage("How do you want results to be output?", bFont);
         String[] radioButtonLabels = new String[]{"Show me data for each cell", "Summarise data for each image"};
         gd.addRadioButtonGroup(null, radioButtonLabels, 1, 2, radioButtonLabels[averageImage ? 1 : 0]);
@@ -540,16 +571,20 @@ public class Particle_Mapper extends Particle_Tracker {
         if (gd.wasCanceled()) {
             return false;
         }
-        boolean c1, c2, c3;
-        int choice1 = gd.getNextChoiceIndex(), choice2 = gd.getNextChoiceIndex(), choice3 = gd.getNextChoiceIndex();
+        boolean c1, c2, c3, c4, c5;
+        int choice1 = gd.getNextChoiceIndex(), choice2 = gd.getNextChoiceIndex(), choice3 = gd.getNextChoiceIndex(), choice4 = gd.getNextChoiceIndex(), choice5 = gd.getNextChoiceIndex();
         if (IJ.getInstance() == null) {
             c1 = inputs[choice1] != null;
             c2 = inputs[choice2] != null;
             c3 = inputs[choice3] != null;
+            c4 = inputs[choice4] != null;
+            c5 = inputs[choice5] != null;
         } else {
             c1 = WindowManager.getImage(imageTitles[choice1]) != null;
             c2 = WindowManager.getImage(imageTitles[choice2]) != null;
             c3 = WindowManager.getImage(imageTitles[choice3]) != null;
+            c4 = WindowManager.getImage(imageTitles[choice4]) != null;
+            c5 = WindowManager.getImage(imageTitles[choice5]) != null;
         }
         useThresh = gd.getNextBoolean();
         threshLevel = gd.getNextNumber();
@@ -568,19 +603,31 @@ public class Particle_Mapper extends Particle_Tracker {
         } else if (!c3 && useThresh) {
             GenUtils.error("You have not specified an image for thresholding.");
             return showDialog();
+        } else if (!c4 && junctions) {
+            GenUtils.error("You have not specified an image for junction alignment.");
+            return showDialog();
+        } else if (!c5 && junctions) {
+            GenUtils.error("You have not specified an image for junction fluorescence profiling.");
+            return showDialog();
         } else {
             if (IJ.getInstance() == null) {
-                ImagePlus[] inputsCopy = new ImagePlus[3];
+                ImagePlus[] inputsCopy = new ImagePlus[N_INPUTS];
                 inputsCopy[NUCLEI] = inputs[NUCLEI] != null ? inputs[NUCLEI].duplicate() : null;
                 inputsCopy[FOCI] = inputs[FOCI] != null ? inputs[FOCI].duplicate() : null;
                 inputsCopy[CYTO] = inputs[CYTO] != null ? inputs[CYTO].duplicate() : null;
+                inputsCopy[JUNCTION_ALIGN] = inputs[JUNCTION_ALIGN] != null ? inputs[JUNCTION_ALIGN].duplicate() : null;
+                inputsCopy[JUNCTION_QUANT] = inputs[JUNCTION_QUANT] != null ? inputs[JUNCTION_QUANT].duplicate() : null;
                 inputs[NUCLEI] = inputs[choice1] != null ? inputsCopy[choice1].duplicate() : null;
                 inputs[FOCI] = inputs[choice2] != null ? inputsCopy[choice2].duplicate() : null;
                 inputs[CYTO] = inputs[choice3] != null ? inputsCopy[choice3].duplicate() : null;
+                inputs[JUNCTION_ALIGN] = inputs[choice4] != null ? inputsCopy[choice4].duplicate() : null;
+                inputs[JUNCTION_QUANT] = inputs[choice5] != null ? inputsCopy[choice5].duplicate() : null;
             } else {
                 inputs[NUCLEI] = WindowManager.getImage(imageTitles[choice1]);
                 inputs[FOCI] = WindowManager.getImage(imageTitles[choice2]);
                 inputs[CYTO] = WindowManager.getImage(imageTitles[choice3]);
+                inputs[JUNCTION_ALIGN] = WindowManager.getImage(imageTitles[choice4]);
+                inputs[JUNCTION_QUANT] = WindowManager.getImage(imageTitles[choice5]);
             }
             return true;
         }
