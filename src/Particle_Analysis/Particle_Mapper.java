@@ -34,6 +34,7 @@ import Particle.Particle;
 import Particle.ParticleArray;
 import ParticleTracking.UserVariables;
 import Revision.Revision;
+import Stacks.StackChecker;
 import UtilClasses.GenUtils;
 import UtilClasses.Utilities;
 import ij.IJ;
@@ -124,7 +125,7 @@ public class Particle_Mapper extends Particle_Tracker {
             return;
         }
         ImageStack[] stacks = getStacks();
-        if (!checkStackSizes(stacks)) {
+        if (!StackChecker.checkStackSizes(stacks)) {
             GenUtils.error("All stacks must have same number of slices.");
         }
         hideAllImages();
@@ -699,20 +700,4 @@ public class Particle_Mapper extends Particle_Tracker {
         saveTextWindow(tw, new File(String.format("%s%s%s", resultsDir, File.separator, FOCI_DIST)), resultsHeadings);
     }
 
-    boolean checkStackSizes(ImageStack[] stacks) {
-        for (ImageStack a : stacks) {
-            if (a == null) {
-                continue;
-            }
-            for (ImageStack b : stacks) {
-                if (b == null) {
-                    continue;
-                }
-                if (a.size() != b.size()) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
 }
