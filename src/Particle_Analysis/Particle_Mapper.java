@@ -17,7 +17,6 @@
 package Particle_Analysis;
 
 import Cell.Cell;
-import Cell.CellRegion;
 import Cell.Cytoplasm;
 import Cell.Nucleus;
 import Fluorescence.FluorescenceAnalyser;
@@ -58,9 +57,7 @@ import ij.process.ByteProcessor;
 import ij.process.FloatBlitter;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
-import ij.process.ImageStatistics;
 import ij.process.ShortProcessor;
-import ij.process.TypeConverter;
 import ij.text.TextWindow;
 import java.awt.Color;
 import java.awt.Font;
@@ -106,7 +103,7 @@ public class Particle_Mapper extends Particle_Tracker {
 
     public void run(String arg) {
         Prefs.blackBackground = false;
-        title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
+        title = String.format("%s_v%d.%d", title, Revision.VERSION, Revision.revisionNumber);
         inputs = new ImagePlus[N_INPUTS];
         if (IJ.getInstance() == null) {
             inputs[NUCLEI] = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath());
@@ -127,17 +124,8 @@ public class Particle_Mapper extends Particle_Tracker {
             return;
         }
         ImageStack[] stacks = getStacks();
-        for (ImageStack a : stacks) {
-            if (a != null) {
-                for (ImageStack b : stacks) {
-                    if (b != null) {
-                        if (a.size() != b.size()) {
-                            GenUtils.error("All stacks must have same number of slices.");
-                            return;
-                        }
-                    }
-                }
-            }
+        if (!checkStackSizes(stacks)) {
+            GenUtils.error("All stacks must have same number of slices.");
         }
         hideAllImages();
         File inputDir = buildStacks();
@@ -709,5 +697,22 @@ public class Particle_Mapper extends Particle_Tracker {
         }
         tw.setVisible(!hideTextWindow);
         saveTextWindow(tw, new File(String.format("%s%s%s", resultsDir, File.separator, FOCI_DIST)), resultsHeadings);
+    }
+
+    boolean checkStackSizes(ImageStack[] stacks) {
+        for (ImageStack a : stacks) {
+            if (a == null) {
+                continue;
+            }
+            for (ImageStack b : stacks) {
+                if (b == null) {
+                    continue;
+                }
+                if (a.size() != b.size()) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }
