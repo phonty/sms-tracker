@@ -20,6 +20,7 @@ import Cell.Cell;
 import Cell.CellRegion;
 import Cell.Cytoplasm;
 import Cell.Nucleus;
+import Fluorescence.FluorescenceAnalyser;
 import IAClasses.Utils;
 import static IJUtilities.IJUtils.hideAllImages;
 import static IJUtilities.IJUtils.resetRoiManager;
@@ -52,7 +53,6 @@ import ij.plugin.filter.GaussianBlur;
 import ij.plugin.filter.ParticleAnalyzer;
 import ij.plugin.frame.RoiManager;
 import ij.process.Blitter;
-import ij.process.ByteBlitter;
 import ij.process.ByteProcessor;
 import ij.process.FloatBlitter;
 import ij.process.FloatProcessor;
@@ -181,8 +181,8 @@ public class Particle_Mapper extends Particle_Tracker {
                     }
                     if (analyseFluorescence) {
                         extractCellCellProfiles(stacks[JUNCTION_QUANT].getProcessor(i), stacks[JUNCTION_ALIGN].getProcessor(i), 250, 1, thisDir.getAbsolutePath());
-                        double[][] vals = analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(i),
-                                Measurements.MEAN + Measurements.STD_DEV);
+                        double[][] vals = FluorescenceAnalyser.analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(i),
+                                Measurements.MEAN + Measurements.STD_DEV, cells);
                         String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, FLUO_DIST);
                         saveValues(vals, new File(outputFileName), FLUO_HEADINGS);
                         if (averageImage) {
@@ -763,40 +763,4 @@ public class Particle_Mapper extends Particle_Tracker {
         cells = cells2.toArray(new Cell[]{});
     }
 
-    double[][] analyseCellFluorescenceDistribution(ImageProcessor image, int measurements) {
-        int N = cells.length;
-        double[][] vals = new double[N][];
-        for (int i = 0; i < N; i++) {
-            Cell cell = cells[i];
-            if (cell.getID() > 0) {
-                Nucleus nucleus = (Nucleus) cell.getRegion(new Nucleus());
-                Cytoplasm cyto = (Cytoplasm) cell.getRegion(new Cytoplasm());
-                Roi nucRoi = nucleus.getRoi();
-                ByteProcessor nucMask = (ByteProcessor) nucRoi.getMask();
-                image.setRoi(nucRoi);
-                image.setMask(nucMask);
-                ImageStatistics nucstats = ImageStatistics.getStatistics(image, measurements, null);
-
-                Roi cytoRoi = cyto.getRoi();
-                ByteProcessor cytoMask = (ByteProcessor) cytoRoi.getMask();
-                image.setRoi(cytoRoi);
-                image.setMask(cytoMask);
-                ImageStatistics cellstats = ImageStatistics.getStatistics(image, measurements, null);
-
-                int xc = nucRoi.getBounds().x - cytoRoi.getBounds().x;
-                int yc = nucRoi.getBounds().y - cytoRoi.getBounds().y;
-                (new ByteBlitter(cytoMask)).copyBits(nucMask, xc, yc, Blitter.SUBTRACT);
-                image.setRoi(cytoRoi);
-                image.setMask(cytoMask);
-                ImageStatistics cytostats = ImageStatistics.getStatistics(image, measurements, null);
-
-                vals[i] = new double[]{cell.getID(), cellstats.mean, cellstats.stdDev,
-                    nucstats.mean, nucstats.stdDev,
-                    cytostats.mean, cytostats.stdDev,
-                    nucstats.mean / cytostats.mean,
-                    nucstats.stdDev / cytostats.stdDev};
-            }
-        }
-        return vals;
-    }
 }
