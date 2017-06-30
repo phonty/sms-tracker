@@ -28,6 +28,7 @@ import static IO.DataWriter.getAverageValues;
 import static IO.DataWriter.convertArrayToString;
 import static IO.DataWriter.saveTextWindow;
 import static IO.DataWriter.saveValues;
+import Image.ImageChecker;
 import Math.Histogram;
 import Particle.IsoGaussian;
 import Particle.Particle;
@@ -160,7 +161,7 @@ public class Particle_Mapper extends Particle_Tracker {
             }
             for (int i = 1; i <= stacks[0].size(); i++) {
                 File thisDir = GenUtils.createDirectory(String.format("%s%sSlice_%d", resultsDir, File.separator, i), true);
-                ByteProcessor binaryNuclei = checkBinaryImage(stacks[NUCLEI].getProcessor(i));
+                ByteProcessor binaryNuclei = ImageChecker.checkBinaryImage(stacks[NUCLEI].getProcessor(i));
                 IJ.saveAs(new ImagePlus("", binaryNuclei), "PNG", String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, NUCLEI_MASK));
                 if (!findCells(binaryNuclei.duplicate())) {
                     IJ.log(String.format("No cells found in image %d.", i));
@@ -709,24 +710,4 @@ public class Particle_Mapper extends Particle_Tracker {
         tw.setVisible(!hideTextWindow);
         saveTextWindow(tw, new File(String.format("%s%s%s", resultsDir, File.separator, FOCI_DIST)), resultsHeadings);
     }
-
-    /**
-     *
-     * @param binaryImage
-     */
-    ByteProcessor checkBinaryImage(ImageProcessor image) {
-        image.resetMinAndMax();
-        ByteProcessor binaryImage = (ByteProcessor) (new TypeConverter(image, true)).convertToByte();
-        binaryImage.autoThreshold();
-        if (binaryImage.isInvertedLut()) {
-            binaryImage.invertLut();
-        }
-        ImageStatistics stats = binaryImage.getStatistics();
-        if (stats.histogram[0] > stats.histogram[255]) {
-            binaryImage.invert();
-        }
-        return binaryImage;
-    }
-
-
 }
