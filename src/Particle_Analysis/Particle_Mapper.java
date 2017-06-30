@@ -28,6 +28,7 @@ import static IO.DataWriter.convertArrayToString;
 import static IO.DataWriter.saveTextWindow;
 import static IO.DataWriter.saveValues;
 import Image.ImageChecker;
+import Image.ImageResizer;
 import Math.Histogram;
 import Particle.IsoGaussian;
 import Particle.Particle;
@@ -62,6 +63,7 @@ import ij.process.ShortProcessor;
 import ij.text.TextWindow;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.Rectangle;
 import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -390,9 +392,7 @@ public class Particle_Mapper extends Particle_Tracker {
                 }
                 ImageProcessor output = alignProfile(extractProfilePoints(current, link, image),
                         10.0, extractProfilePoints(current, link, refImage));
-                output.setInterpolate(true);
-                output.setInterpolationMethod(ImageProcessor.BILINEAR);
-                IJ.saveAs(new ImagePlus("", output.resize(finalWidth, 1)), "TIF",
+                IJ.saveAs(new ImagePlus("", ImageResizer.resizeNoScaling(output, finalWidth, 1)), "TIF",
                         String.format("%s%s%s_%d_%d", profilesDir, File.separator, "Cell-Cell", current.getID(), link.getID()));
             }
         }
