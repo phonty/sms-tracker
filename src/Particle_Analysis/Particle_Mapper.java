@@ -168,7 +168,7 @@ public class Particle_Mapper extends Particle_Tracker {
                     ImageProcessor cellMap = buildTerritories(binaryNuclei.duplicate(), thisDir.getAbsolutePath()).getProcessor();
                     Arrays.sort(cells);
                     if (useThresh) {
-                        filterCells(stacks[CYTO].getProcessor(i), new Cytoplasm(), threshLevel, Measurements.MEAN);
+                        cells = FluorescenceAnalyser.filterCells(stacks[CYTO].getProcessor(i), new Cytoplasm(), threshLevel, Measurements.MEAN, cells);
                     }
                     linkCells(new ArrayList(), cellMap, thisDir.getAbsolutePath());
                     if (isolateFoci) {
@@ -728,39 +728,5 @@ public class Particle_Mapper extends Particle_Tracker {
         return binaryImage;
     }
 
-    void filterCells(ImageProcessor image, CellRegion regionType, double threshold, int measurement) {
-        DescriptiveStatistics ds = new DescriptiveStatistics();
-        boolean[] selected = new boolean[cells.length];
-        Arrays.fill(selected, false);
-        int b = 0;
-        for (Cell cell : cells) {
-            CellRegion cr = cell.getRegion(regionType);
-            if (cr != null) {
-                selected[b] = true;
-                image.setRoi(cr.getRoi());
-                ImageStatistics stats = ImageStatistics.getStatistics(image, measurement, null);
-                switch (measurement) {
-                    case Measurements.MEAN:
-                        ds.addValue(stats.mean);
-                        break;
-                    case Measurements.STD_DEV:
-                        ds.addValue(stats.stdDev);
-                        break;
-                    default:
-                        ds.addValue(0.0);
-                }
-            }
-            b++;
-        }
-        double percentile = threshold > 0.0 ? ds.getPercentile(threshold) : 0.0;
-        double[] measures = ds.getValues();
-        ArrayList<Cell> cells2 = new ArrayList();
-        for (int i = 0, j = 0; i < cells.length; i++) {
-            if (selected[i] && measures[j++] > percentile) {
-                cells2.add(cells[i]);
-            }
-        }
-        cells = cells2.toArray(new Cell[]{});
-    }
 
 }
