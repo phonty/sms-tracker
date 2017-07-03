@@ -16,10 +16,12 @@
  */
 package Particle_Analysis;
 
+import Adapt.Analyse_Movie;
 import Cell.Cell;
 import Cell.Cytoplasm;
 import Cell.Nucleus;
 import Fluorescence.FluorescenceAnalyser;
+import IAClasses.Region;
 import IAClasses.Utils;
 import static IJUtilities.IJUtils.hideAllImages;
 import static IJUtilities.IJUtils.resetRoiManager;
@@ -54,6 +56,7 @@ import ij.plugin.filter.EDM;
 import ij.plugin.filter.GaussianBlur;
 import ij.plugin.filter.ParticleAnalyzer;
 import ij.plugin.frame.RoiManager;
+import ij.process.AutoThresholder;
 import ij.process.Blitter;
 import ij.process.ByteProcessor;
 import ij.process.FloatBlitter;
@@ -63,7 +66,6 @@ import ij.process.ShortProcessor;
 import ij.text.TextWindow;
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.Rectangle;
 import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -158,6 +160,7 @@ public class Particle_Mapper extends Particle_Tracker {
                     IJ.log(String.format("No cells found in image %d.", i));
                 } else {
                     ImageProcessor cellMap = buildTerritories(binaryNuclei.duplicate(), thisDir.getAbsolutePath()).getProcessor();
+                    buildTerritories2(binaryNuclei.duplicate(), stacks[CYTO].getProcessor(i), thisDir.getAbsolutePath());
                     Arrays.sort(cells);
                     if (useThresh) {
                         cells = FluorescenceAnalyser.filterCells(stacks[CYTO].getProcessor(i), new Cytoplasm(), threshLevel, Measurements.MEAN, cells);
@@ -281,6 +284,50 @@ public class Particle_Mapper extends Particle_Tracker {
             image.drawString(String.valueOf(id), xc, yc);
         }
         IJ.saveAs(new ImagePlus("", image), "PNG", String.format("%s%s%s", resultsDir, File.separator, CELL_BOUNDS));
+        return pa.getOutputImage();
+    }
+
+    public ImagePlus buildTerritories2(ImageProcessor nucleiImage, ImageProcessor cytoImage, String resultsDir) {
+        ImagePlus imp = new ImagePlus("", nucleiImage);
+        ResultsTable rt = Analyzer.getResultsTable();
+        nucleiImage.setColor(Color.white);
+        int fontsize = (int) Math.round(0.05 * Math.min(nucleiImage.getWidth(), nucleiImage.getHeight()));
+        Font font = new Font("Times", Font.BOLD, fontsize);
+        nucleiImage.setFont(font);
+        rt.reset();
+        resetRoiManager();
+        ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.ADD_TO_MANAGER, 0, rt, 0, Double.MAX_VALUE);
+        pa.setHideOutputImage(true);
+        pa.analyze(imp);
+        int n = cells.length;
+        RoiManager roimanager = RoiManager.getInstance();
+        roimanager.setVisible(false);
+        Roi[] rois = roimanager.getRoisAsArray();
+
+        ArrayList<Region> regions = Analyse_Movie.findCellRegions(cytoImage, rois, 0.95, AutoThresholder.Method.Default.toString());
+
+        ImageProcessor cellMap = pa.getOutputImage().getProcessor();
+        int duds = -1;
+        for (int i = 0; i < n; i++) {
+            Cell c = cells[i];
+            double[] centroid = c.getNucleus().getCentroid();
+            int xc = (int) Math.round(centroid[0]);
+            int yc = (int) Math.round(centroid[1]);
+            int id = cellMap.getPixel(xc, yc);
+            if (id < 1 || cellExists(new Cell(id))) {
+                id = duds--;
+                IJ.log(String.format("The object detected at (%d, %d) could not be"
+                        + " assigned to a unique cell. This could indicate a multi-nucleate"
+                        + " cell, but could also suggest an excessively noisy image."
+                        + " Consider preprocessing your nuclei image to reduce noise.", xc, yc));
+            }
+            c.setID(id);
+            if (id > 0) {
+                c.addCellRegion(new Cytoplasm(rois[id - 1]));
+            }
+            nucleiImage.drawString(String.valueOf(id), xc, yc);
+        }
+        IJ.saveAs(new ImagePlus("", nucleiImage), "PNG", String.format("%s%s%s", resultsDir, File.separator, CELL_BOUNDS));
         return pa.getOutputImage();
     }
 

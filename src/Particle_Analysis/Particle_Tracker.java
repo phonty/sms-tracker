@@ -462,8 +462,8 @@ public class Particle_Tracker implements PlugIn {
                 points.addPoint(p.getX(), p.getY());
             }
         }
-        am.initialiseROIs(null, -1, frame + 1, null, points, inputProc.getWidth(), inputProc.getHeight(), frame + 1);
-        ArrayList<CellData> cd = am.getCellData();
+        ArrayList<CellData> cd = new ArrayList();
+        am.initialiseROIs(null, -1, frame + 1, null, points, inputProc.getWidth(), inputProc.getHeight(), frame + 1, cd, null, false);
         int t = am.getThreshold(inputProc, true, -1, AutoThresholder.Method.Default.toString());
         ArrayList<Region> regions = am.findCellRegions(inputProc, t, am.getCellData());
         for (int i = 0; i < cd.size(); i++) {
