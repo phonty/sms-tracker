@@ -16,7 +16,6 @@
  */
 package Particle_Analysis;
 
-import Adapt.Analyse_Movie;
 import Cell.Cell;
 import Cell.Cytoplasm;
 import Cell.Nucleus;
@@ -37,6 +36,7 @@ import Particle.Particle;
 import Particle.ParticleArray;
 import ParticleTracking.UserVariables;
 import Revision.Revision;
+import Segmentation.RegionGrower;
 import Stacks.StackChecker;
 import UtilClasses.GenUtils;
 import UtilClasses.Utilities;
@@ -304,7 +304,7 @@ public class Particle_Mapper extends Particle_Tracker {
         roimanager.setVisible(false);
         Roi[] rois = roimanager.getRoisAsArray();
 
-        ArrayList<Region> regions = Analyse_Movie.findCellRegions(cytoImage, rois, 0.95, AutoThresholder.Method.Default.toString());
+        ArrayList<Region> regions = RegionGrower.findCellRegions(cytoImage, rois, 0.95, AutoThresholder.Method.Default.toString());
 
         ImageProcessor cellMap = pa.getOutputImage().getProcessor();
         int duds = -1;

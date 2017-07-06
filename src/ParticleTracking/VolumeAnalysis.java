@@ -247,7 +247,7 @@ public class VolumeAnalysis extends Particle_Tracker {
             }
         }
         if (update) {
-            TrajectoryBuilder.updateTrajectories(particles, timeRes, UserVariables.getTrajMaxStep(), spatialRes, true, 1.0, trajectories);
+            TrajectoryBuilder.updateTrajectories(particles, timeRes, UserVariables.getTrajMaxStep(), spatialRes, true, 1.0, trajectories, false);
         }
         return particles;
     }

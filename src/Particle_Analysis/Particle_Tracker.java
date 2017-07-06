@@ -1,7 +1,7 @@
 package Particle_Analysis;
 
 import Adapt.Analyse_Movie;
-import Adapt.CellData;
+import Cell.CellData;
 import Detection.Blob_Detector;
 import ui.ResultsPreviewInterface;
 import ui.UserInterface;
@@ -16,6 +16,7 @@ import ParticleTracking.ParticleTrajectory;
 import ParticleTracking.TrajectoryBuilder;
 import ParticleTracking.UserVariables;
 import Revision.Revision;
+import Segmentation.RegionGrower;
 import UtilClasses.GenUtils;
 import UtilClasses.Utilities;
 import Utils.ParamsReader;
@@ -463,9 +464,9 @@ public class Particle_Tracker implements PlugIn {
             }
         }
         ArrayList<CellData> cd = new ArrayList();
-        am.initialiseROIs(null, -1, frame + 1, null, points, inputProc.getWidth(), inputProc.getHeight(), frame + 1, cd, null, false);
-        int t = am.getThreshold(inputProc, true, -1, AutoThresholder.Method.Default.toString());
-        ArrayList<Region> regions = am.findCellRegions(inputProc, t, am.getCellData());
+        RegionGrower.initialiseROIs(null, -1, frame + 1, null, points, inputProc.getWidth(), inputProc.getHeight(), frame + 1, cd, null, false);
+        int t = RegionGrower.getThreshold(inputProc, true, -1, AutoThresholder.Method.Default.toString());
+        ArrayList<Region> regions = RegionGrower.findCellRegions(inputProc, t, am.getCellData());
         for (int i = 0; i < cd.size(); i++) {
             Region[] allRegions = new Region[inputs[0].getImageStackSize()];
             allRegions[frame] = regions.get(i);
@@ -551,7 +552,7 @@ public class Particle_Tracker implements PlugIn {
 
     protected void updateTrajs(ParticleArray particles, double spatialRes, boolean update) {
         if (update) {
-            TrajectoryBuilder.updateTrajectories(particles, UserVariables.getTimeRes(), UserVariables.getTrajMaxStep(), spatialRes, true, Utils.getStackMinMax(inputs[0].getImageStack())[1], trajectories);
+            TrajectoryBuilder.updateTrajectories(particles, UserVariables.getTimeRes(), UserVariables.getTrajMaxStep(), spatialRes, true, Utils.getStackMinMax(inputs[0].getImageStack())[1], trajectories, UserVariables.isTrackRegions());
         }
     }
 
