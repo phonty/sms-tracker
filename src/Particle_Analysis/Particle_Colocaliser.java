@@ -34,6 +34,7 @@ import ij.process.TypeConverter;
 import ij.text.TextWindow;
 import java.io.File;
 import java.util.ArrayList;
+import ui.DetectionGUI;
 
 public class Particle_Colocaliser extends GPUAnalyse {
 
@@ -42,6 +43,7 @@ public class Particle_Colocaliser extends GPUAnalyse {
 
     public Particle_Colocaliser() {
         super();
+        title = "Particle Colocaliser";
         gpuEnabled = false;
     }
 
@@ -127,6 +129,12 @@ public class Particle_Colocaliser extends GPUAnalyse {
             return (byte[]) (new ByteProcessor(w, h)).getPixels();
         }
         return (byte[]) ((new TypeConverter(ch1, true)).convertToByte()).getPixels();
+    }
+
+    public boolean showDialog() {
+        DetectionGUI ui = new DetectionGUI(null, true, title, this);
+        ui.setVisible(true);
+        return ui.isWasOKed();
     }
 
 }

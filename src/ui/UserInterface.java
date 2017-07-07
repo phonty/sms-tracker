@@ -29,6 +29,7 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.ImageCanvas;
 import ij.process.ImageProcessor;
+import java.awt.Canvas;
 import java.awt.Color;
 import java.util.ArrayList;
 import javax.swing.DefaultBoundedRangeModel;
@@ -94,7 +95,11 @@ public class UserInterface extends javax.swing.JDialog {
         jPanel3 = new javax.swing.JPanel();
         okButton = new javax.swing.JButton();
         cancelButton = new javax.swing.JButton();
-        jSplitPane1 = new javax.swing.JSplitPane();
+        jPanel2 = new javax.swing.JPanel();
+        canvas1 = new ImageCanvas(imp);
+        previewTextField = new javax.swing.JTextField();
+        previewToggleButton = new javax.swing.JToggleButton();
+        previewScrollBar = new java.awt.Scrollbar();
         jTabbedPane1 = new javax.swing.JTabbedPane();
         detectionPanel = new javax.swing.JPanel();
         spatResLabel = new javax.swing.JLabel();
@@ -130,11 +135,6 @@ public class UserInterface extends javax.swing.JDialog {
         useCalsToggleButton = new javax.swing.JToggleButton();
         minMSDPointsTextField = new javax.swing.JTextField();
         minMSDPointsLabel = new javax.swing.JLabel();
-        jPanel2 = new javax.swing.JPanel();
-        canvas1 = new ImageCanvas(imp);
-        previewTextField = new javax.swing.JTextField();
-        previewToggleButton = new javax.swing.JToggleButton();
-        previewScrollBar = new java.awt.Scrollbar();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle(title);
@@ -168,15 +168,78 @@ public class UserInterface extends javax.swing.JDialog {
         jPanel3.add(cancelButton, gridBagConstraints);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 1;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 0.2;
         getContentPane().add(jPanel3, gridBagConstraints);
 
-        jSplitPane1.setDividerSize(3);
-        jSplitPane1.setResizeWeight(0.3);
+        jPanel2.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        jPanel2.setLayout(new java.awt.GridBagLayout());
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 0.8;
+        gridBagConstraints.insets = new java.awt.Insets(10, 10, 0, 10);
+        jPanel2.add(canvas1, gridBagConstraints);
+
+        previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
+        previewTextField.setEditable(false);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.EAST;
+        gridBagConstraints.weightx = 0.2;
+        gridBagConstraints.weighty = 0.1;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 10, 10);
+        jPanel2.add(previewTextField, gridBagConstraints);
+
+        previewToggleButton.setText("Preview");
+        previewToggleButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                previewToggleButtonActionPerformed(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 1;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 0.1;
+        gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
+        jPanel2.add(previewToggleButton, gridBagConstraints);
+
+        previewScrollBar.setOrientation(java.awt.Scrollbar.HORIZONTAL);
+        previewScrollBar.setValues(1, 1, 1, analyser.getStacks()[0].getSize());
+        previewScrollBar.addAdjustmentListener(new java.awt.event.AdjustmentListener() {
+            public void adjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {
+                previewScrollBarAdjustmentValueChanged(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
+        gridBagConstraints.weightx = 0.8;
+        gridBagConstraints.weighty = 0.1;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 0);
+        jPanel2.add(previewScrollBar, gridBagConstraints);
+
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        getContentPane().add(jPanel2, gridBagConstraints);
 
         jTabbedPane1.setPreferredSize(new java.awt.Dimension(350, 270));
 
@@ -535,70 +598,13 @@ public class UserInterface extends javax.swing.JDialog {
 
         jTabbedPane1.addTab("Tracking", trackingPanel);
 
-        jSplitPane1.setLeftComponent(jTabbedPane1);
-
-        jPanel2.setBorder(javax.swing.BorderFactory.createEtchedBorder());
-        jPanel2.setLayout(new java.awt.GridBagLayout());
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 0;
-        gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
         gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.weighty = 0.8;
-        gridBagConstraints.insets = new java.awt.Insets(10, 10, 0, 10);
-        jPanel2.add(canvas1, gridBagConstraints);
-
-        previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
-        previewTextField.setEditable(false);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.EAST;
-        gridBagConstraints.weightx = 0.2;
-        gridBagConstraints.weighty = 0.1;
-        gridBagConstraints.insets = new java.awt.Insets(0, 0, 10, 10);
-        jPanel2.add(previewTextField, gridBagConstraints);
-
-        previewToggleButton.setText("Preview");
-        previewToggleButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                previewToggleButtonActionPerformed(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 1;
-        gridBagConstraints.gridwidth = 2;
-        gridBagConstraints.weighty = 0.1;
-        gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
-        jPanel2.add(previewToggleButton, gridBagConstraints);
-
-        previewScrollBar.setOrientation(java.awt.Scrollbar.HORIZONTAL);
-        previewScrollBar.setValues(1, 1, 1, analyser.getStacks()[0].getSize());
-        previewScrollBar.addAdjustmentListener(new java.awt.event.AdjustmentListener() {
-            public void adjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {
-                previewScrollBarAdjustmentValueChanged(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-        gridBagConstraints.weightx = 0.8;
-        gridBagConstraints.weighty = 0.1;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 0);
-        jPanel2.add(previewScrollBar, gridBagConstraints);
-
-        jSplitPane1.setRightComponent(jPanel2);
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-        gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.weighty = 0.8;
-        getContentPane().add(jSplitPane1, gridBagConstraints);
+        gridBagConstraints.weighty = 1.0;
+        getContentPane().add(jTabbedPane1, gridBagConstraints);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -623,7 +629,7 @@ public class UserInterface extends javax.swing.JDialog {
     private void previewScrollBarAdjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {//GEN-FIRST:event_previewScrollBarAdjustmentValueChanged
         previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
         if (previewToggleButton.isSelected() && !previewScrollBar.getValueIsAdjusting() && setVariables()) {
-            viewDetections();
+            DetectionGUI.viewDetections(analyser, monoChrome, Double.parseDouble(spatResTextField.getText()), previewScrollBar.getValue(), canvas1, imp);
         }
     }//GEN-LAST:event_previewScrollBarAdjustmentValueChanged
 
@@ -659,56 +665,6 @@ public class UserInterface extends javax.swing.JDialog {
             return false;
         }
         return true;
-    }
-
-    public void viewDetections() {
-        analyser.calcParticleRadius(UserVariables.getSpatialRes());
-        ImageStack stacks[] = analyser.getStacks();
-        ParticleArray detections;
-        int psv = previewScrollBar.getValue();
-        if (psv < 1) {
-            psv = 1;
-        }
-        if (analyser instanceof GPUAnalyse && UserVariables.isGpu()) {
-            detections = ((GPUAnalyse) analyser).cudaFindParticles(true, psv - 1, psv - 1, stacks[1]);
-        } else {
-            detections = analyser.findParticles(false, psv - 1, psv - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], UserVariables.isBlobs());
-        }
-        if (detections != null) {
-            ImageProcessor output = Utils.updateImage(stacks[0], stacks[1], psv);
-            double mag = 1.0 / UIMethods.getMagnification(output, canvas1);
-            double sr = 1.0 / Double.parseDouble(spatResTextField.getText());
-//        int radius = (int)Math.round(sr);
-            int radius = analyser.calcParticleRadius(UserVariables.getSpatialRes());
-            ArrayList<Particle> particles = detections.getLevel(0);
-            Color c1Color = !monoChrome ? Color.red : Color.white;
-            Color c2Color = !monoChrome ? Color.green : Color.white;
-            output.setLineWidth(1);
-            for (Particle p1 : particles) {
-                Particle p2 = p1.getColocalisedParticle();
-                drawDetections(output, (int) (Math.round(sr * p1.getX())), (int) (Math.round(sr * p1.getY())),
-                        radius, true, c1Color);
-                if (p2 != null) {
-                    drawDetections(output, (int) (Math.round(sr * p2.getX())),
-                            (int) (Math.round(sr * p2.getY())), radius,
-                            false, c2Color);
-                }
-            }
-            imp.setProcessor("", output);
-            ((ImageCanvas) canvas1).setMagnification(mag);
-
-            canvas1.repaint();
-        }
-    }
-
-    public void drawDetections(ImageProcessor image, int x, int y, int radius,
-            boolean drawOval, Color colour) {
-        image.setColor(colour);
-        if (drawOval) {
-            image.drawOval((x - radius), (y - radius), 2 * radius, 2 * radius);
-        } else {
-            image.drawRect((x - radius), (y - radius), 2 * radius, 2 * radius);
-        }
     }
 
     public boolean isWasOKed() {
@@ -820,7 +776,6 @@ public class UserInterface extends javax.swing.JDialog {
     private javax.swing.JTextField greenSigmaTextField;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
-    private javax.swing.JSplitPane jSplitPane1;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JLabel maxTrajStepLabel;
     private javax.swing.JTextField maxTrajStepTextField;

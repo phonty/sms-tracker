@@ -16,50 +16,32 @@
  */
 package ui;
 
-import IAClasses.Utils;
 import Particle_Analysis.Particle_Tracker;
-import ParticleTracking.GPUAnalyse;
-import Particle.Particle;
-import Particle.ParticleArray;
 import ParticleTracking.UserVariables;
 import UIClasses.UIMethods;
 import ij.IJ;
-import ij.ImagePlus;
-import ij.ImageStack;
 import ij.gui.ImageCanvas;
-import ij.process.ImageProcessor;
-import java.awt.Canvas;
-import java.awt.Color;
-import java.util.ArrayList;
 
-public class DetectionGUI extends javax.swing.JDialog {
+public class UserInterface extends DetectionGUI {
 
-    protected final Particle_Tracker analyser;
-    protected final ImagePlus imp;
-    protected final String title;
-    protected boolean wasOKed = false, monoChrome;
-    protected static final String spatResLabelText = "Spatial resolution (" + IJ.micronSymbol + "m/pixel):";
-    protected static final String chan1MaxThreshLabelText = "C1 Minimum peak size:";
-    protected static final String chan2MaxThreshLabelText = "C2 Minimum peak size:";
-    protected static final String c1CurveFitTolLabelText = "Curve fit tolerance:";
-    protected static final String preprocessToggleText = "Pre-Process Images";
-    protected static final String gpuToggleText = "Use GPU";
-    protected static final String redSigEstText = "C1 PSF Width (" + IJ.micronSymbol + "m):";
-    protected static final String greenSigEstText = "C2 PSF Width (" + IJ.micronSymbol + "m):";
+    private static final String fpsLabelText = "Frames per second:";
+    private static final String minTrajLengthLabelText = "Minimum trajectory length (s):";
+    private static final String minTrajDistLabelText = "Minimum trajectory distance (" + IJ.micronSymbol + "m):";
+    private static final String minTrajMSDLabelText = "Minimum trajectory MSD (" + IJ.micronSymbol + "m^2/s):";
+    private static final String maxLinkDistLabelText = "Maximum linking distance:";
+    private static final String colocalToggleText = "Co-Localised Only";
+    private static final String useCalToggleText = "Use Spatial Calibration";
+    private static final String extractSigsToggleText = "Extract Fluorescence Profiles";
+    private static final String trackLengthText = "Track Length (" + IJ.micronSymbol + "m):";
+    private static final String prevResToggleText = "Preview Results";
+    private static final String colocalThreshText = "Colocalisation Threshold:";
+    private static final String minMSDPointsLabelText = "Minimum Points for MSD Calculation:";
 
     /**
      * Creates new form UserInterface
      */
-    public DetectionGUI(java.awt.Frame parent, boolean modal, String title, Particle_Tracker analyser) {
-        super(parent, modal);
-        this.title = title;
-        this.analyser = analyser;
-        ImageStack[] stacks = analyser.getStacks();
-        this.monoChrome = (stacks[1] == null);
-        this.imp = new ImagePlus("", Utils.updateImage(stacks[0], stacks[1], 1));
-        if (monoChrome) {
-            UserVariables.setColocal(!monoChrome);
-        }
+    public UserInterface(java.awt.Frame parent, boolean modal, String title, Particle_Tracker analyser) {
+        super(parent, modal, title, analyser);
         initComponents();
         UIMethods.centreDialog(this);
     }
@@ -77,6 +59,8 @@ public class DetectionGUI extends javax.swing.JDialog {
         jPanel3 = new javax.swing.JPanel();
         okButton = new javax.swing.JButton();
         cancelButton = new javax.swing.JButton();
+        jSplitPane1 = new javax.swing.JSplitPane();
+        jTabbedPane1 = new javax.swing.JTabbedPane();
         detectionPanel = new javax.swing.JPanel();
         spatResLabel = new javax.swing.JLabel();
         chan1MaxThreshLabel = new javax.swing.JLabel();
@@ -92,6 +76,25 @@ public class DetectionGUI extends javax.swing.JDialog {
         greenSigmaTextField = new javax.swing.JTextField();
         chan2MaxThreshLabel = new javax.swing.JLabel();
         chan2MaxThreshTextField = new javax.swing.JTextField();
+        trackingPanel = new javax.swing.JPanel();
+        timeResLabel = new javax.swing.JLabel();
+        timeResTextField = new javax.swing.JTextField();
+        minTrajLengthLabel = new javax.swing.JLabel();
+        maxTrajStepLabel = new javax.swing.JLabel();
+        minTrajLengthTextField = new javax.swing.JTextField();
+        maxTrajStepTextField = new javax.swing.JTextField();
+        minTrajDistLabel = new javax.swing.JLabel();
+        minTrajDistTextField = new javax.swing.JTextField();
+        trackLengthLabel = new javax.swing.JLabel();
+        trackLengthTextField = new javax.swing.JTextField();
+        extractSigsToggleButton = new javax.swing.JToggleButton();
+        colocalThreshTextField = new javax.swing.JTextField();
+        colocalToggleButton = new javax.swing.JToggleButton();
+        colocalThreshLabel = new javax.swing.JLabel();
+        previewResultsToggleButton = new javax.swing.JToggleButton();
+        useCalsToggleButton = new javax.swing.JToggleButton();
+        minMSDPointsTextField = new javax.swing.JTextField();
+        minMSDPointsLabel = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
         canvas1 = new ImageCanvas(imp);
         previewTextField = new javax.swing.JTextField();
@@ -132,11 +135,15 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 1;
-        gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
         gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 0.2;
         getContentPane().add(jPanel3, gridBagConstraints);
+
+        jSplitPane1.setDividerSize(3);
+        jSplitPane1.setResizeWeight(0.3);
+
+        jTabbedPane1.setPreferredSize(new java.awt.Dimension(350, 270));
 
         detectionPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         detectionPanel.setLayout(new java.awt.GridBagLayout());
@@ -289,11 +296,211 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         detectionPanel.add(chan2MaxThreshTextField, gridBagConstraints);
 
+        jTabbedPane1.addTab("Detection", detectionPanel);
+
+        trackingPanel.setLayout(new java.awt.GridBagLayout());
+
+        timeResLabel.setText(fpsLabelText);
         gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 3;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weightx = 0.5;
         gridBagConstraints.weighty = 1.0;
-        getContentPane().add(detectionPanel, gridBagConstraints);
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        trackingPanel.add(timeResLabel, gridBagConstraints);
+
+        timeResTextField.setText(String.valueOf(UserVariables.getTimeRes()));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 3;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        trackingPanel.add(timeResTextField, gridBagConstraints);
+
+        minTrajLengthLabel.setText(minTrajLengthLabelText);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 4;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        trackingPanel.add(minTrajLengthLabel, gridBagConstraints);
+
+        maxTrajStepLabel.setText(maxLinkDistLabelText);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 7;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        trackingPanel.add(maxTrajStepLabel, gridBagConstraints);
+
+        minTrajLengthTextField.setText(String.valueOf(UserVariables.getMinTrajLength()));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 4;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        trackingPanel.add(minTrajLengthTextField, gridBagConstraints);
+
+        maxTrajStepTextField.setText(String.valueOf(UserVariables.getTrajMaxStep()));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 7;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        trackingPanel.add(maxTrajStepTextField, gridBagConstraints);
+
+        minTrajDistLabel.setText(minTrajDistLabelText);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 5;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        trackingPanel.add(minTrajDistLabel, gridBagConstraints);
+
+        minTrajDistTextField.setText(String.valueOf(UserVariables.getMinTrajDist()));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 5;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        trackingPanel.add(minTrajDistTextField, gridBagConstraints);
+
+        trackLengthLabel.setText(trackLengthText);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 8;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        trackingPanel.add(trackLengthLabel, gridBagConstraints);
+
+        trackLengthTextField.setText(String.valueOf(UserVariables.getTrackLength()));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 8;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        trackingPanel.add(trackLengthTextField, gridBagConstraints);
+
+        extractSigsToggleButton.setText(extractSigsToggleText);
+        extractSigsToggleButton.setSelected(UserVariables.isExtractsigs());
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 16;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        trackingPanel.add(extractSigsToggleButton, gridBagConstraints);
+
+        colocalThreshTextField.setText(String.valueOf(UserVariables.getColocalThresh()));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 10;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        trackingPanel.add(colocalThreshTextField, gridBagConstraints);
+
+        colocalToggleButton.setText(colocalToggleText);
+        colocalToggleButton.setSelected(UserVariables.isColocal());
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 12;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        trackingPanel.add(colocalToggleButton, gridBagConstraints);
+
+        colocalThreshLabel.setText(colocalThreshText);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 10;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        trackingPanel.add(colocalThreshLabel, gridBagConstraints);
+
+        previewResultsToggleButton.setText(prevResToggleText);
+        previewResultsToggleButton.setSelected(UserVariables.isPrevRes());
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 14;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        trackingPanel.add(previewResultsToggleButton, gridBagConstraints);
+
+        useCalsToggleButton.setText(useCalToggleText);
+        useCalsToggleButton.setSelected(UserVariables.isUseCals());
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 17;
+        gridBagConstraints.gridwidth = 2;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 10);
+        trackingPanel.add(useCalsToggleButton, gridBagConstraints);
+
+        minMSDPointsTextField.setText(String.valueOf(UserVariables.getMinMSDPoints()));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 9;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        trackingPanel.add(minMSDPointsTextField, gridBagConstraints);
+
+        minMSDPointsLabel.setText(minMSDPointsLabelText);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 9;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        trackingPanel.add(minMSDPointsLabel, gridBagConstraints);
+
+        jTabbedPane1.addTab("Tracking", trackingPanel);
+
+        jSplitPane1.setLeftComponent(jTabbedPane1);
 
         jPanel2.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         jPanel2.setLayout(new java.awt.GridBagLayout());
@@ -316,7 +523,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints.anchor = java.awt.GridBagConstraints.EAST;
         gridBagConstraints.weightx = 0.2;
         gridBagConstraints.weighty = 0.1;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 10);
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 10, 10);
         jPanel2.add(previewTextField, gridBagConstraints);
 
         previewToggleButton.setText("Preview");
@@ -329,8 +536,6 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 1;
         gridBagConstraints.gridwidth = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 0.1;
         gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
         jPanel2.add(previewToggleButton, gridBagConstraints);
@@ -349,14 +554,16 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
         gridBagConstraints.weightx = 0.8;
         gridBagConstraints.weighty = 0.1;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 10);
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 0);
         jPanel2.add(previewScrollBar, gridBagConstraints);
+
+        jSplitPane1.setRightComponent(jPanel2);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-        gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 1.0;
-        getContentPane().add(jPanel2, gridBagConstraints);
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 0.8;
+        getContentPane().add(jSplitPane1, gridBagConstraints);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -381,7 +588,7 @@ public class DetectionGUI extends javax.swing.JDialog {
     private void previewScrollBarAdjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {//GEN-FIRST:event_previewScrollBarAdjustmentValueChanged
         previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
         if (previewToggleButton.isSelected() && !previewScrollBar.getValueIsAdjusting() && setVariables()) {
-            viewDetections(analyser, monoChrome, Double.parseDouble(spatResTextField.getText()), previewScrollBar.getValue(), canvas1, imp);
+            viewDetections();
         }
     }//GEN-LAST:event_previewScrollBarAdjustmentValueChanged
 
@@ -389,12 +596,29 @@ public class DetectionGUI extends javax.swing.JDialog {
         try {
             UserVariables.setChan1MaxThresh(Double.parseDouble(chan1MaxThreshTextField.getText()));
             UserVariables.setChan2MaxThresh(Double.parseDouble(chan2MaxThreshTextField.getText()));
+//            UserVariables.setChan2MaxThresh(Double.parseDouble(chan2MaxThreshTextField.getText()));
+            UserVariables.setMinTrajLength(Double.parseDouble(minTrajLengthTextField.getText()));
+            UserVariables.setMinTrajDist(Double.parseDouble(minTrajDistTextField.getText()));
+//            UserVariables.setMsdThresh(Double.parseDouble(minTrajMSDTextField.getText()));
             UserVariables.setSpatialRes(Double.parseDouble(spatResTextField.getText()));
+            UserVariables.setTimeRes(Double.parseDouble(timeResTextField.getText()));
+            UserVariables.setTrajMaxStep(Double.parseDouble(maxTrajStepTextField.getText()));
             UserVariables.setCurveFitTol(Double.parseDouble(c1CurveFitTolTextField.getText()));
+//            UserVariables.setC2CurveFitTol(Double.parseDouble(c2CurveFitTolTextField.getText()));
+            UserVariables.setColocal(colocalToggleButton.isSelected());
             UserVariables.setPreProcess(preprocessToggleButton.isSelected());
+//            UserVariables.setC1Index(c1ComboBox.getSelectedIndex());
+//            UserVariables.setC2Index(c2ComboBox.getSelectedIndex());
             UserVariables.setGpu(gpuToggleButton.isSelected());
+            UserVariables.setTrackLength(Double.parseDouble(trackLengthTextField.getText()));
+            UserVariables.setPrevRes(previewResultsToggleButton.isSelected());
+            UserVariables.setUseCals(useCalsToggleButton.isSelected());
+            UserVariables.setExtractsigs(extractSigsToggleButton.isSelected());
+            UserVariables.setColocalThresh(Double.parseDouble(colocalThreshTextField.getText()));
             UserVariables.setSigEstRed(Double.parseDouble(redSigmaTextField.getText()));
             UserVariables.setSigEstGreen(Double.parseDouble(greenSigmaTextField.getText()));
+            UserVariables.setMinMSDPoints(Integer.parseInt(minMSDPointsTextField.getText()));
+//            printParams();
         } catch (NumberFormatException e) {
             IJ.error("Number formatting error " + e.toString());
             return false;
@@ -402,87 +626,44 @@ public class DetectionGUI extends javax.swing.JDialog {
         return true;
     }
 
-    public static void viewDetections(Particle_Tracker analyser, boolean monoChrome, double spatRes, int psv, Canvas canvas1, ImagePlus imp) {
-        analyser.calcParticleRadius(UserVariables.getSpatialRes());
-        ImageStack stacks[] = analyser.getStacks();
-        ParticleArray detections;
-        if (psv < 1) {
-            psv = 1;
-        }
-        if (analyser instanceof GPUAnalyse && UserVariables.isGpu()) {
-            detections = ((GPUAnalyse) analyser).cudaFindParticles(true, psv - 1, psv - 1, stacks[1]);
-        } else {
-            detections = analyser.findParticles(false, psv - 1, psv - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], UserVariables.isBlobs());
-        }
-        if (detections != null) {
-            ImageProcessor output = Utils.updateImage(stacks[0], stacks[1], psv);
-            double mag = 1.0 / UIMethods.getMagnification(output, canvas1);
-            double sr = 1.0 / spatRes;
-            int radius = analyser.calcParticleRadius(UserVariables.getSpatialRes());
-            ArrayList<Particle> particles = detections.getLevel(0);
-            Color c1Color = !monoChrome ? Color.red : Color.white;
-            Color c2Color = !monoChrome ? Color.green : Color.white;
-            output.setLineWidth(1);
-            for (Particle p1 : particles) {
-                Particle p2 = p1.getColocalisedParticle();
-                drawDetections(output, (int) (Math.round(sr * p1.getX())), (int) (Math.round(sr * p1.getY())),
-                        radius, true, c1Color);
-                if (p2 != null) {
-                    drawDetections(output, (int) (Math.round(sr * p2.getX())),
-                            (int) (Math.round(sr * p2.getY())), radius,
-                            false, c2Color);
-                }
-            }
-            imp.setProcessor("", output);
-            ((ImageCanvas) canvas1).setMagnification(mag);
-            canvas1.repaint();
-        }
+    public static String getFpsLabelText() {
+        return fpsLabelText;
     }
 
-    public static void drawDetections(ImageProcessor image, int x, int y, int radius,
-            boolean drawOval, Color colour) {
-        image.setColor(colour);
-        if (drawOval) {
-            image.drawOval((x - radius), (y - radius), 2 * radius, 2 * radius);
-        } else {
-            image.drawRect((x - radius), (y - radius), 2 * radius, 2 * radius);
-        }
+    public static String getMinTrajLengthLabelText() {
+        return minTrajLengthLabelText;
     }
 
-    public boolean isWasOKed() {
-        return wasOKed;
+    public static String getMaxLinkDistLabelText() {
+        return maxLinkDistLabelText;
     }
 
-    public static String getSpatResLabelText() {
-        return spatResLabelText;
+    public static String getColocalToggleText() {
+        return colocalToggleText;
     }
 
-    public static String getChan1MaxThreshLabelText() {
-        return chan1MaxThreshLabelText;
+    public static String getTrackLengthText() {
+        return trackLengthText;
     }
 
-    public static String getCurveFitTolLabelText() {
-        return c1CurveFitTolLabelText;
+    public static String getMinTrajDistLabelText() {
+        return minTrajDistLabelText;
     }
 
-    public static String getPreprocessToggleText() {
-        return preprocessToggleText;
+    public static String getPrevResToggleText() {
+        return prevResToggleText;
     }
 
-    public static String getGpuToggleText() {
-        return gpuToggleText;
+    public static String getMinTrajMSDLabelText() {
+        return minTrajMSDLabelText;
     }
 
-    public static String getRedSigEstText() {
-        return redSigEstText;
+    public static String getUseCalToggleText() {
+        return useCalToggleText;
     }
 
-    public static String getGreenSigEstText() {
-        return greenSigEstText;
-    }
-
-    public static String getChan2MaxThreshLabelText() {
-        return chan2MaxThreshLabelText;
+    public static String getExtractSigsToggleText() {
+        return extractSigsToggleText;
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -494,14 +675,29 @@ public class DetectionGUI extends javax.swing.JDialog {
     private javax.swing.JTextField chan1MaxThreshTextField;
     private javax.swing.JLabel chan2MaxThreshLabel;
     private javax.swing.JTextField chan2MaxThreshTextField;
+    private javax.swing.JLabel colocalThreshLabel;
+    private javax.swing.JTextField colocalThreshTextField;
+    private javax.swing.JToggleButton colocalToggleButton;
     private javax.swing.JPanel detectionPanel;
+    private javax.swing.JToggleButton extractSigsToggleButton;
     private javax.swing.JToggleButton gpuToggleButton;
     private javax.swing.JLabel greenSigmaLabel;
     private javax.swing.JTextField greenSigmaTextField;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
+    private javax.swing.JSplitPane jSplitPane1;
+    private javax.swing.JTabbedPane jTabbedPane1;
+    private javax.swing.JLabel maxTrajStepLabel;
+    private javax.swing.JTextField maxTrajStepTextField;
+    private javax.swing.JLabel minMSDPointsLabel;
+    private javax.swing.JTextField minMSDPointsTextField;
+    private javax.swing.JLabel minTrajDistLabel;
+    private javax.swing.JTextField minTrajDistTextField;
+    private javax.swing.JLabel minTrajLengthLabel;
+    private javax.swing.JTextField minTrajLengthTextField;
     private javax.swing.JButton okButton;
     private javax.swing.JToggleButton preprocessToggleButton;
+    private javax.swing.JToggleButton previewResultsToggleButton;
     private java.awt.Scrollbar previewScrollBar;
     private javax.swing.JTextField previewTextField;
     private javax.swing.JToggleButton previewToggleButton;
@@ -509,5 +705,11 @@ public class DetectionGUI extends javax.swing.JDialog {
     private javax.swing.JTextField redSigmaTextField;
     private javax.swing.JLabel spatResLabel;
     private javax.swing.JTextField spatResTextField;
+    private javax.swing.JLabel timeResLabel;
+    private javax.swing.JTextField timeResTextField;
+    private javax.swing.JLabel trackLengthLabel;
+    private javax.swing.JTextField trackLengthTextField;
+    private javax.swing.JPanel trackingPanel;
+    private javax.swing.JToggleButton useCalsToggleButton;
     // End of variables declaration//GEN-END:variables
 }

@@ -160,7 +160,7 @@ public class Particle_Mapper extends Particle_Tracker {
                     IJ.log(String.format("No cells found in image %d.", i));
                 } else {
                     ImageProcessor cellMap = buildTerritories(binaryNuclei.duplicate(), thisDir.getAbsolutePath()).getProcessor();
-                    buildTerritories2(binaryNuclei.duplicate(), stacks[CYTO].getProcessor(i), thisDir.getAbsolutePath());
+//                    buildTerritories2(binaryNuclei.duplicate(), stacks[CYTO].getProcessor(i), thisDir.getAbsolutePath());
                     Arrays.sort(cells);
                     if (useThresh) {
                         cells = FluorescenceAnalyser.filterCells(stacks[CYTO].getProcessor(i), new Cytoplasm(), threshLevel, Measurements.MEAN, cells);
@@ -199,6 +199,11 @@ public class Particle_Mapper extends Particle_Tracker {
             }
         }
         IJ.showStatus(String.format("%s done.", title));
+    }
+
+    protected ParticleArray findParticles() {
+        ImageStack[] stacks = getStacks();
+        return findParticles(false, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], UserVariables.isBlobs());
     }
 
     /**
