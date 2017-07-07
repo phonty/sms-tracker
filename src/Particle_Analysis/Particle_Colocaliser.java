@@ -24,6 +24,7 @@ import Particle.ParticleArray;
 import ParticleTracking.GPUAnalyse;
 import ParticleTracking.UserVariables;
 import UtilClasses.GenUtils;
+import UtilClasses.Utilities;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -63,13 +64,14 @@ public class Particle_Colocaliser extends GPUAnalyse {
 
     public void analyse(File inputDir) throws Exception {
         ImageStack[] stacks = getStacks();
+        File outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
         if (stacks != null) {
             startTime = System.currentTimeMillis();
-            buildOutput(findParticles());
+            buildOutput(findParticles(), outputDir);
         }
     }
 
-    void buildOutput(ParticleArray curves) {
+    void buildOutput(ParticleArray curves, File outputDir) {
         ImageStack[] stacks = getStacks();
         int colocalisation, count;
         int width = stacks[0].getWidth(), height = stacks[0].getHeight();
@@ -111,7 +113,7 @@ public class Particle_Colocaliser extends GPUAnalyse {
         results.setVisible(true);
         particleCoords.setVisible(true);
         try {
-            String resultsDir = GenUtils.openResultsDirectory(String.format("%s%s%s", c0Dir.getParent(), File.separator, title));
+            String resultsDir = GenUtils.openResultsDirectory(String.format("%s%s%s", outputDir, File.separator, title));
 //            String c1Title = String.format("%s_Detections.tif", inputs[0].getTitle());
             String c1Title = String.format("%s_Detections.tif", "C1");
             IJ.save(new ImagePlus(c1Title, outStack[0]), String.format("%s%s%s", resultsDir, File.separator, c1Title));
