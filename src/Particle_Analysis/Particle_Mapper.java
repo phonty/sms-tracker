@@ -83,7 +83,7 @@ public class Particle_Mapper extends Particle_Tracker {
     private static int histNBins = 40;
     String resultsDir;
     private Cell[] cells;
-    private final int N_INPUTS = 5, NUCLEI = 2, CYTO = 1, FOCI = 0, JUNCTION_ALIGN = FOCI, JUNCTION_QUANT = CYTO;
+    private final int N_INPUTS = 5, NUCLEI = 2, CYTO = 1, FOCI = 0, JUNCTION_ALIGN = 3, JUNCTION_QUANT = 4;
     private final String NUCLEI_MASK = "Nuclei Mask", FLUO_DIST = "fluorescence_distribution_data.csv",
             FOCI_DIST = "foci_distance_data.csv", FOCI_DETECTIONS = "Foci Detections", DIST_MAP = "Distance Map",
             FOCI_DIST_HIST = "foci_distance_histogram.csv", FOCI_NUC_ASS = "Foci-Nuclei Associations",
@@ -665,11 +665,11 @@ public class Particle_Mapper extends Particle_Tracker {
                 inputs[JUNCTION_ALIGN] = inputs[choice4] != null ? inputsCopy[choice4].duplicate() : null;
                 inputs[JUNCTION_QUANT] = inputs[choice5] != null ? inputsCopy[choice5].duplicate() : null;
             } else {
-                inputs[NUCLEI] = WindowManager.getImage(imageTitles[choice1]);
-                inputs[FOCI] = WindowManager.getImage(imageTitles[choice2]);
-                inputs[CYTO] = WindowManager.getImage(imageTitles[choice3]);
-                inputs[JUNCTION_ALIGN] = WindowManager.getImage(imageTitles[choice4]);
-                inputs[JUNCTION_QUANT] = WindowManager.getImage(imageTitles[choice5]);
+                inputs[NUCLEI] = WindowManager.getImage(imageTitles[choice1]).duplicate();
+                inputs[FOCI] = WindowManager.getImage(imageTitles[choice2]).duplicate();
+                inputs[CYTO] = WindowManager.getImage(imageTitles[choice3]).duplicate();
+                inputs[JUNCTION_ALIGN] = WindowManager.getImage(imageTitles[choice4]).duplicate();
+                inputs[JUNCTION_QUANT] = WindowManager.getImage(imageTitles[choice5]).duplicate();
             }
             return true;
         }
