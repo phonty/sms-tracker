@@ -175,7 +175,9 @@ public class Particle_Mapper extends Particle_Tracker {
                         outputFociDistanceData(distances, thisDir.getAbsolutePath(), resultsHeadings, hideOutputs);
                     }
                     if (analyseFluorescence) {
-                        extractCellCellProfiles(stacks[JUNCTION_QUANT].getProcessor(i), stacks[JUNCTION_ALIGN].getProcessor(i), 250, 1, thisDir.getAbsolutePath());
+                        if (junctions) {
+                            extractCellCellProfiles(stacks[JUNCTION_QUANT].getProcessor(i), stacks[JUNCTION_ALIGN].getProcessor(i), 250, 1, thisDir.getAbsolutePath());
+                        }
                         double[][] vals = FluorescenceAnalyser.analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(i),
                                 Measurements.MEAN + Measurements.STD_DEV, cells);
                         String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, FLUO_DIST);
