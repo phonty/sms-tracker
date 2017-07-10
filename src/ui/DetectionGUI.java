@@ -30,6 +30,7 @@ import ij.gui.ImageCanvas;
 import ij.process.ImageProcessor;
 import java.awt.Canvas;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.util.ArrayList;
 
 public class DetectionGUI extends javax.swing.JDialog {
@@ -293,12 +294,15 @@ public class DetectionGUI extends javax.swing.JDialog {
 
         jPanel2.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         jPanel2.setLayout(new java.awt.GridBagLayout());
+
+        canvas1.setMinimumSize(new java.awt.Dimension(analyser.getStacks()[0].getWidth()/4,analyser.getStacks()[0].getHeight()/4));
+        canvas1.setPreferredSize(new java.awt.Dimension(analyser.getStacks()[0].getWidth(),analyser.getStacks()[0].getHeight()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 0;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 0.8;
         gridBagConstraints.insets = new java.awt.Insets(10, 10, 0, 10);
         jPanel2.add(canvas1, gridBagConstraints);
@@ -310,7 +314,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints.gridy = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.EAST;
-        gridBagConstraints.weightx = 0.1;
+        gridBagConstraints.weightx = 0.2;
         gridBagConstraints.weighty = 0.1;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 10);
         jPanel2.add(previewTextField, gridBagConstraints);
@@ -326,7 +330,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints.gridy = 1;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 0.1;
         gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
         jPanel2.add(previewToggleButton, gridBagConstraints);
@@ -343,13 +347,14 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints.gridy = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
-        gridBagConstraints.weightx = 0.4;
+        gridBagConstraints.weightx = 0.8;
         gridBagConstraints.weighty = 0.1;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 10);
         jPanel2.add(previewScrollBar, gridBagConstraints);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.weightx = 0.5;
         gridBagConstraints.weighty = 1.0;
         getContentPane().add(jPanel2, gridBagConstraints);
 

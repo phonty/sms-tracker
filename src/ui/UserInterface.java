@@ -16,23 +16,14 @@
  */
 package ui;
 
-import Particle.IsoGaussian;
 import IAClasses.Utils;
 import Particle_Analysis.Particle_Tracker;
-import ParticleTracking.GPUAnalyse;
-import Particle.Particle;
-import Particle.ParticleArray;
 import ParticleTracking.UserVariables;
 import UIClasses.UIMethods;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.ImageCanvas;
-import ij.process.ImageProcessor;
-import java.awt.Canvas;
-import java.awt.Color;
-import java.util.ArrayList;
-import javax.swing.DefaultBoundedRangeModel;
 
 public class UserInterface extends javax.swing.JDialog {
 
@@ -171,13 +162,16 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 1;
         gridBagConstraints.gridwidth = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
         gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 0.2;
         getContentPane().add(jPanel3, gridBagConstraints);
 
         jPanel2.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         jPanel2.setLayout(new java.awt.GridBagLayout());
+
+        canvas1.setMinimumSize(new java.awt.Dimension(analyser.getStacks()[0].getWidth()/4,analyser.getStacks()[0].getHeight()/4));
+        canvas1.setPreferredSize(new java.awt.Dimension(analyser.getStacks()[0].getWidth(),analyser.getStacks()[0].getHeight()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 0;
@@ -237,6 +231,7 @@ public class UserInterface extends javax.swing.JDialog {
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 0;
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+        gridBagConstraints.weightx = 0.5;
         gridBagConstraints.weighty = 1.0;
         getContentPane().add(jPanel2, gridBagConstraints);
 
