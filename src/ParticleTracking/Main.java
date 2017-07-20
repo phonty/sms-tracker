@@ -27,7 +27,7 @@ public class Main {
     }
 //    public static void main(String args[]) {
 //        TestGenerator tg = new TestGenerator();
-//        tg.generateMulti(10, 512, 512, 100);
+//        tg.generateMulti(10000, 512, 512, 2, "C:\\Users\\barryd\\Debugging\\particle_sim_data\\");
 ////        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
 //        System.exit(0);
 //    }

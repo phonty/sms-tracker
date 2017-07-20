@@ -88,7 +88,7 @@ public class Particle_Mapper extends Particle_Tracker {
             FOCI_DIST = "foci_distance_data.csv", FOCI_DETECTIONS = "Foci Detections", DIST_MAP = "Distance Map",
             FOCI_DIST_HIST = "foci_distance_histogram.csv", FOCI_NUC_ASS = "Foci-Nuclei Associations",
             CELL_CELL_ASS = "Cell-Cell Associations",
-            CELL_BOUNDS = "Cell Boundaries", FOCI_DIST_DATA = "Mean Foci Data";
+            CELL_BOUNDS = "Cell Boundaries", FOCI_DIST_DATA = "Mean Foci Data", FLUOR_DIST = "Cellular Fluorescence Distributions";
     private final String FLUO_HEADINGS[] = new String[]{"Cell ID", "Cell Mean", "Cell Std Dev",
         "Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
         "Cytosolic Std Dev", "Nuclear Mean / Cytosolic Mean",
@@ -178,6 +178,8 @@ public class Particle_Mapper extends Particle_Tracker {
                         if (junctions) {
                             extractCellCellProfiles(stacks[JUNCTION_QUANT].getProcessor(i), stacks[JUNCTION_ALIGN].getProcessor(i), 250, 1, thisDir.getAbsolutePath());
                         }
+                        IJ.saveAs(new ImagePlus("", FluorescenceAnalyser.getMeanFluorDists(cells, 128, stacks[FOCI], ImageProcessor.MIN, 40, 2)),
+                                "TIF", String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, FLUOR_DIST));
                         double[][] vals = FluorescenceAnalyser.analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(i),
                                 Measurements.MEAN + Measurements.STD_DEV, cells);
                         String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, FLUO_DIST);
@@ -575,8 +577,8 @@ public class Particle_Mapper extends Particle_Tracker {
             imageTitles[NUCLEI] = inputs[NUCLEI] != null ? inputs[NUCLEI].getTitle() : " ";
             imageTitles[FOCI] = inputs[FOCI] != null ? inputs[FOCI].getTitle() : " ";
             imageTitles[CYTO] = inputs[CYTO] != null ? inputs[CYTO].getTitle() : " ";
-            imageTitles[JUNCTION_ALIGN] = inputs[JUNCTION_ALIGN] != null ? inputs[JUNCTION_ALIGN].getTitle() : " ";
-            imageTitles[JUNCTION_QUANT] = inputs[JUNCTION_QUANT] != null ? inputs[JUNCTION_QUANT].getTitle() : " ";
+//            imageTitles[JUNCTION_ALIGN] = inputs[JUNCTION_ALIGN] != null ? inputs[JUNCTION_ALIGN].getTitle() : " ";
+//            imageTitles[JUNCTION_QUANT] = inputs[JUNCTION_QUANT] != null ? inputs[JUNCTION_QUANT].getTitle() : " ";
         }
         int N = imageTitles.length;
         if (N < 2) {
@@ -637,6 +639,7 @@ public class Particle_Mapper extends Particle_Tracker {
         histMin = gd.getNextNumber();
         histMax = gd.getNextNumber();
         histNBins = (int) Math.round(gd.getNextNumber());
+        junctions = gd.getNextBoolean();
         averageImage = gd.getNextRadioButton().equals(radioButtonLabels[1]);
         if (!c1) {
             GenUtils.error("You have not specified a nuclei image.");

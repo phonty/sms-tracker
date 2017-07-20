@@ -121,7 +121,7 @@ public class TestGenerator {
                 "C:\\Users\\barry05\\Desktop\\Test_Data_Sets\\Tracking_Test_Sequences\\Simulation\\ColocalTest_" + random + "_" + noise + "_C1");
     }
 
-    public void generateMulti(int n, int width, int height, int length) {
+    public void generateMulti(int n, int width, int height, int length, String directory) {
 //        int totalcount = n;
 //        Co_Localise cl = new Co_Localise();
         MotileGaussian particles[] = new MotileGaussian[n];
@@ -162,7 +162,7 @@ public class TestGenerator {
             }
 //            c2image.noise(randNoise);
             IJ.saveAs(new ImagePlus("", c1image.duplicate()), "TIF",
-                    "C:\\Users\\barry05\\Desktop\\Test_Data_Sets\\Tracking_Test_Sequences\\Simulation\\C0\\"
+                    directory
                     + indFormat.format(i));
 //            IJ.saveAs(new ImagePlus("", c2image.duplicate()), "TIF",
 //                    "C:\\Users\\barry05\\Desktop\\Test_Data_Sets\\Tracking_Test_Sequences\\Simulation\\C1\\"
