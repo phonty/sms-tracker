@@ -35,6 +35,7 @@ import Particle.IsoGaussian;
 import Particle.Particle;
 import Particle.ParticleArray;
 import ParticleTracking.UserVariables;
+import Profile.PeakFinder;
 import Revision.Revision;
 import Segmentation.RegionGrower;
 import Stacks.StackChecker;
@@ -53,7 +54,6 @@ import ij.measure.Measurements;
 import ij.measure.ResultsTable;
 import ij.plugin.filter.Analyzer;
 import ij.plugin.filter.EDM;
-import ij.plugin.filter.GaussianBlur;
 import ij.plugin.filter.ParticleAnalyzer;
 import ij.plugin.frame.RoiManager;
 import ij.process.AutoThresholder;
@@ -446,7 +446,7 @@ public class Particle_Mapper extends Particle_Tracker {
                 if (current.getID() > link.getID()) {
                     continue;
                 }
-                ImageProcessor output = alignProfile(extractProfilePoints(current, link, image),
+                ImageProcessor output = PeakFinder.alignProfileToRefImage(extractProfilePoints(current, link, image),
                         10.0, extractProfilePoints(current, link, refImage));
                 IJ.saveAs(new ImagePlus("", ImageResizer.resizeNoScaling(output, finalWidth, 1)), "TIF",
                         String.format("%s%s%s_%d_%d", profilesDir, File.separator, "Cell-Cell", current.getID(), link.getID()));
@@ -469,15 +469,6 @@ public class Particle_Mapper extends Particle_Tracker {
             lineImage.putPixelValue(x, 0, lineVals1[x]);
         }
         return lineImage;
-    }
-
-    ImageProcessor alignProfile(FloatProcessor inputImage, double radius, FloatProcessor refImage) {
-        ImageProcessor blurredRef = refImage.duplicate();
-        (new GaussianBlur()).blurGaussian(blurredRef, radius);
-        int[] max = Utils.findImageMaxima(blurredRef);
-        int xc = blurredRef.getWidth() / 2;
-        inputImage.translate(xc - max[0], 0);
-        return inputImage;
     }
 
     /**
