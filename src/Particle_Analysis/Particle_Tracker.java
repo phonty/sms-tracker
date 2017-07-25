@@ -19,7 +19,7 @@ import Revision.Revision;
 import Segmentation.RegionGrower;
 import UtilClasses.GenUtils;
 import UtilClasses.Utilities;
-import Utils.ParamsReader;
+import MetaData.ParamsReader;
 import goshtasby.Multi_Goshtasby;
 import ij.IJ;
 import ij.ImagePlus;
