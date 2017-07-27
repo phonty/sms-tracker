@@ -120,6 +120,7 @@ public class Particle_Mapper extends Particle_Tracker {
                 GenUtils.error("No Images Open.");
                 return;
             }
+            inputs = new ImagePlus[idList.length];
             for (int i = 0; i < idList.length; i++) {
                 inputs[i] = WindowManager.getImage(idList[i]);
             }
@@ -651,7 +652,7 @@ public class Particle_Mapper extends Particle_Tracker {
             return showDialog();
         } else {
             if (IJ.getInstance() == null) {
-                ImagePlus[] inputsCopy = new ImagePlus[N_INPUTS];
+                ImagePlus[] inputsCopy = new ImagePlus[inputs.length];
                 inputsCopy[NUCLEI] = inputs[NUCLEI] != null ? inputs[NUCLEI].duplicate() : null;
                 inputsCopy[FOCI] = inputs[FOCI] != null ? inputs[FOCI].duplicate() : null;
                 inputsCopy[CYTO] = inputs[CYTO] != null ? inputs[CYTO].duplicate() : null;
