@@ -120,7 +120,9 @@ public class Particle_Mapper extends Particle_Tracker {
                 GenUtils.error("No Images Open.");
                 return;
             }
-            inputs = new ImagePlus[idList.length];
+            if (idList.length > N_INPUTS) {
+                inputs = new ImagePlus[idList.length];
+            }
             for (int i = 0; i < idList.length; i++) {
                 inputs[i] = WindowManager.getImage(idList[i]);
             }
