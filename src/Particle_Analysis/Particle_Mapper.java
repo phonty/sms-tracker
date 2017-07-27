@@ -152,6 +152,10 @@ public class Particle_Mapper extends Particle_Tracker {
                 GenUtils.error("Failed to create output directory.");
                 return;
             }
+            ParticleArray pa = null;
+            if (isolateFoci) {
+                pa = findParticles();
+            }
             for (int i = 1; i <= stacks[0].size(); i++) {
                 File thisDir = GenUtils.createDirectory(String.format("%s%sSlice_%d", resultsDir, File.separator, i), true);
                 ByteProcessor binaryNuclei = ImageChecker.checkBinaryImage(stacks[NUCLEI].getProcessor(i));
@@ -167,9 +171,8 @@ public class Particle_Mapper extends Particle_Tracker {
                     }
                     linkCells(new ArrayList(), cellMap, thisDir.getAbsolutePath());
                     if (isolateFoci) {
-                        ParticleArray pa = findParticles();
-                        assignParticlesToCells(pa, cellMap, thisDir.getAbsolutePath());
-                        drawDetections(pa, stacks[FOCI].getWidth(), stacks[FOCI].getHeight(), thisDir.getAbsolutePath());
+                        assignParticlesToCells(pa, cellMap, thisDir.getAbsolutePath(), i - 1);
+                        drawDetections(pa, stacks[FOCI].getWidth(), stacks[FOCI].getHeight(), thisDir.getAbsolutePath(), i - 1);
                         double[][] distances = calcDistances(buildDistanceMap(binaryNuclei, thisDir.getAbsolutePath()));
                         buildHistograms(distances, histNBins, histMax, histMin, thisDir.getAbsoluteFile(), hideOutputs);
                         outputFociDistanceData(distances, thisDir.getAbsolutePath(), resultsHeadings, hideOutputs);
@@ -206,8 +209,7 @@ public class Particle_Mapper extends Particle_Tracker {
     }
 
     protected ParticleArray findParticles() {
-        ImageStack[] stacks = getStacks();
-        return findParticles(false, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], UserVariables.isBlobs());
+        return findParticles(false, 0, inputs[FOCI].getImageStackSize() - 1, UserVariables.getCurveFitTol(), inputs[FOCI].getImageStack(), inputs[CYTO].getImageStack(), UserVariables.isBlobs());
     }
 
     /**
@@ -354,12 +356,12 @@ public class Particle_Mapper extends Particle_Tracker {
      * @param cellCentroids
      * @return
      */
-    void assignParticlesToCells(ParticleArray pa, ImageProcessor cellMap, String resultsDir) {
+    void assignParticlesToCells(ParticleArray pa, ImageProcessor cellMap, String resultsDir, int level) {
         ByteProcessor map = new ByteProcessor(cellMap.getWidth(), cellMap.getHeight());
         map.setValue(0);
         map.fill();
         map.setValue(255);
-        ArrayList<Particle> detections = pa.getLevel(0);
+        ArrayList<Particle> detections = pa.getLevel(level);
         int N = detections.size();
         LinkedHashMap<Integer, Integer> idToIndexMap = new LinkedHashMap();
         for (int i = 0; i < cells.length; i++) {
@@ -684,19 +686,16 @@ public class Particle_Mapper extends Particle_Tracker {
      * @param width width of output image
      * @param height height of output image
      */
-    public void drawDetections(ParticleArray pa, int width, int height, String resultsDir) {
-        int depth = pa.getDepth();
-        for (int d = 0; d < depth; d++) {
-            ArrayList<Particle> level = pa.getLevel(d);
-            ShortProcessor output = new ShortProcessor(width, height);
-            for (Particle p : level) {
-                if (p instanceof IsoGaussian) {
-                    Utils.draw2DGaussian(output, (IsoGaussian) p, 0.0, UserVariables.getSpatialRes(), false);
-                }
+    public void drawDetections(ParticleArray pa, int width, int height, String resultsDir, int level) {
+        ArrayList<Particle> detections = pa.getLevel(level);
+        ShortProcessor output = new ShortProcessor(width, height);
+        for (Particle p : detections) {
+            if (p instanceof IsoGaussian) {
+                Utils.draw2DGaussian(output, (IsoGaussian) p, 0.0, UserVariables.getSpatialRes(), false);
             }
-            output.multiply(1.0 / normFactor);
-            IJ.saveAs(new ImagePlus("", output), "TIF", String.format("%s%s%s", resultsDir, File.separator, FOCI_DETECTIONS));
         }
+        output.multiply(1.0 / normFactor);
+        IJ.saveAs(new ImagePlus("", output), "TIF", String.format("%s%s%s", resultsDir, File.separator, FOCI_DETECTIONS));
     }
 
     /**

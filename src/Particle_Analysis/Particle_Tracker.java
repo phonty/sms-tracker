@@ -20,6 +20,7 @@ import Segmentation.RegionGrower;
 import UtilClasses.GenUtils;
 import UtilClasses.Utilities;
 import MetaData.ParamsReader;
+import UtilClasses.GenVariables;
 import goshtasby.Multi_Goshtasby;
 import ij.IJ;
 import ij.ImagePlus;
@@ -51,11 +52,15 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 import javax.swing.JFileChooser;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
@@ -334,6 +339,7 @@ public class Particle_Tracker implements PlugIn {
                 IJ.saveString(resultSummary.getTextPanel().getText(), parentDir + "/resultsSummary.txt");
                 Plot msdPlot = ParticleTrajectory.getMsdPlot();
                 try {
+                    printTrajectories(trajectories, new File(String.format("%s%s%s", parentDir, File.separator, "AllParticleData.csv")), stacks[0].size());
                     if (msdPlot != null) {
                         msdPlot.getResultsTable().saveAs(parentDir + "/MSD_Plot.csv");
                         IJ.saveAs(msdPlot.makeHighResolution("", 10.0f, true, false), "PNG", parentDir + "/MSD_Plot");
@@ -1161,5 +1167,54 @@ public class Particle_Tracker implements PlugIn {
         ParamsReader reader = new ParamsReader(inputs[0]);
         UserVariables.setSpatialRes(reader.getSpatialRes());
         UserVariables.setTimeRes(reader.getFrameRate());
+    }
+
+    public void printTrajectories(ArrayList<ParticleTrajectory> trajectories, File output, int length) throws IOException, FileNotFoundException {
+        String headings[] = new String[]{"X", "Y", "Time (s)", "Channel 1", "Channel 2"};
+        CSVPrinter printer = new CSVPrinter(new OutputStreamWriter(new FileOutputStream(output), GenVariables.ISO), CSVFormat.EXCEL);
+        int n = trajectories.size();
+        Particle[][] particles = new Particle[n][length];
+        for (int i = 0; i < n; i++) {
+            ParticleTrajectory pt = trajectories.get(i);
+            printer.print(String.format("Particle %d", i));
+            for (int j = 1; j < headings.length; j++) {
+                printer.print("");
+            }
+            Arrays.fill(particles[i], null);
+            Particle current = pt.getEnd();
+            while (current != null) {
+                particles[i][current.getTimePoint()] = current;
+                current = current.getLink();
+            }
+        }
+        printer.println();
+        for (int i = 0; i < n; i++) {
+            for (String heading : headings) {
+                printer.print(heading);
+            }
+        }
+        printer.println();
+        for (int t = 0; t < length; t++) {
+            for (int i = 0; i < n; i++) {
+                if (particles[i][t] != null) {
+                    printer.print(particles[i][t].getX());
+                    printer.print(particles[i][t].getY());
+                    printer.print(t / UserVariables.getTimeRes());
+                    printer.print(particles[i][t].getMagnitude());
+                    Particle p2 = particles[i][t].getColocalisedParticle();
+                    if (p2 != null) {
+                        printer.print(p2.getMagnitude());
+                    } else {
+                        printer.print("");
+                    }
+                } else {
+                    for (String heading : headings) {
+                        printer.print("");
+                    }
+                }
+            }
+            printer.println();
+        }
+        printer.close();
     }
 }
