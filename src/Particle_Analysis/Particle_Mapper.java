@@ -140,6 +140,8 @@ public class Particle_Mapper extends Particle_Tracker {
         if (inputDir == null) {
             return;
         }
+        int width = stacks[0].getWidth();
+        int height = stacks[0].getHeight();
         if (isolateFoci && !showDetectionGui()) {
             return;
         }
@@ -172,7 +174,7 @@ public class Particle_Mapper extends Particle_Tracker {
                     if (useThresh) {
                         cells = FluorescenceAnalyser.filterCells(stacks[CYTO].getProcessor(i), new Cytoplasm(), threshLevel, Measurements.MEAN, cells);
                     }
-                    linkCells(new ArrayList(), cellMap, thisDir.getAbsolutePath());
+                    linkCells(cellMap, thisDir.getAbsolutePath());
                     if (isolateFoci) {
                         assignParticlesToCells(pa, cellMap, thisDir.getAbsolutePath(), i - 1);
                         drawDetections(pa, stacks[FOCI].getWidth(), stacks[FOCI].getHeight(), thisDir.getAbsolutePath(), i - 1);
@@ -182,7 +184,7 @@ public class Particle_Mapper extends Particle_Tracker {
                     }
                     if (analyseFluorescence) {
                         if (junctions) {
-                            extractCellCellProfiles(stacks[JUNCTION_QUANT].getProcessor(i), stacks[JUNCTION_ALIGN].getProcessor(i), 250, 1, thisDir.getAbsolutePath());
+                            extractCellCellProfiles(stacks[JUNCTION_QUANT].getProcessor(i), stacks[JUNCTION_ALIGN].getProcessor(i), (int) Math.max(width, height), 1, thisDir.getAbsolutePath());
                         }
                         FluorescenceAnalyser.generateFluorMapsFromStack(FluorescenceAnalyser.getMeanFluorDists(cells, 128, stacks[FOCI], ImageProcessor.MIN, 40, 2),
                                 thisDir.getAbsolutePath());
@@ -386,7 +388,8 @@ public class Particle_Mapper extends Particle_Tracker {
         IJ.saveAs(new ImagePlus("", map), "PNG", String.format("%s%s%s", resultsDir, File.separator, FOCI_NUC_ASS));
     }
 
-    void linkCells(ArrayList<int[]> links, ImageProcessor cellMap, String dir) {
+    void linkCells(ImageProcessor cellMap, String dir) {
+        ArrayList<int[]> links = new ArrayList();
         ByteProcessor map = new ByteProcessor(cellMap.getWidth(), cellMap.getHeight());
         map.setValue(0);
         map.fill();
@@ -399,10 +402,11 @@ public class Particle_Mapper extends Particle_Tracker {
             for (int x = 0; x < cellMap.getWidth(); x++) {
                 if (cellMap.getPixel(x, y) == 0) {
                     int[] ids = checkEdge(x, y, cellMap, 0);
-                    if (ids != null && !links.contains(ids)) {
+                    if (ids != null && !checkLinks(links, ids)) {
                         Integer index1 = idToIndexMap.get(ids[0]);
                         Integer index2 = idToIndexMap.get(ids[1]);
                         if (index1 != null && index2 != null) {
+                            links.add(ids);
                             Cell c1 = cells[index1];
                             Cell c2 = cells[index2];
                             c1.addLink(c2);
@@ -416,6 +420,15 @@ public class Particle_Mapper extends Particle_Tracker {
             }
         }
         IJ.saveAs(new ImagePlus("", map), "PNG", String.format("%s%s%s", dir, File.separator, CELL_CELL_ASS));
+    }
+
+    boolean checkLinks(ArrayList<int[]> links, int[] ids) {
+        for (int[] l : links) {
+            if ((l[0] == ids[0] && l[1] == ids[1]) || (l[0] == ids[1] && l[1] == ids[0])) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private int[] checkEdge(int x, int y, ImageProcessor regionImage, int REGION_BORDER) {
@@ -448,12 +461,9 @@ public class Particle_Mapper extends Particle_Tracker {
             }
             for (int j = 0; j < links.size(); j++) {
                 Cell link = links.get(j);
-                if (current.getID() > link.getID()) {
-                    continue;
-                }
-                ImageProcessor output = PeakFinder.alignProfileToRefImage(extractProfilePoints(current, link, image),
-                        10.0, extractProfilePoints(current, link, refImage));
-                IJ.saveAs(new ImagePlus("", ImageResizer.resizeNoScaling(output, finalWidth, 1)), "TIF",
+                ImageProcessor output = PeakFinder.alignProfileToRefImage(extractProfilePoints(current, link, image, finalWidth),
+                        10.0, extractProfilePoints(current, link, refImage, finalWidth));
+                IJ.saveAs(new ImagePlus("", output), "TIF",
                         String.format("%s%s%s_%d_%d", profilesDir, File.separator, "Cell-Cell", current.getID(), link.getID()));
             }
         }
@@ -465,13 +475,16 @@ public class Particle_Mapper extends Particle_Tracker {
         image.setInterpolationMethod(interpolation);
     }
 
-    FloatProcessor extractProfilePoints(Cell cell1, Cell cell2, ImageProcessor image) {
+    FloatProcessor extractProfilePoints(Cell cell1, Cell cell2, ImageProcessor image, int finalWidth) {
         double[] centroid1 = cell1.getNucleus().getCentroid();
         double[] centroid2 = cell2.getNucleus().getCentroid();
-        double[] lineVals1 = image.getLine(centroid1[0], centroid1[1], centroid2[0], centroid2[1]);
-        FloatProcessor lineImage = new FloatProcessor(lineVals1.length, 1);
-        for (int x = 0; x < lineVals1.length; x++) {
-            lineImage.putPixelValue(x, 0, lineVals1[x]);
+        double[] lineVals = image.getLine(centroid1[0], centroid1[1], centroid2[0], centroid2[1]);
+        FloatProcessor lineImage = new FloatProcessor(finalWidth, 1);
+        lineImage.setValue(0.0);
+        lineImage.fill();
+        int x0 = (finalWidth - lineVals.length) / 2;
+        for (int x = x0; x < lineVals.length + x0; x++) {
+            lineImage.putPixelValue(x, 0, lineVals[x - x0]);
         }
         return lineImage;
     }
