@@ -17,6 +17,7 @@
 package Particle_Analysis;
 
 import Cell.Cell;
+import Cell.CellRegion;
 import Cell.Cytoplasm;
 import Cell.Nucleus;
 import Fluorescence.FluorescenceAnalyser;
@@ -172,6 +173,7 @@ public class Particle_Mapper extends Particle_Tracker {
                     Arrays.sort(cells);
                     if (useThresh) {
                         cells = FluorescenceAnalyser.filterCells(stacks[CYTO].getProcessor(i), new Cytoplasm(), threshLevel, Measurements.MEAN, cells);
+                        labelActiveCellsInRegionImage(String.format("%s%s%s%s", thisDir, File.separator, CELL_BOUNDS, ".png"), cells);
                     }
                     linkCells(cellMap, thisDir.getAbsolutePath());
                     if (isolateFoci) {
@@ -212,6 +214,18 @@ public class Particle_Mapper extends Particle_Tracker {
             }
         }
         IJ.showStatus(String.format("%s done.", title));
+    }
+
+    void labelActiveCellsInRegionImage(String pathToRegionImage, Cell[] cells) {
+        ImagePlus regionImage = IJ.openImage(pathToRegionImage);
+        ImageProcessor ip = regionImage.getProcessor().convertToRGB();
+        ip.setLineWidth(3);
+        ip.setColor(Color.green);
+        for (Cell cell : cells) {
+            CellRegion cyto = cell.getRegion(new Cytoplasm());
+            ip.draw(cyto.getRoi());
+        }
+        IJ.saveAs(new ImagePlus("", ip), "PNG", pathToRegionImage);
     }
 
     protected ParticleArray findParticles() {
