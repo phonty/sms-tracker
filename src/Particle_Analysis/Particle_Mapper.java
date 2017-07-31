@@ -29,7 +29,6 @@ import static IO.DataWriter.convertArrayToString;
 import static IO.DataWriter.saveTextWindow;
 import static IO.DataWriter.saveValues;
 import Image.ImageChecker;
-import Image.ImageResizer;
 import Math.Histogram;
 import Particle.IsoGaussian;
 import Particle.Particle;
@@ -79,7 +78,7 @@ public class Particle_Mapper extends Particle_Tracker {
 
     private static double histMin = -5.0, histMax = 20.0, threshLevel = 50.0;
     private static boolean useThresh = true, isolateFoci = true, analyseFluorescence = true,
-            averageImage = false, junctions = false;
+            averageImage = false, junctions = false, fluorDist = false;
     private static int histNBins = 40;
     String resultsDir;
     private Cell[] cells;
@@ -182,12 +181,11 @@ public class Particle_Mapper extends Particle_Tracker {
                         buildHistograms(distances, histNBins, histMax, histMin, thisDir.getAbsoluteFile(), hideOutputs);
                         outputFociDistanceData(distances, thisDir.getAbsolutePath(), resultsHeadings, hideOutputs);
                     }
-                    if (analyseFluorescence) {
-                        if (junctions) {
-                            extractCellCellProfiles(stacks[JUNCTION_QUANT].getProcessor(i), stacks[JUNCTION_ALIGN].getProcessor(i), (int) Math.max(width, height), 1, thisDir.getAbsolutePath());
-                        }
+                    if (fluorDist) {
                         FluorescenceAnalyser.generateFluorMapsFromStack(FluorescenceAnalyser.getMeanFluorDists(cells, 128, stacks[FOCI], ImageProcessor.MIN, 40, 2),
                                 thisDir.getAbsolutePath());
+                    }
+                    if (analyseFluorescence) {
                         double[][] vals = FluorescenceAnalyser.analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(i),
                                 Measurements.MEAN + Measurements.STD_DEV, cells);
                         String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, FLUO_DIST);
@@ -195,6 +193,9 @@ public class Particle_Mapper extends Particle_Tracker {
                         if (averageImage) {
                             tw.append(convertArrayToString(null, getAverageValues(vals, FLUO_HEADINGS.length), "\t"));
                         }
+                    }
+                    if (junctions) {
+                        extractCellCellProfiles(stacks[JUNCTION_QUANT].getProcessor(i), stacks[JUNCTION_ALIGN].getProcessor(i), (int) Math.max(width, height), 1, thisDir.getAbsolutePath());
                     }
                 }
             }
@@ -609,8 +610,8 @@ public class Particle_Mapper extends Particle_Tracker {
         gd.addChoice("Select threshold image: ", imageTitles, imageTitles[CYTO < N ? CYTO : 0]);
         gd.addSlider("Specify threshold level %", 0.0, 100.0, threshLevel);
         gd.addMessage("How do you want to analyse the protein distribution?", bFont);
-        String[] checkBoxLabels = new String[]{"Attempt to isolate foci", "Quantify entire distribution"};
-        gd.addCheckboxGroup(1, 2, checkBoxLabels, new boolean[]{isolateFoci, analyseFluorescence});
+        String[] checkBoxLabels = new String[]{"Attempt to isolate foci", "Quantify entire distribution", "Plot distribution from nucleus"};
+        gd.addCheckboxGroup(1, 3, checkBoxLabels, new boolean[]{isolateFoci, analyseFluorescence, fluorDist});
         gd.addMessage("Specify ranges and bin size for foci distance histogram", bFont);
         gd.addNumericField("Minimum Value:", histMin, 1);
         gd.addNumericField("Maximum Value:", histMax, 1);
@@ -645,6 +646,7 @@ public class Particle_Mapper extends Particle_Tracker {
         threshLevel = gd.getNextNumber();
         isolateFoci = gd.getNextBoolean();
         analyseFluorescence = gd.getNextBoolean();
+        fluorDist = gd.getNextBoolean();
         histMin = gd.getNextNumber();
         histMax = gd.getNextNumber();
         histNBins = (int) Math.round(gd.getNextNumber());
