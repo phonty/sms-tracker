@@ -410,7 +410,7 @@ public class DetectionGUI extends javax.swing.JDialog {
             psv = 1;
         }
         if (analyser instanceof GPUAnalyse && UserVariables.isGpu()) {
-            detections = ((GPUAnalyse) analyser).cudaFindParticles(true, psv - 1, psv - 1, stacks[1]);
+            detections = ((GPUAnalyse) analyser).cudaFindParticles(false, psv - 1, psv - 1, stacks[1]);
         } else {
             detections = analyser.findParticles(false, psv - 1, psv - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], UserVariables.isBlobs());
         }

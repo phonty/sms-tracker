@@ -16,26 +16,24 @@
  */
 package ParticleTracking;
 
-import Particle_Analysis.Particle_Mapper;
-
 public class Main {
 
-    public static void main(String args[]) {
-        Particle_Mapper instance = new Particle_Mapper();
-        instance.run(null);
-        System.exit(0);
-    }
 //    public static void main(String args[]) {
-//        TestGenerator tg = new TestGenerator();
-//        tg.generateMulti(10000, 512, 512, 2, "C:\\Users\\barryd\\Debugging\\particle_sim_data\\");
-////        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
-//        System.exit(0);
-//    }
-//    public static void main(String args[]) {
-//        GPUAnalyse instance = new GPUAnalyse();
+//        Particle_Mapper instance = new Particle_Mapper();
 //        instance.run(null);
 //        System.exit(0);
 //    }
+//    public static void main(String args[]) {
+//        TestGenerator tg = new TestGenerator();
+//        tg.generateMulti(1000, 512, 512, 100, "D:\\UserData\\barryd\\debugging\\particle_sim_data\\");
+////        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
+//        System.exit(0);
+//    }
+    public static void main(String args[]) {
+        GPUAnalyse instance = new GPUAnalyse();
+        instance.run(null);
+        System.exit(0);
+    }
 //    public static void main(String args[]) {
 //        int radius = 5;
 //        double[] sigmas = new double[10];

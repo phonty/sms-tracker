@@ -32,9 +32,16 @@ public class GPUAnalyse extends Particle_Tracker {
 
     private final int CUDA_FILE_COLS = 5;
 
-//    static {
-//        System.loadLibrary("cuda_gauss_tracker"); // Load native library at runtime
-//    }
+    static {
+        try {
+            System.loadLibrary("ParticleDetector"); // Load native library at runtime
+        } catch (Exception | Error e) {
+            IJ.log(String.format("Failed to load CUDA runtime library:\n%s", e.toString()));
+            gpuEnabled = false;
+        }
+        gpuEnabled = true;
+    }
+
     private native boolean cudaGaussFitter(String folder, String ext, float spatialRes, float sigmaEst, float maxthresh, float fitTol, int startSlice, int endSlice);
 
 //    public static void main(String args[]) {

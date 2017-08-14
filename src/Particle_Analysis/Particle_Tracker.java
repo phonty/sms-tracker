@@ -95,7 +95,7 @@ public class Particle_Tracker implements PlugIn {
     protected final String delimiter = GenUtils.getDelimiter();
     protected ImagePlus[] inputs;
     protected final String labels[] = {"Channel 1", "Channel 2"};
-    protected boolean gpuEnabled = false;
+    protected static  boolean gpuEnabled = false;
     private final double PART_RAD = 2.0;
     private static File calFile;
     protected double normFactor;
