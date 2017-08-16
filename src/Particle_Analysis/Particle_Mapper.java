@@ -30,6 +30,7 @@ import static IO.DataWriter.convertArrayToString;
 import static IO.DataWriter.saveTextWindow;
 import static IO.DataWriter.saveValues;
 import Image.ImageChecker;
+import MacroWriter.MacroWriter;
 import Math.Histogram;
 import Particle.IsoGaussian;
 import Particle.Particle;
@@ -107,6 +108,7 @@ public class Particle_Mapper extends Particle_Tracker {
     }
 
     public void run(String arg) {
+        MacroWriter.write();
         Prefs.blackBackground = false;
         title = String.format("%s_v%d.%d", title, Revision.VERSION, Revision.revisionNumber);
         inputs = new ImagePlus[N_INPUTS];
