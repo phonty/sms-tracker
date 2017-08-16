@@ -9,6 +9,7 @@ import Particle.IsoGaussian;
 import IAClasses.ProgressDialog;
 import IAClasses.Region;
 import IAClasses.Utils;
+import MacroWriter.MacroWriter;
 import ParticleTracking.IsoGaussianFitter;
 import Particle.Particle;
 import Particle.ParticleArray;
@@ -114,6 +115,7 @@ public class Particle_Tracker implements PlugIn {
     }
 
     public void run(String arg) {
+        MacroWriter.write();
         File inputDir = null;
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
         inputs = new ImagePlus[2];
