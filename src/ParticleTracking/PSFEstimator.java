@@ -4,7 +4,7 @@
  */
 package ParticleTracking;
 
-import Particle.Particle;
+import Optimisation.FloatingMultiGaussFitter;
 import Particle.ParticleArray;
 import Particle_Analysis.Particle_Tracker;
 import Particle.IsoGaussian;

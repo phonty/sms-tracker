@@ -36,7 +36,7 @@ public class GPUAnalyse extends Particle_Tracker {
         try {
             System.loadLibrary("ParticleDetector"); // Load native library at runtime
         } catch (Exception | Error e) {
-            IJ.log(String.format("Failed to load CUDA runtime library:\n%s", e.toString()));
+            IJ.log(String.format("No CUDA runtime library detected - GPU compute functionality disabled.\n"));
             gpuEnabled = false;
         }
         gpuEnabled = true;

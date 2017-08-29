@@ -4,6 +4,7 @@
  */
 package ParticleTracking;
 
+import Optimisation.IsoGaussianFitter;
 import Particle.Particle;
 import Particle.ParticleArray;
 import Particle_Analysis.Particle_Tracker;
@@ -224,8 +225,8 @@ public class VolumeAnalysis extends Particle_Tracker {
                         /*
                          * Remove adjacent Gaussians
                          */
-                        IsoGaussianFitter c1GF = new IsoGaussianFitter(xCoords, yCoords, pixValues, false);
-                        c1GF.doFit(UserVariables.getSigEstRed());
+                        IsoGaussianFitter c1GF = new IsoGaussianFitter(xCoords, yCoords, pixValues, false, UserVariables.getSigEstRed());
+                        c1GF.doFit();
                         //if (c1GF.getXsig() < (c1SigmaTol * xySigEst)) {
                         if (c1GF.getRSquared() > c1CurveFitTol) {
                             c1Gaussian = new IsoGaussian((c1GF.getX0() + c1X - xyPartRad) * spatialRes,
