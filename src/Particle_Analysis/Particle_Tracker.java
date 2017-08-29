@@ -10,7 +10,7 @@ import IAClasses.ProgressDialog;
 import IAClasses.Region;
 import IAClasses.Utils;
 import MacroWriter.MacroWriter;
-import ParticleTracking.IsoGaussianFitter;
+import Optimisation.IsoGaussianFitter;
 import Particle.Particle;
 import Particle.ParticleArray;
 import ParticleTracking.ParticleTrajectory;
@@ -548,8 +548,8 @@ public class Particle_Tracker implements PlugIn {
     protected ArrayList<IsoGaussian> doFitting(double[] xCoords, double[] yCoords,
             double[][] pixValues, boolean floatingSigma, int x0, int y0, int fitRad,
             double spatialRes, double c1Threshold, int t, double sigma) {
-        IsoGaussianFitter fitter = new IsoGaussianFitter(xCoords, yCoords, pixValues, floatingSigma);
-        fitter.doFit(sigma);
+        IsoGaussianFitter fitter = new IsoGaussianFitter(xCoords, yCoords, pixValues, floatingSigma, sigma);
+        fitter.doFit();
         ArrayList<IsoGaussian> fits = new ArrayList();
         double x = (x0 - fitRad + fitter.getX0()) * spatialRes;
         double y = (y0 - fitRad + fitter.getY0()) * spatialRes;

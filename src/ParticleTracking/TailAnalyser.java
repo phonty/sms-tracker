@@ -170,7 +170,7 @@ public class TailAnalyser {
         }
         TailFitter tf = new TailFitter(eqChoice, spatialRes, UserVariables.getSigEstGreen());
         tf.loadData(xVals, yVals, zVals);
-        tf.doFit(UserVariables.getSigEstGreen());
+        tf.doFit();
         tf.printParams();
         return tf;
     }

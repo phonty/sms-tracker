@@ -17,6 +17,7 @@
  */
 package ParticleTracking;
 
+import Optimisation.IsoGaussianFitter;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.process.FloatProcessor;
@@ -27,8 +28,7 @@ import org.apache.commons.math3.special.Erf;
 
 public class TailFitter extends IsoGaussianFitter {
 
-    private final double spatialRes, sigmaEst;
-    double sqrt2 = Math.pow(2.0, 0.5);
+    private final double spatialRes;
     private static final int GAUSSIAN = 0, EMG = 1, EMG_PLUS_GAUSSIAN = 2;
     protected static final String eqLabels[] = {"Gaussian", "EMG", "Gaussian Plus EMG"};
     private final int eqChoice;
@@ -37,7 +37,7 @@ public class TailFitter extends IsoGaussianFitter {
         super();
         this.eqChoice = eqChoice;
         this.spatialRes = spatialRes;
-        this.sigmaEst = sigmaEst;
+        this.sigEst = sigmaEst;
     }
 
     public void loadData(double[] xVals, double[] yVals, double[][] zVals) {
@@ -102,7 +102,7 @@ public class TailFitter extends IsoGaussianFitter {
         }
         double p22 = p[2] * p[2];
         double a = 0.5 * p[0] * (2.0 * p[1] + p[0] * p22 - 2.0 * x);
-        double b = (p[1] + p[0] * p22 - x) / (sqrt2 * p[2]);
+        double b = (p[1] + p[0] * p22 - x) / (root2 * p[2]);
 
         return p[4] * p[0] * Math.exp(a) * Erf.erfc(b) + p[3];
     }
@@ -113,9 +113,9 @@ public class TailFitter extends IsoGaussianFitter {
         }
         double p22 = p[2] * p[2];
         double a = (p[0] / 2.0) * (2.0 * p[1] + p[0] * p22 - 2.0 * x);
-        double b = (p[1] + p[0] * p22 - x) / (sqrt2 * p[2]);
+        double b = (p[1] + p[0] * p22 - x) / (root2 * p[2]);
         double b2 = b * b;
-        double c = p[0] * p[3] * sqrt2 / (p[2] * Math.sqrt(Math.PI));
+        double c = p[0] * p[3] * root2 / (p[2] * Math.sqrt(Math.PI));
         double d = p[0] * p[0] * p[3];
 
         return Math.exp(a) * (c * Math.exp(-b2) - d * Erf.erfc(b));
@@ -205,7 +205,7 @@ public class TailFitter extends IsoGaussianFitter {
         if (p == null) {
             return Double.NaN;
         }
-        double v = Math.pow((y - p[5]) / (p[6] * sqrt2), 2.0);
+        double v = Math.pow((y - p[5]) / (p[6] * root2), 2.0);
 
         return xVal * Math.exp(-0.5 * v) + p[4];
     }
@@ -245,7 +245,7 @@ public class TailFitter extends IsoGaussianFitter {
 
     double[] buildTail(double[] p) {
         double[] emg = new double[xData.length];
-        Gaussian gauss = new Gaussian((emg.length - 1.0) / 2.0, sigmaEst / spatialRes);
+        Gaussian gauss = new Gaussian((emg.length - 1.0) / 2.0, sigEst / spatialRes);
         double[] gaussian = new double[emg.length];
         for (int i = 0; i < emg.length; i++) {
             gaussian[i] = gauss.value(i);
