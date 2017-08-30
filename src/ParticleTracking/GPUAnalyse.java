@@ -59,7 +59,7 @@ public class GPUAnalyse extends Particle_Tracker {
         if (UserVariables.isGpu()) {
             return cudaFindParticles(true, 0, stacks[0].getSize() - 1, stacks[1]);
         } else {
-            return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, false, UserVariables.isFitC2(), UserVariables.isBlobs());
+            return findParticles(true, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1], true, false, UserVariables.isFitC2());
         }
     }
 

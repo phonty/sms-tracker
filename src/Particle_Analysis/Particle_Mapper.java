@@ -231,7 +231,7 @@ public class Particle_Mapper extends Particle_Tracker {
     }
 
     protected ParticleArray findParticles() {
-        return findParticles(false, 0, inputs[FOCI].getImageStackSize() - 1, UserVariables.getCurveFitTol(), inputs[FOCI].getImageStack(), inputs[CYTO].getImageStack(), UserVariables.isBlobs());
+        return findParticles(false, 0, inputs[FOCI].getImageStackSize() - 1, UserVariables.getCurveFitTol(), inputs[FOCI].getImageStack(), inputs[CYTO].getImageStack());
     }
 
     /**
