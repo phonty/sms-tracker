@@ -30,8 +30,8 @@ import ij.gui.ImageCanvas;
 import ij.process.ImageProcessor;
 import java.awt.Canvas;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.util.ArrayList;
+import javax.swing.DefaultComboBoxModel;
 
 public class DetectionGUI extends javax.swing.JDialog {
 
@@ -47,6 +47,8 @@ public class DetectionGUI extends javax.swing.JDialog {
     protected static final String gpuToggleText = "Use GPU";
     protected static final String redSigEstText = "C1 PSF Width (" + IJ.micronSymbol + "m):";
     protected static final String greenSigEstText = "C2 PSF Width (" + IJ.micronSymbol + "m):";
+    protected static final String DETECT_MODE = "Detection Mode:";
+    protected static final DefaultComboBoxModel<String> DETECT_MODE_OPTIONS = new DefaultComboBoxModel(new String[]{"Points", "Blobs", "PSFs"});
 
     /**
      * Creates new form UserInterface
@@ -93,6 +95,8 @@ public class DetectionGUI extends javax.swing.JDialog {
         greenSigmaTextField = new javax.swing.JTextField();
         chan2MaxThreshLabel = new javax.swing.JLabel();
         chan2MaxThreshTextField = new javax.swing.JTextField();
+        detectionModeComboBox = new javax.swing.JComboBox<>();
+        jLabel1 = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
         canvas1 = new ImageCanvas(imp);
         previewTextField = new javax.swing.JTextField();
@@ -145,7 +149,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         spatResLabel.setText(spatResLabelText);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 2;
+        gridBagConstraints.gridy = 3;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weighty = 1.0;
@@ -155,7 +159,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         chan1MaxThreshLabel.setText(chan1MaxThreshLabelText);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 3;
+        gridBagConstraints.gridy = 4;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weighty = 1.0;
@@ -165,7 +169,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         spatResTextField.setText(String.valueOf(UserVariables.getSpatialRes()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 2;
+        gridBagConstraints.gridy = 3;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 1.0;
@@ -176,7 +180,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         chan1MaxThreshTextField.setText(String.valueOf(UserVariables.getChan1MaxThresh()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 3;
+        gridBagConstraints.gridy = 4;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 1.0;
@@ -188,7 +192,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         preprocessToggleButton.setSelected(UserVariables.isPreProcess());
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 6;
+        gridBagConstraints.gridy = 7;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 0.5;
@@ -199,7 +203,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         c1CurveFitTolLabel.setText(c1CurveFitTolLabelText);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 5;
+        gridBagConstraints.gridy = 6;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weighty = 1.0;
@@ -209,7 +213,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         c1CurveFitTolTextField.setText(String.valueOf(UserVariables.getCurveFitTol()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 5;
+        gridBagConstraints.gridy = 6;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 1.0;
@@ -231,6 +235,8 @@ public class DetectionGUI extends javax.swing.JDialog {
 
         redSigmaLabel.setText(redSigEstText);
         gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 1;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
@@ -239,7 +245,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         greenSigmaLabel.setText(greenSigEstText);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 1;
+        gridBagConstraints.gridy = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
@@ -247,6 +253,8 @@ public class DetectionGUI extends javax.swing.JDialog {
 
         redSigmaTextField.setText(String.valueOf(UserVariables.getSigEstRed()));
         gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 1;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 1.0;
@@ -257,7 +265,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         greenSigmaTextField.setText(String.valueOf(UserVariables.getSigEstGreen()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 1;
+        gridBagConstraints.gridy = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 1.0;
@@ -268,7 +276,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         chan2MaxThreshLabel.setText(chan2MaxThreshLabelText);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 4;
+        gridBagConstraints.gridy = 5;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
         gridBagConstraints.weighty = 1.0;
@@ -278,13 +286,33 @@ public class DetectionGUI extends javax.swing.JDialog {
         chan2MaxThreshTextField.setText(String.valueOf(UserVariables.getChan2MaxThresh()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 4;
+        gridBagConstraints.gridy = 5;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         detectionPanel.add(chan2MaxThreshTextField, gridBagConstraints);
+
+        detectionModeComboBox.setModel(DETECT_MODE_OPTIONS);
+        detectionModeComboBox.setSelectedIndex(UserVariables.getDetectionMode()-UserVariables.MAXIMA);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        detectionPanel.add(detectionModeComboBox, gridBagConstraints);
+
+        jLabel1.setText(DETECT_MODE);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        detectionPanel.add(jLabel1, gridBagConstraints);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
@@ -387,6 +415,7 @@ public class DetectionGUI extends javax.swing.JDialog {
 
     boolean setVariables() {
         try {
+            UserVariables.setDetectionMode(detectionModeComboBox.getSelectedIndex() + UserVariables.MAXIMA);
             UserVariables.setChan1MaxThresh(Double.parseDouble(chan1MaxThreshTextField.getText()));
             UserVariables.setChan2MaxThresh(Double.parseDouble(chan2MaxThreshTextField.getText()));
             UserVariables.setSpatialRes(Double.parseDouble(spatResTextField.getText()));
@@ -494,10 +523,12 @@ public class DetectionGUI extends javax.swing.JDialog {
     private javax.swing.JTextField chan1MaxThreshTextField;
     private javax.swing.JLabel chan2MaxThreshLabel;
     private javax.swing.JTextField chan2MaxThreshTextField;
+    private javax.swing.JComboBox<String> detectionModeComboBox;
     private javax.swing.JPanel detectionPanel;
     private javax.swing.JToggleButton gpuToggleButton;
     private javax.swing.JLabel greenSigmaLabel;
     private javax.swing.JTextField greenSigmaTextField;
+    private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JButton okButton;

@@ -403,17 +403,19 @@ public class Particle_Tracker implements PlugIn {
         for (i = startSlice; i < noOfImages && i <= endSlice; i++) {
             IJ.freeMemory();
             progress.updateProgress(i - startSlice, arraySize);
+            ImageProcessor ip1 = channel1.getProcessor(i + 1).convertToFloat();
+            ImageProcessor ip2 = (channel2 != null) ? channel2.getProcessor(i + 1).convertToFloat() : null;
             if (UserVariables.getDetectionMode() == UserVariables.BLOBS) {
-                detectBlobs(startSlice, channel1, channel2, i, particles, fitC2);
+                detectBlobs(startSlice, i, particles, fitC2, ip1, ip2);
             } else {
-                FloatProcessor chan1Proc = (FloatProcessor) preProcess(channel1.getProcessor(i + 1).duplicate(), UserVariables.getSigEstRed());
-                double c1Threshold = Utils.getPercentileThresh(chan1Proc, UserVariables.getChan1MaxThresh());
-                ByteProcessor thisC1Max = Utils.findLocalMaxima(searchRad, searchRad, UserVariables.FOREGROUND, chan1Proc, c1Threshold, false, 0);
+                FloatProcessor ip1Proc = (FloatProcessor) preProcess(ip1.duplicate(), UserVariables.getSigEstRed());
+                double c1Threshold = Utils.getPercentileThresh(ip1Proc, UserVariables.getChan1MaxThresh());
+                ByteProcessor thisC1Max = Utils.findLocalMaxima(searchRad, searchRad, UserVariables.FOREGROUND, ip1Proc, c1Threshold, false, 0);
                 if (UserVariables.getDetectionMode() == UserVariables.GAUSS) {
-                    detectParticles(startSlice, channel1, channel2, i, particles,
-                            floatingSigma, fitC2, c1FitTol, thisC1Max, chan1Proc);
+                    detectParticles(startSlice, i, particles,
+                            floatingSigma, fitC2, c1FitTol, thisC1Max, ip1Proc, ip2);
                 } else {
-                    storeMaximaAsParticles(startSlice, channel2, i, particles, thisC1Max, chan1Proc);
+                    storeMaximaAsParticles(startSlice, i, particles, thisC1Max, ip1Proc, ip2);
                 }
             }
         }
@@ -424,30 +426,28 @@ public class Particle_Tracker implements PlugIn {
         return particles;
     }
 
-    public void detectBlobs(int startSlice, ImageStack channel1, ImageStack channel2, int i, ParticleArray particles, boolean fitC2) {
-        ImageProcessor chan1Proc = channel1.getProcessor(i + 1).convertToFloat();
-        ImageProcessor chan2Proc = (channel2 != null) ? channel2.getProcessor(i + 1).convertToFloat() : null;
-        int width = chan1Proc.getWidth();
-        int height = chan1Proc.getHeight();
+    public void detectBlobs(int startSlice, int i, ParticleArray particles, boolean fitC2, ImageProcessor c1Proc, ImageProcessor c2Proc) {
+        int width = c1Proc.getWidth();
+        int height = c1Proc.getHeight();
         int searchRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
         int pSize = 2 * searchRad + 1;
-        ByteProcessor C2Max = null, C1Max = getMaxima(pSize, chan1Proc.duplicate(), UserVariables.getChan1MaxThresh());
-        if (chan2Proc != null && fitC2) {
-            C2Max = getMaxima(pSize, chan2Proc.duplicate(), UserVariables.getChan2MaxThresh());
+        ByteProcessor C2Max = null, C1Max = getMaxima(pSize, c1Proc.duplicate(), UserVariables.getChan1MaxThresh());
+        if (c2Proc != null && fitC2) {
+            C2Max = getMaxima(pSize, c2Proc.duplicate(), UserVariables.getChan2MaxThresh());
         }
         for (int c1X = 0; c1X < width; c1X++) {
             for (int c1Y = 0; c1Y < height; c1Y++) {
                 if (C1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
                     double px = c1X * UserVariables.getSpatialRes();
                     double py = c1Y * UserVariables.getSpatialRes();
-                    Particle p1 = new Particle(i - startSlice, px, py, chan1Proc.getPixelValue(c1X, c1Y));
-                    Particle p2 = chan2Proc != null ? new Particle(i - startSlice, px, py, chan2Proc.getPixelValue(c1X, c1Y)) : null;
-                    if (chan2Proc != null && fitC2) {
+                    Particle p1 = new Particle(i - startSlice, px, py, c1Proc.getPixelValue(c1X, c1Y));
+                    Particle p2 = c2Proc != null ? new Particle(i - startSlice, px, py, c2Proc.getPixelValue(c1X, c1Y)) : null;
+                    if (c2Proc != null && fitC2) {
                         int[][] c2Points = Utils.searchNeighbourhood(c1X, c1Y, searchRad, UserVariables.FOREGROUND, C2Max);
                         if (c2Points != null) {
                             px = c2Points[0][0] * UserVariables.getSpatialRes();
                             py = c2Points[0][1] * UserVariables.getSpatialRes();
-                            p2 = new Particle(i - startSlice, px, py, chan2Proc.getPixelValue(c2Points[0][0], c2Points[0][1]));
+                            p2 = new Particle(i - startSlice, px, py, c2Proc.getPixelValue(c2Points[0][0], c2Points[0][1]));
                         } else {
                             p2 = null;
                         }
@@ -458,7 +458,7 @@ public class Particle_Tracker implements PlugIn {
             }
         }
         if (UserVariables.isTrackRegions()) {
-            findRegions(particles.getLevel(i - startSlice), i - startSlice, chan1Proc);
+            findRegions(particles.getLevel(i - startSlice), i - startSlice, c1Proc);
         }
     }
 
@@ -501,7 +501,7 @@ public class Particle_Tracker implements PlugIn {
         return Utils.findLocalMaxima(searchRad, searchRad, UserVariables.FOREGROUND, log1, t, false, 0);
     }
 
-    public void detectParticles(int startSlice, ImageStack channel1, ImageStack channel2, int i, ParticleArray particles, boolean floatingSigma, boolean fitC2Gaussian, double c1FitTol, ByteProcessor thisC1Max, FloatProcessor chan1Proc) {
+    public void detectParticles(int startSlice, int i, ParticleArray particles, boolean floatingSigma, boolean fitC2Gaussian, double c1FitTol, ByteProcessor thisC1Max, FloatProcessor chan1Proc, ImageProcessor ip2) {
         int width = chan1Proc.getWidth();
         int height = chan1Proc.getHeight();
         int fitRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
@@ -509,8 +509,7 @@ public class Particle_Tracker implements PlugIn {
         double[] xCoords = new double[pSize];
         double[] yCoords = new double[pSize];
         double[][] pixValues = new double[pSize][pSize];
-        FloatProcessor chan2Proc = (channel2 != null) ? (FloatProcessor) preProcess(channel2.getProcessor(i + 1).duplicate(), UserVariables.getSigEstGreen()) : null;
-        double c2Threshold = chan2Proc == null ? 0.0 : Utils.getPercentileThresh(chan2Proc, UserVariables.getChan2MaxThresh());
+        double c2Threshold = ip2 == null ? 0.0 : Utils.getPercentileThresh(ip2, UserVariables.getChan2MaxThresh());
         for (int c1X = 0; c1X < width; c1X++) {
             for (int c1Y = 0; c1Y < height; c1Y++) {
                 if (thisC1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
@@ -519,10 +518,10 @@ public class Particle_Tracker implements PlugIn {
                             floatingSigma, c1X, c1Y, fitRad, UserVariables.getSpatialRes(), i - startSlice,
                             UserVariables.getSigEstRed() / UserVariables.getSpatialRes());
                     Particle p2 = null;
-                    if (chan2Proc != null && chan2Proc.getPixelValue(c1X, c1Y) > c2Threshold) {
-                        p2 = new Particle(i - startSlice, c1X * UserVariables.getSpatialRes(), c1Y * UserVariables.getSpatialRes(), chan2Proc.getPixelValue(c1X, c1Y));
+                    if (ip2 != null && ip2.getPixelValue(c1X, c1Y) > c2Threshold) {
+                        p2 = new Particle(i - startSlice, c1X * UserVariables.getSpatialRes(), c1Y * UserVariables.getSpatialRes(), ip2.getPixelValue(c1X, c1Y));
                         if (fitC2Gaussian) {
-                            Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, chan2Proc);
+                            Utils.extractValues(xCoords, yCoords, pixValues, c1X, c1Y, ip2);
                             ArrayList<IsoGaussian> c2Fits = doFitting(xCoords, yCoords, pixValues,
                                     floatingSigma, c1X, c1Y, fitRad, UserVariables.getSpatialRes(),
                                     i - startSlice, UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
@@ -545,18 +544,17 @@ public class Particle_Tracker implements PlugIn {
         }
     }
 
-    public void storeMaximaAsParticles(int startSlice, ImageStack channel2, int i, ParticleArray particles, ByteProcessor thisC1Max, FloatProcessor chan1Proc) {
+    public void storeMaximaAsParticles(int startSlice, int i, ParticleArray particles, ByteProcessor thisC1Max, FloatProcessor chan1Proc, ImageProcessor ip2) {
         int width = chan1Proc.getWidth();
         int height = chan1Proc.getHeight();
-        FloatProcessor chan2Proc = (channel2 != null) ? (FloatProcessor) preProcess(channel2.getProcessor(i + 1).duplicate(), UserVariables.getSigEstGreen()) : null;
-        double c2Threshold = chan2Proc == null ? 0.0 : Utils.getPercentileThresh(chan2Proc, UserVariables.getChan2MaxThresh());
+        double c2Threshold = ip2 == null ? 0.0 : Utils.getPercentileThresh(ip2, UserVariables.getChan2MaxThresh());
         for (int c1X = 0; c1X < width; c1X++) {
             for (int c1Y = 0; c1Y < height; c1Y++) {
                 if (thisC1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
                     Particle p1 = new Particle(i - startSlice, c1X * UserVariables.getSpatialRes(), c1Y * UserVariables.getSpatialRes(), chan1Proc.getPixelValue(c1X, c1Y));
                     Particle p2 = null;
-                    if (chan2Proc != null && chan2Proc.getPixelValue(c1X, c1Y) > c2Threshold) {
-                        p2 = new Particle(i - startSlice, c1X * UserVariables.getSpatialRes(), c1Y * UserVariables.getSpatialRes(), chan2Proc.getPixelValue(c1X, c1Y));
+                    if (ip2 != null && ip2.getPixelValue(c1X, c1Y) > c2Threshold) {
+                        p2 = new Particle(i - startSlice, c1X * UserVariables.getSpatialRes(), c1Y * UserVariables.getSpatialRes(), ip2.getPixelValue(c1X, c1Y));
                     }
                     p1.setColocalisedParticle(p2);
                     particles.addDetection(i - startSlice, p1);
