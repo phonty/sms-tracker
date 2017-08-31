@@ -40,14 +40,16 @@ public class DetectionGUI extends javax.swing.JDialog {
     protected final String title;
     protected boolean wasOKed = false, monoChrome;
     protected static final String spatResLabelText = "Spatial resolution (" + IJ.micronSymbol + "m/pixel):";
-    protected static final String chan1MaxThreshLabelText = "C1 Minimum peak size:";
-    protected static final String chan2MaxThreshLabelText = "C2 Minimum peak size:";
+    protected static final String chan1MaxThreshLabelText = "C1 minimum peak size:";
+    protected static final String chan2MaxThreshLabelText = "C2 minimum peak size:";
     protected static final String c1CurveFitTolLabelText = "Curve fit tolerance:";
     protected static final String preprocessToggleText = "Pre-Process Images";
     protected static final String gpuToggleText = "Use GPU";
-    protected static final String redSigEstText = "C1 PSF Width (" + IJ.micronSymbol + "m):";
+    protected static final String redSigEstText = "PSF radius (" + IJ.micronSymbol + "m):";
     protected static final String greenSigEstText = "C2 PSF Width (" + IJ.micronSymbol + "m):";
     protected static final String DETECT_MODE = "Detection Mode:";
+    protected static final String blobSizeText = "Blob size (" + IJ.micronSymbol + "m):";
+    protected static final String filterRadiusText = "Gaussian Filter Radius (" + IJ.micronSymbol + "m):";
     protected static final DefaultComboBoxModel<String> DETECT_MODE_OPTIONS = new DefaultComboBoxModel(new String[]{"Points", "Blobs", "PSFs"});
 
     /**
@@ -86,17 +88,19 @@ public class DetectionGUI extends javax.swing.JDialog {
         spatResTextField = new javax.swing.JTextField();
         chan1MaxThreshTextField = new javax.swing.JTextField();
         preprocessToggleButton = new javax.swing.JToggleButton();
-        c1CurveFitTolLabel = new javax.swing.JLabel();
-        c1CurveFitTolTextField = new javax.swing.JTextField();
+        curveFitTolLabel = new javax.swing.JLabel();
+        curveFitTolTextField = new javax.swing.JTextField();
         gpuToggleButton = new javax.swing.JToggleButton();
-        redSigmaLabel = new javax.swing.JLabel();
-        greenSigmaLabel = new javax.swing.JLabel();
-        redSigmaTextField = new javax.swing.JTextField();
-        greenSigmaTextField = new javax.swing.JTextField();
+        sigmaLabel = new javax.swing.JLabel();
+        sigmaTextField = new javax.swing.JTextField();
         chan2MaxThreshLabel = new javax.swing.JLabel();
         chan2MaxThreshTextField = new javax.swing.JTextField();
         detectionModeComboBox = new javax.swing.JComboBox<>();
-        jLabel1 = new javax.swing.JLabel();
+        detectionModeLabel = new javax.swing.JLabel();
+        blobSizeLabel = new javax.swing.JLabel();
+        blobSizeTextField = new javax.swing.JTextField();
+        filterRadiusLabel = new javax.swing.JLabel();
+        filterRadiusTextField = new javax.swing.JTextField();
         jPanel2 = new javax.swing.JPanel();
         canvas1 = new ImageCanvas(imp);
         previewTextField = new javax.swing.JTextField();
@@ -149,9 +153,10 @@ public class DetectionGUI extends javax.swing.JDialog {
         spatResLabel.setText(spatResLabelText);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 3;
+        gridBagConstraints.gridy = 1;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         detectionPanel.add(spatResLabel, gridBagConstraints);
@@ -159,9 +164,10 @@ public class DetectionGUI extends javax.swing.JDialog {
         chan1MaxThreshLabel.setText(chan1MaxThreshLabelText);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 4;
+        gridBagConstraints.gridy = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         detectionPanel.add(chan1MaxThreshLabel, gridBagConstraints);
@@ -169,7 +175,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         spatResTextField.setText(String.valueOf(UserVariables.getSpatialRes()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 3;
+        gridBagConstraints.gridy = 1;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 1.0;
@@ -180,7 +186,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         chan1MaxThreshTextField.setText(String.valueOf(UserVariables.getChan1MaxThresh()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 4;
+        gridBagConstraints.gridy = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 1.0;
@@ -190,9 +196,14 @@ public class DetectionGUI extends javax.swing.JDialog {
 
         preprocessToggleButton.setText(preprocessToggleText);
         preprocessToggleButton.setSelected(UserVariables.isPreProcess());
+        preprocessToggleButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                preprocessToggleButtonActionPerformed(evt);
+            }
+        });
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 7;
+        gridBagConstraints.gridy = 10;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 0.5;
@@ -200,32 +211,35 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         detectionPanel.add(preprocessToggleButton, gridBagConstraints);
 
-        c1CurveFitTolLabel.setText(c1CurveFitTolLabelText);
+        curveFitTolLabel.setText(c1CurveFitTolLabelText);
+        curveFitTolLabel.setEnabled(UserVariables.getDetectionMode()==UserVariables.GAUSS);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 6;
+        gridBagConstraints.gridy = 9;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
-        detectionPanel.add(c1CurveFitTolLabel, gridBagConstraints);
+        detectionPanel.add(curveFitTolLabel, gridBagConstraints);
 
-        c1CurveFitTolTextField.setText(String.valueOf(UserVariables.getCurveFitTol()));
+        curveFitTolTextField.setText(String.valueOf(UserVariables.getCurveFitTol()));
+        curveFitTolTextField.setEnabled(UserVariables.getDetectionMode()==UserVariables.GAUSS);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 6;
+        gridBagConstraints.gridy = 9;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
-        detectionPanel.add(c1CurveFitTolTextField, gridBagConstraints);
+        detectionPanel.add(curveFitTolTextField, gridBagConstraints);
 
         gpuToggleButton.setText(gpuToggleText);
         gpuToggleButton.setEnabled(analyser.isGpuEnabled());
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 8;
+        gridBagConstraints.gridy = 12;
         gridBagConstraints.gridwidth = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.weightx = 0.5;
@@ -233,52 +247,37 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         detectionPanel.add(gpuToggleButton, gridBagConstraints);
 
-        redSigmaLabel.setText(redSigEstText);
+        sigmaLabel.setText(redSigEstText);
+        sigmaLabel.setEnabled(UserVariables.getDetectionMode()==UserVariables.GAUSS);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 1;
+        gridBagConstraints.gridy = 8;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
-        detectionPanel.add(redSigmaLabel, gridBagConstraints);
+        detectionPanel.add(sigmaLabel, gridBagConstraints);
 
-        greenSigmaLabel.setText(greenSigEstText);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
-        detectionPanel.add(greenSigmaLabel, gridBagConstraints);
-
-        redSigmaTextField.setText(String.valueOf(UserVariables.getSigEstRed()));
+        sigmaTextField.setText(String.valueOf(UserVariables.getSigEstRed()));
+        sigmaTextField.setEnabled(UserVariables.getDetectionMode()==UserVariables.GAUSS);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 1;
+        gridBagConstraints.gridy = 8;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
-        detectionPanel.add(redSigmaTextField, gridBagConstraints);
-
-        greenSigmaTextField.setText(String.valueOf(UserVariables.getSigEstGreen()));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
-        gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
-        detectionPanel.add(greenSigmaTextField, gridBagConstraints);
+        detectionPanel.add(sigmaTextField, gridBagConstraints);
 
         chan2MaxThreshLabel.setText(chan2MaxThreshLabelText);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 5;
+        gridBagConstraints.gridy = 3;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 1.0;
         gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         detectionPanel.add(chan2MaxThreshLabel, gridBagConstraints);
@@ -286,7 +285,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         chan2MaxThreshTextField.setText(String.valueOf(UserVariables.getChan2MaxThresh()));
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 5;
+        gridBagConstraints.gridy = 3;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
         gridBagConstraints.weightx = 1.0;
@@ -296,6 +295,11 @@ public class DetectionGUI extends javax.swing.JDialog {
 
         detectionModeComboBox.setModel(DETECT_MODE_OPTIONS);
         detectionModeComboBox.setSelectedIndex(UserVariables.getDetectionMode()-UserVariables.MAXIMA);
+        detectionModeComboBox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                detectionModeComboBoxActionPerformed(evt);
+            }
+        });
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 0;
@@ -306,13 +310,59 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
         detectionPanel.add(detectionModeComboBox, gridBagConstraints);
 
-        jLabel1.setText(DETECT_MODE);
+        detectionModeLabel.setText(DETECT_MODE);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 0;
         gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
-        detectionPanel.add(jLabel1, gridBagConstraints);
+        detectionPanel.add(detectionModeLabel, gridBagConstraints);
+
+        blobSizeLabel.setText(blobSizeText);
+        blobSizeLabel.setEnabled(!(UserVariables.getDetectionMode()==UserVariables.GAUSS));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 6;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        detectionPanel.add(blobSizeLabel, gridBagConstraints);
+
+        blobSizeTextField.setText(String.format("%1.3f", UserVariables.getBlobSize()));
+        blobSizeTextField.setEnabled(!(UserVariables.getDetectionMode()==UserVariables.GAUSS));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 6;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        detectionPanel.add(blobSizeTextField, gridBagConstraints);
+
+        filterRadiusLabel.setText(filterRadiusText);
+        filterRadiusLabel.setEnabled(UserVariables.isPreProcess() && !(UserVariables.getDetectionMode()==UserVariables.BLOBS));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 11;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        detectionPanel.add(filterRadiusLabel, gridBagConstraints);
+
+        filterRadiusTextField.setText(String.format("%1.3f", UserVariables.getFilterRadius()));
+        filterRadiusTextField.setEnabled(UserVariables.isPreProcess()&&!(UserVariables.getDetectionMode()==UserVariables.BLOBS));
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 11;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        detectionPanel.add(filterRadiusTextField, gridBagConstraints);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
@@ -413,17 +463,37 @@ public class DetectionGUI extends javax.swing.JDialog {
         }
     }//GEN-LAST:event_previewScrollBarAdjustmentValueChanged
 
+    private void detectionModeComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_detectionModeComboBoxActionPerformed
+        setVariables();
+        boolean psfs = UserVariables.getDetectionMode() == UserVariables.GAUSS;
+        curveFitTolTextField.setEnabled(psfs);
+        curveFitTolLabel.setEnabled(psfs);
+        sigmaTextField.setEnabled(psfs);
+        sigmaLabel.setEnabled(psfs);
+        blobSizeLabel.setEnabled(!psfs);
+        blobSizeTextField.setEnabled(!psfs);
+        preprocessToggleButtonActionPerformed(evt);
+    }//GEN-LAST:event_detectionModeComboBoxActionPerformed
+
+    private void preprocessToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_preprocessToggleButtonActionPerformed
+        preprocessToggleButton.setEnabled(!(UserVariables.getDetectionMode() == UserVariables.BLOBS));
+        filterRadiusLabel.setEnabled(preprocessToggleButton.isSelected() && !(UserVariables.getDetectionMode() == UserVariables.BLOBS));
+        filterRadiusTextField.setEnabled(preprocessToggleButton.isSelected() && !(UserVariables.getDetectionMode() == UserVariables.BLOBS));
+    }//GEN-LAST:event_preprocessToggleButtonActionPerformed
+
     boolean setVariables() {
         try {
             UserVariables.setDetectionMode(detectionModeComboBox.getSelectedIndex() + UserVariables.MAXIMA);
             UserVariables.setChan1MaxThresh(Double.parseDouble(chan1MaxThreshTextField.getText()));
             UserVariables.setChan2MaxThresh(Double.parseDouble(chan2MaxThreshTextField.getText()));
             UserVariables.setSpatialRes(Double.parseDouble(spatResTextField.getText()));
-            UserVariables.setCurveFitTol(Double.parseDouble(c1CurveFitTolTextField.getText()));
+            UserVariables.setCurveFitTol(Double.parseDouble(curveFitTolTextField.getText()));
             UserVariables.setPreProcess(preprocessToggleButton.isSelected());
             UserVariables.setGpu(gpuToggleButton.isSelected());
-            UserVariables.setSigEstRed(Double.parseDouble(redSigmaTextField.getText()));
-            UserVariables.setSigEstGreen(Double.parseDouble(greenSigmaTextField.getText()));
+            UserVariables.setSigEstRed(Double.parseDouble(sigmaTextField.getText()));
+//            UserVariables.setSigEstGreen(Double.parseDouble(greenSigmaTextField.getText()));
+            UserVariables.setBlobSize(Double.parseDouble(blobSizeTextField.getText()));
+            UserVariables.setFilterRadius(Double.parseDouble(filterRadiusTextField.getText()));
         } catch (NumberFormatException e) {
             IJ.error("Number formatting error " + e.toString());
             return false;
@@ -446,20 +516,17 @@ public class DetectionGUI extends javax.swing.JDialog {
         if (detections != null) {
             ImageProcessor output = Utils.updateImage(stacks[0], stacks[1], psv);
             double mag = 1.0 / UIMethods.getMagnification(output, canvas1);
-            double sr = 1.0 / spatRes;
-            int radius = analyser.calcParticleRadius(UserVariables.getSpatialRes());
+//            double sr = 1.0 / spatRes;
+//            int radius = analyser.calcParticleRadius(UserVariables.getSpatialRes());
             ArrayList<Particle> particles = detections.getLevel(0);
             Color c1Color = !monoChrome ? Color.red : Color.white;
             Color c2Color = !monoChrome ? Color.green : Color.white;
             output.setLineWidth(1);
             for (Particle p1 : particles) {
                 Particle p2 = p1.getColocalisedParticle();
-                drawDetections(output, (int) (Math.round(sr * p1.getX())), (int) (Math.round(sr * p1.getY())),
-                        radius, true, c1Color);
+                drawParticle(output, true, c1Color, p1);
                 if (p2 != null) {
-                    drawDetections(output, (int) (Math.round(sr * p2.getX())),
-                            (int) (Math.round(sr * p2.getY())), radius,
-                            false, c2Color);
+                    drawParticle(output, true, c2Color, p2);
                 }
             }
             imp.setProcessor("", output);
@@ -476,6 +543,29 @@ public class DetectionGUI extends javax.swing.JDialog {
         } else {
             image.drawRect((x - radius), (y - radius), 2 * radius, 2 * radius);
         }
+    }
+
+    public static void drawParticle(ImageProcessor image,
+            boolean drawOval, Color colour, Particle p) {
+        image.setColor(colour);
+        int radius;
+        int x = (int) Math.round(p.getX() / UserVariables.getSpatialRes());
+        int y = (int) Math.round(p.getY() / UserVariables.getSpatialRes());
+        switch (UserVariables.getDetectionMode()) {
+            case UserVariables.BLOBS:
+                radius = (int) Math.round(UserVariables.getBlobSize() / UserVariables.getSpatialRes());
+                image.drawOval((x - radius), (y - radius), 2 * radius, 2 * radius);
+                break;
+            case UserVariables.GAUSS:
+                radius = (int) Math.round(UserVariables.getSigEstRed() / UserVariables.getSpatialRes());
+                image.drawOval((x - radius), (y - radius), 2 * radius, 2 * radius);
+                break;
+            default:
+                radius = (int) Math.round(1.0 / UserVariables.getSpatialRes());
+                image.drawLine(x, y - radius, x, y + radius);
+                image.drawLine(x + radius, y, x - radius, y);
+        }
+
     }
 
     public boolean isWasOKed() {
@@ -515,20 +605,22 @@ public class DetectionGUI extends javax.swing.JDialog {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JLabel c1CurveFitTolLabel;
-    private javax.swing.JTextField c1CurveFitTolTextField;
+    private javax.swing.JLabel blobSizeLabel;
+    private javax.swing.JTextField blobSizeTextField;
     private javax.swing.JButton cancelButton;
     private java.awt.Canvas canvas1;
     private javax.swing.JLabel chan1MaxThreshLabel;
     private javax.swing.JTextField chan1MaxThreshTextField;
     private javax.swing.JLabel chan2MaxThreshLabel;
     private javax.swing.JTextField chan2MaxThreshTextField;
+    private javax.swing.JLabel curveFitTolLabel;
+    private javax.swing.JTextField curveFitTolTextField;
     private javax.swing.JComboBox<String> detectionModeComboBox;
+    private javax.swing.JLabel detectionModeLabel;
     private javax.swing.JPanel detectionPanel;
+    private javax.swing.JLabel filterRadiusLabel;
+    private javax.swing.JTextField filterRadiusTextField;
     private javax.swing.JToggleButton gpuToggleButton;
-    private javax.swing.JLabel greenSigmaLabel;
-    private javax.swing.JTextField greenSigmaTextField;
-    private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JButton okButton;
@@ -536,8 +628,8 @@ public class DetectionGUI extends javax.swing.JDialog {
     private java.awt.Scrollbar previewScrollBar;
     private javax.swing.JTextField previewTextField;
     private javax.swing.JToggleButton previewToggleButton;
-    private javax.swing.JLabel redSigmaLabel;
-    private javax.swing.JTextField redSigmaTextField;
+    private javax.swing.JLabel sigmaLabel;
+    private javax.swing.JTextField sigmaTextField;
     private javax.swing.JLabel spatResLabel;
     private javax.swing.JTextField spatResTextField;
     // End of variables declaration//GEN-END:variables
