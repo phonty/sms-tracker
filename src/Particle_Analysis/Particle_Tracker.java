@@ -100,6 +100,7 @@ public class Particle_Tracker implements PlugIn {
     private final double PART_RAD = 2.0;
     private static File calFile;
     protected double normFactor;
+    private final double NOISE = 0.0001;
 
     public Particle_Tracker() {
     }
@@ -375,7 +376,7 @@ public class Particle_Tracker implements PlugIn {
             return null;
         }
         ImageProcessor fp = (new TypeConverter(processor, false)).convertToFloat(null);
-        fp.noise(0.0001);
+        fp.noise(NOISE);
         if (UserVariables.isPreProcess()) {
             (new GaussianBlur()).blurGaussian(fp, sigma, sigma, 0.1);
         }
@@ -393,7 +394,12 @@ public class Particle_Tracker implements PlugIn {
         }
         int i, noOfImages = channel1.getSize(),
                 arraySize = endSlice - startSlice + 1;
-        int searchRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
+        int searchRad;
+        if (UserVariables.getDetectionMode() == UserVariables.GAUSS) {
+            searchRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
+        } else {
+            searchRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getBlobSize());
+        }
         double spatialRes = UserVariables.getSpatialRes();
         ParticleArray particles = new ParticleArray(arraySize);
         ProgressDialog progress = new ProgressDialog(null, "Finding Particles...", false, title, false);
@@ -408,7 +414,10 @@ public class Particle_Tracker implements PlugIn {
             if (UserVariables.getDetectionMode() == UserVariables.BLOBS) {
                 detectBlobs(startSlice, i, particles, fitC2, ip1, ip2);
             } else {
-                FloatProcessor ip1Proc = (FloatProcessor) preProcess(ip1.duplicate(), UserVariables.getSigEstRed());
+                FloatProcessor ip1Proc = ip1.convertToFloatProcessor();
+                if (UserVariables.isPreProcess()) {
+                    ip1Proc = (FloatProcessor) preProcess(ip1.duplicate(), UserVariables.getFilterRadius());
+                }
                 double c1Threshold = Utils.getPercentileThresh(ip1Proc, UserVariables.getChan1MaxThresh());
                 ByteProcessor thisC1Max = Utils.findLocalMaxima(searchRad, searchRad, UserVariables.FOREGROUND, ip1Proc, c1Threshold, false, 0);
                 if (UserVariables.getDetectionMode() == UserVariables.GAUSS) {
@@ -429,9 +438,10 @@ public class Particle_Tracker implements PlugIn {
     public void detectBlobs(int startSlice, int i, ParticleArray particles, boolean fitC2, ImageProcessor c1Proc, ImageProcessor c2Proc) {
         int width = c1Proc.getWidth();
         int height = c1Proc.getHeight();
-        int searchRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
+        int searchRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getBlobSize());
         int pSize = 2 * searchRad + 1;
         ByteProcessor C2Max = null, C1Max = getMaxima(pSize, c1Proc.duplicate(), UserVariables.getChan1MaxThresh());
+        double c2Threshold = Utils.getPercentileThresh(c2Proc, UserVariables.getChan2MaxThresh());
         if (c2Proc != null && fitC2) {
             C2Max = getMaxima(pSize, c2Proc.duplicate(), UserVariables.getChan2MaxThresh());
         }
@@ -441,7 +451,7 @@ public class Particle_Tracker implements PlugIn {
                     double px = c1X * UserVariables.getSpatialRes();
                     double py = c1Y * UserVariables.getSpatialRes();
                     Particle p1 = new Particle(i - startSlice, px, py, c1Proc.getPixelValue(c1X, c1Y));
-                    Particle p2 = c2Proc != null ? new Particle(i - startSlice, px, py, c2Proc.getPixelValue(c1X, c1Y)) : null;
+                    Particle p2 = (c2Proc != null && c2Proc.getPixelValue(c1X, c1Y) > c2Threshold) ? new Particle(i - startSlice, px, py, c2Proc.getPixelValue(c1X, c1Y)) : null;
                     if (c2Proc != null && fitC2) {
                         int[][] c2Points = Utils.searchNeighbourhood(c1X, c1Y, searchRad, UserVariables.FOREGROUND, C2Max);
                         if (c2Points != null) {
@@ -493,6 +503,7 @@ public class Particle_Tracker implements PlugIn {
     }
 
     ByteProcessor getMaxima(int pSize, ImageProcessor ip, double pThreshold) {
+        ip.noise(NOISE);
         int searchRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getSigEstRed());
         Blob_Detector bd1 = new Blob_Detector(UserVariables.getSigEstRed(), pSize);
         ImageProcessor log1 = bd1.laplacianOfGaussian(ip);
