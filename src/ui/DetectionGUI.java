@@ -548,12 +548,11 @@ public class DetectionGUI extends javax.swing.JDialog {
     public static void drawParticle(ImageProcessor image,
             boolean drawOval, Color colour, Particle p) {
         image.setColor(colour);
-        int radius;
+        int radius = (int) Math.round(UserVariables.getBlobSize() / UserVariables.getSpatialRes());
         int x = (int) Math.round(p.getX() / UserVariables.getSpatialRes());
         int y = (int) Math.round(p.getY() / UserVariables.getSpatialRes());
         switch (UserVariables.getDetectionMode()) {
             case UserVariables.BLOBS:
-                radius = (int) Math.round(UserVariables.getBlobSize() / UserVariables.getSpatialRes());
                 image.drawOval((x - radius), (y - radius), 2 * radius, 2 * radius);
                 break;
             case UserVariables.GAUSS:
@@ -561,7 +560,6 @@ public class DetectionGUI extends javax.swing.JDialog {
                 image.drawOval((x - radius), (y - radius), 2 * radius, 2 * radius);
                 break;
             default:
-                radius = (int) Math.round(1.0 / UserVariables.getSpatialRes());
                 image.drawLine(x, y - radius, x, y + radius);
                 image.drawLine(x + radius, y, x - radius, y);
         }
