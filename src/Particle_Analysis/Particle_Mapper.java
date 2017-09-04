@@ -25,6 +25,7 @@ import IAClasses.Region;
 import IAClasses.Utils;
 import static IJUtilities.IJUtils.hideAllImages;
 import static IJUtilities.IJUtils.resetRoiManager;
+import IO.DataWriter;
 import static IO.DataWriter.getAverageValues;
 import static IO.DataWriter.convertArrayToString;
 import static IO.DataWriter.saveTextWindow;
@@ -73,7 +74,6 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
-import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import ui.DetectionGUI;
 
@@ -87,7 +87,7 @@ public class Particle_Mapper extends Particle_Tracker {
     private Cell[] cells;
     private final int N_INPUTS = 5, NUCLEI = 2, CYTO = 1, FOCI = 0, JUNCTION_ALIGN = 3, JUNCTION_QUANT = 4;
     private final String NUCLEI_MASK = "Nuclei Mask", FLUO_DIST = "fluorescence_distribution_data.csv",
-            INDIVIDUAL_DISTANCES = "invidiual_distances.csv",
+            INDIVIDUAL_DISTANCES = "individual_distances.csv",
             FOCI_DIST = "foci_distance_data.csv", FOCI_DETECTIONS = "Foci Detections", DIST_MAP = "Distance Map",
             FOCI_DIST_HIST = "foci_distance_histogram.csv", FOCI_NUC_ASS = "Foci-Nuclei Associations",
             CELL_CELL_ASS = "Cell-Cell Associations",
@@ -186,7 +186,7 @@ public class Particle_Mapper extends Particle_Tracker {
                         drawDetections(pa, stacks[FOCI].getWidth(), stacks[FOCI].getHeight(), thisDir.getAbsolutePath(), i - 1);
                         double[][] distances = calcDistances(buildDistanceMap(binaryNuclei, thisDir.getAbsolutePath()));
                         String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, INDIVIDUAL_DISTANCES);
-                        saveValues(new Array2DRowRealMatrix(distances).transpose().getData(), new File(outputFileName), DIST_HEADINGS);
+                        saveValues(DataWriter.transposeValues(distances), new File(outputFileName), DIST_HEADINGS);
                         buildHistograms(distances, histNBins, histMax, histMin, thisDir.getAbsoluteFile(), hideOutputs);
                         outputFociDistanceData(distances, thisDir.getAbsolutePath(), resultsHeadings, hideOutputs);
                     }
