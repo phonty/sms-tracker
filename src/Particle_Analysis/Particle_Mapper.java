@@ -300,6 +300,7 @@ public class Particle_Mapper extends Particle_Tracker {
         RoiManager roimanager = RoiManager.getInstance();
         roimanager.setVisible(false);
         Roi[] rois = roimanager.getRoisAsArray();
+        roimanager.runCommand("Save", String.format("%s%s%s", resultsDir, File.separator, "rois.zip"));
         ImageProcessor cellMap = pa.getOutputImage().getProcessor();
         int duds = -1;
         for (int i = 0; i < n; i++) {
