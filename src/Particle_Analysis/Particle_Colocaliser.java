@@ -19,6 +19,7 @@ package Particle_Analysis;
 import IAClasses.ProgressDialog;
 import IAClasses.Utils;
 import IO.DataWriter;
+import IO.PropertyWriter;
 import Particle.Particle;
 import Particle.ParticleArray;
 import ParticleTracking.GPUAnalyse;
@@ -35,21 +36,19 @@ import ij.process.TypeConverter;
 import ij.text.TextWindow;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Properties;
 import ui.DetectionGUI;
 
 public class Particle_Colocaliser extends GPUAnalyse {
 
     private String resultsHeadings = String.format("Image\tChannel 1 Detections\tColocalised Channel 2 Detections\t%% Colocalisation\t%c (nm)", '\u0394'),
             coordHeadings = "C0_X\tC0_Y\tC1_X\tC1_Y";
+    private Properties props;
 
     public Particle_Colocaliser() {
         super();
         title = "Particle Colocaliser";
         gpuEnabled = false;
-    }
-
-    public void colocalise() {
-
     }
 
     public ParticleArray findParticles(boolean update, int startSlice, int endSlice, double c1FitTol, ImageStack channel1, ImageStack channel2) {
@@ -121,6 +120,7 @@ public class Particle_Colocaliser extends GPUAnalyse {
             String c2Title = String.format("%s_Detections.tif", "C2");
             IJ.save(new ImagePlus(c2Title, outStack[1]), String.format("%s%s%s", resultsDir, File.separator, c2Title));
             DataWriter.saveTextWindow(results, new File(String.format("%s%s%s", resultsDir, File.separator, "Results.csv")), resultsHeadings);
+            PropertyWriter.printProperties(props, resultsDir, title, true);
         } catch (Exception e) {
             GenUtils.error(String.format("Failed to generate output files: %s", e.toString()));
         }
@@ -136,6 +136,7 @@ public class Particle_Colocaliser extends GPUAnalyse {
     public boolean showDialog() {
         DetectionGUI ui = new DetectionGUI(null, true, title, this);
         ui.setVisible(true);
+        props = ui.getProperties();
         return ui.isWasOKed();
     }
 
