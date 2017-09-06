@@ -134,7 +134,7 @@ public class Particle_Colocaliser extends GPUAnalyse {
     }
 
     public boolean showDialog() {
-        DetectionGUI ui = new DetectionGUI(null, true, title, this);
+        DetectionGUI ui = new DetectionGUI(null, true, title, this, false);
         ui.setVisible(true);
         props = ui.getProperties();
         return ui.isWasOKed();
