@@ -22,6 +22,7 @@ import ParticleTracking.GPUAnalyse;
 import Particle.Particle;
 import Particle.ParticleArray;
 import ParticleTracking.UserVariables;
+import ParticleWriter.ParticleWriter;
 import UIClasses.UIMethods;
 import ij.IJ;
 import ij.ImagePlus;
@@ -549,18 +550,21 @@ public class DetectionGUI extends javax.swing.JDialog {
         if (detections != null) {
             ImageProcessor output = Utils.updateImage(stacks[0], stacks[1], psv);
             double mag = 1.0 / UIMethods.getMagnification(output, canvas1);
-//            double sr = 1.0 / spatRes;
-//            int radius = analyser.calcParticleRadius(UserVariables.getSpatialRes());
             ArrayList<Particle> particles = detections.getLevel(0);
             Color c1Color = !monoChrome ? Color.red : Color.white;
-            Color c2Color = !monoChrome ? Color.green : Color.white;
-            output.setLineWidth(1);
-            for (Particle p1 : particles) {
-                Particle p2 = p1.getColocalisedParticle();
-                drawParticle(output, true, c1Color, p1);
-                if (p2 != null) {
-                    drawParticle(output, true, c2Color, p2);
+            output.setLineWidth((int) Math.round(1.0 * mag));
+            output.setColor(c1Color);
+            ParticleWriter.drawDetections(particles, output, true, UserVariables.getBlobSize(), UserVariables.getSpatialRes());
+            if (!monoChrome) {
+                ArrayList<Particle> particles2 = new ArrayList();
+                for (Particle p : particles) {
+                    Particle p2 = p.getColocalisedParticle();
+                    if (p2 != null) {
+                        particles2.add(p2);
+                    }
                 }
+                output.setColor(Color.green);
+                ParticleWriter.drawDetections(particles2, output, true, UserVariables.getBlobSize(), UserVariables.getSpatialRes());
             }
             imp.setProcessor("", output);
             ((ImageCanvas) canvas1).setMagnification(mag);
