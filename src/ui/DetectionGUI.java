@@ -61,12 +61,15 @@ public class DetectionGUI extends javax.swing.JDialog {
     /**
      * Creates new form UserInterface
      */
-    public DetectionGUI(java.awt.Frame parent, boolean modal, String title, Particle_Tracker analyser) {
+    public DetectionGUI(java.awt.Frame parent, boolean modal, String title, Particle_Tracker analyser, boolean monoChrome) {
         super(parent, modal);
         this.title = title;
         this.analyser = analyser;
         ImageStack[] stacks = analyser.getStacks();
-        this.monoChrome = (stacks[1] == null);
+        this.monoChrome = monoChrome;
+        if (this.monoChrome) {
+            stacks[1] = null;
+        }
         this.imp = new ImagePlus("", Utils.updateImage(stacks[0], stacks[1], 1));
         if (monoChrome) {
             UserVariables.setColocal(!monoChrome);
@@ -531,6 +534,9 @@ public class DetectionGUI extends javax.swing.JDialog {
     public static void viewDetections(Particle_Tracker analyser, boolean monoChrome, double spatRes, int psv, Canvas canvas1, ImagePlus imp) {
         analyser.calcParticleRadius(UserVariables.getSpatialRes());
         ImageStack stacks[] = analyser.getStacks();
+        if (monoChrome) {
+            stacks[1] = null;
+        }
         ParticleArray detections;
         if (psv < 1) {
             psv = 1;
@@ -559,16 +565,6 @@ public class DetectionGUI extends javax.swing.JDialog {
             imp.setProcessor("", output);
             ((ImageCanvas) canvas1).setMagnification(mag);
             canvas1.repaint();
-        }
-    }
-
-    public static void drawDetections(ImageProcessor image, int x, int y, int radius,
-            boolean drawOval, Color colour) {
-        image.setColor(colour);
-        if (drawOval) {
-            image.drawOval((x - radius), (y - radius), 2 * radius, 2 * radius);
-        } else {
-            image.drawRect((x - radius), (y - radius), 2 * radius, 2 * radius);
         }
     }
 

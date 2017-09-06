@@ -714,7 +714,7 @@ public class Particle_Mapper extends Particle_Tracker {
     }
 
     boolean showDetectionGui() {
-        DetectionGUI ui = new DetectionGUI(null, true, title, this);
+        DetectionGUI ui = new DetectionGUI(null, true, title, this, true);
         ui.setVisible(true);
         return ui.isWasOKed();
     }
