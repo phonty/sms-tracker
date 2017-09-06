@@ -22,7 +22,6 @@ import Cell.Cytoplasm;
 import Cell.Nucleus;
 import Fluorescence.FluorescenceAnalyser;
 import IAClasses.Region;
-import IAClasses.Utils;
 import static IJUtilities.IJUtils.hideAllImages;
 import static IJUtilities.IJUtils.resetRoiManager;
 import IO.DataWriter;
@@ -33,10 +32,10 @@ import static IO.DataWriter.saveValues;
 import Image.ImageChecker;
 import MacroWriter.MacroWriter;
 import Math.Histogram;
-import Particle.IsoGaussian;
 import Particle.Particle;
 import Particle.ParticleArray;
 import ParticleTracking.UserVariables;
+import ParticleWriter.ParticleWriter;
 import Profile.PeakFinder;
 import Revision.Revision;
 import Segmentation.RegionGrower;
@@ -729,11 +728,8 @@ public class Particle_Mapper extends Particle_Tracker {
     public void drawDetections(ParticleArray pa, int width, int height, String resultsDir, int level) {
         ArrayList<Particle> detections = pa.getLevel(level);
         ShortProcessor output = new ShortProcessor(width, height);
-        for (Particle p : detections) {
-            if (p instanceof IsoGaussian) {
-                Utils.draw2DGaussian(output, (IsoGaussian) p, 0.0, UserVariables.getSpatialRes(), false);
-            }
-        }
+        output.setColor(Color.white);
+        ParticleWriter.drawDetections(detections, output, false, UserVariables.getBlobSize(), UserVariables.getSpatialRes());
         output.multiply(1.0 / normFactor);
         IJ.saveAs(new ImagePlus("", output), "TIF", String.format("%s%s%s", resultsDir, File.separator, FOCI_DETECTIONS));
     }

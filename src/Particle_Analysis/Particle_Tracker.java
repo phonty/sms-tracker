@@ -21,6 +21,8 @@ import Segmentation.RegionGrower;
 import UtilClasses.GenUtils;
 import UtilClasses.Utilities;
 import MetaData.ParamsReader;
+import Particle.Blob;
+import Particle.Point;
 import UtilClasses.GenVariables;
 import goshtasby.Multi_Goshtasby;
 import ij.IJ;
@@ -453,14 +455,14 @@ public class Particle_Tracker implements PlugIn {
                 if (C1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
                     double px = c1X * UserVariables.getSpatialRes();
                     double py = c1Y * UserVariables.getSpatialRes();
-                    Particle p1 = new Particle(i - startSlice, px, py, c1Proc.getPixelValue(c1X, c1Y));
-                    Particle p2 = (c2Proc != null && c2Proc.getPixelValue(c1X, c1Y) > c2Threshold) ? new Particle(i - startSlice, px, py, c2Proc.getPixelValue(c1X, c1Y)) : null;
+                    Blob p1 = new Blob(i - startSlice, px, py, c1Proc.getPixelValue(c1X, c1Y));
+                    Point p2 = (c2Proc != null && c2Proc.getPixelValue(c1X, c1Y) > c2Threshold) ? new Point(i - startSlice, px, py, c2Proc.getPixelValue(c1X, c1Y)) : null;
                     if (c2Proc != null && fitC2) {
                         int[][] c2Points = Utils.searchNeighbourhood(c1X, c1Y, searchRad, UserVariables.FOREGROUND, C2Max);
                         if (c2Points != null) {
                             px = c2Points[0][0] * UserVariables.getSpatialRes();
                             py = c2Points[0][1] * UserVariables.getSpatialRes();
-                            p2 = new Particle(i - startSlice, px, py, c2Proc.getPixelValue(c2Points[0][0], c2Points[0][1]));
+                            p2 = new Point(i - startSlice, px, py, c2Proc.getPixelValue(c2Points[0][0], c2Points[0][1]));
                         } else {
                             p2 = null;
                         }
@@ -565,10 +567,10 @@ public class Particle_Tracker implements PlugIn {
         for (int c1X = 0; c1X < width; c1X++) {
             for (int c1Y = 0; c1Y < height; c1Y++) {
                 if (thisC1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
-                    Particle p1 = new Particle(i - startSlice, c1X * UserVariables.getSpatialRes(), c1Y * UserVariables.getSpatialRes(), chan1Proc.getPixelValue(c1X, c1Y));
-                    Particle p2 = null;
+                    Point p1 = new Point(i - startSlice, c1X * UserVariables.getSpatialRes(), c1Y * UserVariables.getSpatialRes(), chan1Proc.getPixelValue(c1X, c1Y));
+                    Point p2 = null;
                     if (ip2 != null && ip2.getPixelValue(c1X, c1Y) > c2Threshold) {
-                        p2 = new Particle(i - startSlice, c1X * UserVariables.getSpatialRes(), c1Y * UserVariables.getSpatialRes(), ip2.getPixelValue(c1X, c1Y));
+                        p2 = new Point(i - startSlice, c1X * UserVariables.getSpatialRes(), c1Y * UserVariables.getSpatialRes(), ip2.getPixelValue(c1X, c1Y));
                     }
                     p1.setColocalisedParticle(p2);
                     particles.addDetection(i - startSlice, p1);
