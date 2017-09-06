@@ -441,9 +441,12 @@ public class Particle_Tracker implements PlugIn {
         int searchRad = calcParticleRadius(UserVariables.getSpatialRes(), UserVariables.getBlobSize());
         int pSize = 2 * searchRad + 1;
         ByteProcessor C2Max = null, C1Max = getMaxima(pSize, c1Proc.duplicate(), UserVariables.getChan1MaxThresh());
-        double c2Threshold = Utils.getPercentileThresh(c2Proc, UserVariables.getChan2MaxThresh());
-        if (c2Proc != null && fitC2) {
-            C2Max = getMaxima(pSize, c2Proc.duplicate(), UserVariables.getChan2MaxThresh());
+        double c2Threshold = 0.0;
+        if (c2Proc != null) {
+            c2Threshold = Utils.getPercentileThresh(c2Proc, UserVariables.getChan2MaxThresh());
+            if (fitC2) {
+                C2Max = getMaxima(pSize, c2Proc.duplicate(), UserVariables.getChan2MaxThresh());
+            }
         }
         for (int c1X = 0; c1X < width; c1X++) {
             for (int c1Y = 0; c1Y < height; c1Y++) {
