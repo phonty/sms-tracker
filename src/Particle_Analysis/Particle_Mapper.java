@@ -73,6 +73,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import ui.DetectionGUI;
 
@@ -84,13 +85,14 @@ public class Particle_Mapper extends Particle_Tracker {
     private static int histNBins = 40;
     String resultsDir;
     private Cell[] cells;
-    private final int N_INPUTS = 5, NUCLEI = 2, CYTO = 1, FOCI = 0, JUNCTION_ALIGN = 3, JUNCTION_QUANT = 4;
+    private final int N_INPUTS = 5, NUCLEI = 2, CYTO = 1, FOCI = 0, JUNCTION_ALIGN = 3,
+            JUNCTION_QUANT = 4, FLUOR_MAP_HEIGHT = 128, DILATION_COUNT = 40, DILATION_STEP = 2;
     private final String NUCLEI_MASK = "Nuclei Mask", FLUO_DIST = "fluorescence_distribution_data.csv",
             INDIVIDUAL_DISTANCES = "individual_distances.csv",
             FOCI_DIST = "foci_distance_data.csv", FOCI_DETECTIONS = "Foci Detections", DIST_MAP = "Distance Map",
             FOCI_DIST_HIST = "foci_distance_histogram.csv", FOCI_NUC_ASS = "Foci-Nuclei Associations",
             CELL_CELL_ASS = "Cell-Cell Associations",
-            CELL_BOUNDS = "Cell Boundaries", FOCI_DIST_DATA = "Mean Foci Data", FLUOR_DIST = "Cellular Fluorescence Distributions";
+            CELL_BOUNDS = "Cell Boundaries";
     private final String FLUO_HEADINGS[] = new String[]{"Cell ID", "Cell Mean", "Cell Std Dev",
         "Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
         "Cytosolic Std Dev", "Nuclear Mean / Cytosolic Mean",
@@ -197,7 +199,9 @@ public class Particle_Mapper extends Particle_Tracker {
                         outputFociDistanceData(distances, thisDir.getAbsolutePath(), resultsHeadings, hideOutputs);
                     }
                     if (fluorDist) {
-                        FluorescenceAnalyser.generateFluorMapsFromStack(FluorescenceAnalyser.getMeanFluorDists(cells, 128, stacks[FOCI], ImageProcessor.MIN, 40, 2),
+                        FluorescenceAnalyser.generateFluorMapsFromStack(
+                                FluorescenceAnalyser.getMeanFluorDists(cells, FLUOR_MAP_HEIGHT,
+                                        stacks[FOCI], ImageProcessor.MIN, DILATION_COUNT, DILATION_STEP),
                                 thisDir.getAbsolutePath(), cellHeadings);
                     }
                     if (analyseFluorescence) {
@@ -570,6 +574,7 @@ public class Particle_Mapper extends Particle_Tracker {
         float[] meanHistogram = new float[nBins];
         float[] bins = new float[nBins];
         float binSize = (float) (max - min) / nBins;
+        String[] plotAxesLabels = new String[]{"Distance (" + IJ.micronSymbol + "m)", "% Frequency"};
         for (int i = 0; i < N; i++) {
             if (distances[i] != null) {
                 histograms[i] = Histogram.calcHistogram(distances[i], min, max, nBins);
@@ -586,7 +591,7 @@ public class Particle_Mapper extends Particle_Tracker {
             bins[i] = (float) (i * binSize + min);
         }
         Plot histPlot = new Plot("Mean Foci Distance Distribution",
-                "Distance (" + IJ.micronSymbol + "m)", "% Frequency");
+                plotAxesLabels[0], plotAxesLabels[1]);
         histPlot.setLineWidth(3);
         histPlot.setColor(Color.blue);
         histPlot.addPoints(bins, meanHistogram, Plot.CONNECTED_CIRCLES);
@@ -595,7 +600,14 @@ public class Particle_Mapper extends Particle_Tracker {
             histPlot.show();
         }
         ResultsTable rt = histPlot.getResultsTable();
-        rt.save(String.format("%s%s%s", resultsDir, File.separator, FOCI_DIST_HIST));
+        try {
+            DataWriter.saveValues(
+                    (new Array2DRowRealMatrix(new double[][]{rt.getColumnAsDoubles(0), rt.getColumnAsDoubles(1)})).transpose().getData(),
+                    new File(String.format("%s%s%s", resultsDir, File.separator, FOCI_DIST_HIST)),
+                    plotAxesLabels, null);
+        } catch (IOException e) {
+            IJ.log(String.format("Failed to save histogram data: %s", e.toString()));
+        }
     }
 
     /**
