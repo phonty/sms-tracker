@@ -23,6 +23,7 @@ public class Main {
     public static void main(String args[]) {
         Particle_Mapper instance = new Particle_Mapper();
         instance.run(null);
+
         System.exit(0);
     }
 //    public static void main(String args[]) {

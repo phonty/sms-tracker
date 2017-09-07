@@ -554,7 +554,7 @@ public class DetectionGUI extends javax.swing.JDialog {
             Color c1Color = !monoChrome ? Color.red : Color.white;
             output.setLineWidth((int) Math.round(1.0 * mag));
             output.setColor(c1Color);
-            ParticleWriter.drawDetections(particles, output, true, UserVariables.getBlobSize(), UserVariables.getSpatialRes());
+            ParticleWriter.drawDetections(particles, output, true, UserVariables.getBlobSize(), UserVariables.getSpatialRes(), false);
             if (!monoChrome) {
                 ArrayList<Particle> particles2 = new ArrayList();
                 for (Particle p : particles) {
@@ -564,7 +564,7 @@ public class DetectionGUI extends javax.swing.JDialog {
                     }
                 }
                 output.setColor(Color.green);
-                ParticleWriter.drawDetections(particles2, output, true, UserVariables.getBlobSize(), UserVariables.getSpatialRes());
+                ParticleWriter.drawDetections(particles2, output, true, UserVariables.getBlobSize(), UserVariables.getSpatialRes(), false);
             }
             imp.setProcessor("", output);
             ((ImageCanvas) canvas1).setMagnification(mag);
