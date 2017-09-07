@@ -552,7 +552,7 @@ public class DetectionGUI extends javax.swing.JDialog {
             double mag = 1.0 / UIMethods.getMagnification(output, canvas1);
             ArrayList<Particle> particles = detections.getLevel(0);
             Color c1Color = !monoChrome ? Color.red : Color.white;
-            output.setLineWidth((int) Math.round(1.0 * mag));
+            output.setLineWidth((int) Math.round(1.0 / mag));
             output.setColor(c1Color);
             ParticleWriter.drawDetections(particles, output, true, UserVariables.getBlobSize(), UserVariables.getSpatialRes(), false);
             if (!monoChrome) {
