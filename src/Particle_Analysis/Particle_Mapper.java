@@ -95,7 +95,6 @@ public class Particle_Mapper extends Particle_Tracker {
         "Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
         "Cytosolic Std Dev", "Nuclear Mean / Cytosolic Mean",
         "Nuclear Std Dev / Cytosolic Std Dev"};
-    private final String DIST_HEADINGS[] = new String[]{String.format("Distance to Nucleus (%cm)", IJ.micronSymbol)};
     /**
      * Title of the application
      */
@@ -180,24 +179,32 @@ public class Particle_Mapper extends Particle_Tracker {
                         labelActiveCellsInRegionImage(String.format("%s%s%s%s", thisDir, File.separator, CELL_BOUNDS, ".png"), cells);
                     }
                     linkCells(cellMap, thisDir.getAbsolutePath());
+                    String[] cellHeadings = new String[cells.length];
+                    for (int c = 0; c < cellHeadings.length; c++) {
+                        cellHeadings[c] = String.format("Cell %d", cells[c].getID());
+                    }
                     if (isolateFoci) {
                         assignParticlesToCells(pa, cellMap, thisDir.getAbsolutePath(), i - 1);
-                        drawDetections(pa, stacks[FOCI].getWidth(), stacks[FOCI].getHeight(), thisDir.getAbsolutePath(), i - 1);
+                        drawDetections(cells, stacks[FOCI].getWidth(), stacks[FOCI].getHeight(), thisDir.getAbsolutePath());
                         double[][] distances = calcDistances(buildDistanceMap(binaryNuclei, thisDir.getAbsolutePath()));
                         String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, INDIVIDUAL_DISTANCES);
-                        saveValues(DataWriter.transposeValues(distances), new File(outputFileName), DIST_HEADINGS);
+                        String[] rowLabels = new String[getMaxNumberOfParticles(cells)];
+                        for (int r = 0; r < rowLabels.length; r++) {
+                            rowLabels[r] = String.format("Particle %d", (r + 1));
+                        }
+                        saveValues(DataWriter.transposeValues(distances), new File(outputFileName), cellHeadings, rowLabels);
                         buildHistograms(distances, histNBins, histMax, histMin, thisDir.getAbsoluteFile(), hideOutputs);
                         outputFociDistanceData(distances, thisDir.getAbsolutePath(), resultsHeadings, hideOutputs);
                     }
                     if (fluorDist) {
                         FluorescenceAnalyser.generateFluorMapsFromStack(FluorescenceAnalyser.getMeanFluorDists(cells, 128, stacks[FOCI], ImageProcessor.MIN, 40, 2),
-                                thisDir.getAbsolutePath());
+                                thisDir.getAbsolutePath(), cellHeadings);
                     }
                     if (analyseFluorescence) {
                         double[][] vals = FluorescenceAnalyser.analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(i),
                                 Measurements.MEAN + Measurements.STD_DEV, cells);
                         String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, FLUO_DIST);
-                        saveValues(vals, new File(outputFileName), FLUO_HEADINGS);
+                        saveValues(vals, new File(outputFileName), FLUO_HEADINGS, null);
                         if (averageImage) {
                             aveFluoDistTW.append(convertArrayToString(null, getAverageValues(vals, FLUO_HEADINGS.length), "\t"));
                         }
@@ -220,6 +227,20 @@ public class Particle_Mapper extends Particle_Tracker {
             }
         }
         IJ.showStatus(String.format("%s done.", title));
+    }
+
+    int getMaxNumberOfParticles(Cell[] cells) {
+        int max = -Integer.MAX_VALUE;
+        for (Cell c : cells) {
+            ArrayList<Particle> particles = c.getParticles();
+            if (particles != null) {
+                int s = particles.size();
+                if (s > max) {
+                    max = s;
+                }
+            }
+        }
+        return max;
     }
 
     void labelActiveCellsInRegionImage(String pathToRegionImage, Cell[] cells) {
@@ -719,18 +740,25 @@ public class Particle_Mapper extends Particle_Tracker {
     }
 
     /**
-     * Generates an image of the particles contained in <code>pa</code>.
+     * Generates an image of the particles contained in <code>c</code>.
      *
-     * @param pa array of particles to be drawn
-     * @param width width of output image
-     * @param height height of output image
+     * @param cells
+     * @param width
+     * @param height
+     * @param resultsDir
      */
-    public void drawDetections(ParticleArray pa, int width, int height, String resultsDir, int level) {
-        ArrayList<Particle> detections = pa.getLevel(level);
+    public void drawDetections(Cell[] cells, int width, int height, String resultsDir) {
         ShortProcessor output = new ShortProcessor(width, height);
         output.setColor(Color.white);
-        ParticleWriter.drawDetections(detections, output, false, UserVariables.getBlobSize(), UserVariables.getSpatialRes());
-        output.multiply(1.0 / normFactor);
+        for (Cell c : cells) {
+            ArrayList<Particle> detections = c.getParticles();
+            if (detections != null) {
+                ParticleWriter.drawDetections(detections, output, false, UserVariables.getBlobSize(), UserVariables.getSpatialRes(), true);
+            }
+        }
+        if (UserVariables.getDetectionMode() == UserVariables.GAUSS) {
+            output.multiply(1.0 / normFactor);
+        }
         IJ.saveAs(new ImagePlus("", output), "TIF", String.format("%s%s%s", resultsDir, File.separator, FOCI_DETECTIONS));
     }
 
