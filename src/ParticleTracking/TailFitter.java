@@ -17,7 +17,7 @@
  */
 package ParticleTracking;
 
-import Optimisation.IsoGaussianFitter;
+import Math.Optimisation.IsoGaussianFitter;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.process.FloatProcessor;

@@ -4,12 +4,12 @@
  */
 package ParticleTracking;
 
-import Optimisation.FloatingMultiGaussFitter;
 import Particle.ParticleArray;
 import Particle_Analysis.Particle_Tracker;
 import Particle.IsoGaussian;
 import IAClasses.ProgressDialog;
 import IAClasses.Utils;
+import Math.Optimisation.FloatingMultiGaussFitter;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
