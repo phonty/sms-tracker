@@ -4,12 +4,12 @@
  */
 package ParticleTracking;
 
-import Optimisation.IsoGaussianFitter;
 import Particle.Particle;
 import Particle.ParticleArray;
 import Particle_Analysis.Particle_Tracker;
 import Particle.IsoGaussian;
 import IAClasses.Utils;
+import Math.Optimisation.IsoGaussianFitter;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;

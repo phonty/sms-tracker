@@ -16,8 +16,6 @@
  */
 package ParticleTracking;
 
-import Particle_Analysis.Particle_Colocaliser;
-
 public class Main {
 
 //    public static void main(String args[]) {
@@ -52,9 +50,13 @@ public class Main {
 //        }
 //        System.exit(0);
 //    }
-
+//    public static void main(String args[]) {
+//        Particle_Colocaliser instance = new Particle_Colocaliser();
+//        instance.run(null);
+//        System.exit(0);
+//    }
     public static void main(String args[]) {
-        Particle_Colocaliser instance = new Particle_Colocaliser();
+        FLAP_ instance = new FLAP_();
         instance.run(null);
         System.exit(0);
     }

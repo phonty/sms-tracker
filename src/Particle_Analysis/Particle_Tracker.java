@@ -10,7 +10,7 @@ import IAClasses.ProgressDialog;
 import IAClasses.Region;
 import IAClasses.Utils;
 import MacroWriter.MacroWriter;
-import Optimisation.IsoGaussianFitter;
+import Math.Optimisation.IsoGaussianFitter;
 import Particle.Particle;
 import Particle.ParticleArray;
 import ParticleTracking.ParticleTrajectory;
@@ -127,7 +127,7 @@ public class Particle_Tracker implements PlugIn {
                 return;
             }
         } else {
-            inputDir = buildStacks();
+            inputDir = buildStacks(true);
             if (inputDir == null) {
                 return;
             }
@@ -146,8 +146,8 @@ public class Particle_Tracker implements PlugIn {
 
     }
 
-    protected File buildStacks() {
-        String dirName = prepareInputs();
+    protected File buildStacks(boolean sameSize) {
+        String dirName = prepareInputs(sameSize);
         File inputDir;
         if (dirName != null) {
             inputDir = new File(dirName);
@@ -173,7 +173,7 @@ public class Particle_Tracker implements PlugIn {
         }
     }
 
-    protected String prepareInputs() {
+    protected String prepareInputs(boolean sameSize) {
         ImagePlus cytoImp = IJ.openImage();
         if (cytoImp == null) {
             return null;
@@ -184,7 +184,7 @@ public class Particle_Tracker implements PlugIn {
         ImageStack sigStack = null;
         if (sigImp != null) {
             sigStack = sigImp.getImageStack();
-            if (sigStack.getSize() != cytoSize) {
+            if (sameSize&&sigStack.getSize() != cytoSize) {
                 IJ.error("Stacks must contain same number of slices.");
                 return null;
             }

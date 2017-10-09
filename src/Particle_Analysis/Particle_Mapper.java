@@ -141,7 +141,7 @@ public class Particle_Mapper extends Particle_Tracker {
             GenUtils.error("All stacks must have same number of slices.");
         }
         hideAllImages();
-        File inputDir = buildStacks();
+        File inputDir = buildStacks(true);
         if (inputDir == null) {
             return;
         }
@@ -780,7 +780,7 @@ public class Particle_Mapper extends Particle_Tracker {
      *
      * @return absolute path to the normalised images
      */
-    protected String prepareInputs() {
+    protected String prepareInputs(boolean sameSize) {
         if (inputs[FOCI] == null) {
             return null;
         }
