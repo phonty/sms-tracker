@@ -19,6 +19,8 @@ package ParticleTracking;
 import IAClasses.Utils;
 import IO.DataWriter;
 import MacroWriter.MacroWriter;
+import Math.Clustering.ClusterablePointScore;
+import Math.Clustering.StairsFitter;
 import Particle.IsoGaussian;
 import Particle.Particle;
 import Particle.ParticleArray;
@@ -32,8 +34,10 @@ import ij.plugin.RGBStackMerge;
 import ij.process.ImageProcessor;
 import ij.text.TextWindow;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
+import org.apache.commons.math3.ml.clustering.CentroidCluster;
+import org.apache.commons.math3.ml.clustering.Clusterable;
 import ui.DetectionGUI;
 
 /**
@@ -43,6 +47,8 @@ import ui.DetectionGUI;
 public class FLAP_ extends GPUAnalyse {
 
     private final String RESULTS_HEADINGS = String.format("X\tY\tFrame\tChannel 1\tChannel 2\tChannel 1 %c\tChannel 2 %c", '\u03C3', '\u03C3');
+    private final int MIN_CLUSTER_RANGE = 2, MAX_CLUSTER_RANGE = 8;
+    private final double VAR_THRESH = 5.0;
 
     public FLAP_() {
         super();
@@ -107,15 +113,14 @@ public class FLAP_ extends GPUAnalyse {
             results.append("\nAnalysis Time (s): " + numFormat.format((System.currentTimeMillis() - startTime) / 1000.0));
             results.setVisible(true);
             DataWriter.saveTextWindow(results, new File(String.format("%s%s%s", parentDir, File.separator, "results.csv")), RESULTS_HEADINGS);
-            String[] colHeadings = new String[trajectories.size()];
-            for (int t = 0; t < colHeadings.length; t++) {
-                colHeadings[t] = String.format("Trajectory %d", t);
-            }
-            DataWriter.saveValues(extractFluorVals(trajectories, stacks[1].size()), new File(String.format("%s%s%s", parentDir, File.separator, "fluorVals.csv")), colHeadings, null);
-            try {
-                printTrajectories(trajectories, new File(String.format("%s%s%s", parentDir, File.separator, "AllParticleData.csv")), stacks[1].size());
-            } catch (IOException e) {
-            }
+            double[][] fluorVals = extractFluorVals(trajectories, stacks[1].size());
+            DataWriter.saveValues(fluorVals, new File(String.format("%s%s%s", parentDir, File.separator, "fluorVals.csv")), makeFluorHeadings(), null);
+            double[][] fluorAnalysis = analyseFluorVals(fluorVals, GenUtils.createDirectory(String.format("%s%s%s", parentDir, File.separator, "Plots"), false));
+            DataWriter.saveValues(fluorAnalysis, new File(String.format("%s%s%s", parentDir, File.separator, "fluorAnalysis.csv")), makeFluorAnalysisHeadings(), null);
+//            try {
+//                printTrajectories(trajectories, new File(String.format("%s%s%s", parentDir, File.separator, "AllParticleData.csv")), stacks[1].size());
+//            } catch (IOException e) {
+//            }
             if (maps != null) {
                 (new ImagePlus("Trajectory Maps", maps)).show();
                 IJ.saveAs((new ImagePlus("", maps)), "TIF", parentDir + "/trajectories.tif");
@@ -124,6 +129,28 @@ public class FLAP_ extends GPUAnalyse {
             IJ.log("No Particle Trajectories Constructed.");
         }
         printParams(parentDir);
+    }
+
+    String[] makeFluorHeadings() {
+        String[] fluorHeadings = new String[trajectories.size()];
+        for (int t = 0; t < fluorHeadings.length; t++) {
+            fluorHeadings[t] = String.format("Trajectory %d", t);
+        }
+        return fluorHeadings;
+    }
+
+    String[] makeFluorAnalysisHeadings() {
+        String[] headings = new String[2 + MAX_CLUSTER_RANGE * 4];
+        headings[0] = "Trajectory";
+        headings[1] = "N";
+        for (int t = 0; t < MAX_CLUSTER_RANGE; t++) {
+            int index = t * 4 + 2;
+            headings[index] = String.format("X_%d", t);
+            headings[index + 1] = String.format("Y_%d", t);
+            headings[index + 2] = String.format("varx_%d", t);
+            headings[index + 3] = String.format("vary_%d", t);
+        }
+        return headings;
     }
 
     protected ParticleArray findC1Particles() {
@@ -198,6 +225,49 @@ public class FLAP_ extends GPUAnalyse {
                 double mag = p2 != null ? p2.getMagnitude() : 0.0;
                 output[f--][t] = mag;
                 p = p.getLink();
+            }
+        }
+        return output;
+    }
+
+    double[][] analyseFluorVals(double[][] fluorVals, File directory) {
+        int nTraj = trajectories.size();
+        double[][] output = new double[nTraj][];
+        for (int n = 0; n < nTraj; n++) {
+            ParticleTrajectory traj = trajectories.get(n);
+            int m = traj.getSize();
+            double[] time = new double[m];
+            double[] mag = new double[m];
+            int index = 0;
+            Particle current = traj.getEnd();
+            while (current != null) {
+                Particle p2 = current.getColocalisedParticle();
+                time[index] = current.getTimePoint();
+                mag[index++] = p2.getMagnitude();
+                current = current.getLink();
+            }
+            StairsFitter fitter = new StairsFitter();
+            if (fitter.doFit(time, mag, new int[]{MIN_CLUSTER_RANGE, MAX_CLUSTER_RANGE}, VAR_THRESH)) {
+                IJ.saveAs(fitter.getPlot(), "PNG", String.format("%s%s%s%d", directory.getAbsolutePath(), File.separator, "Plot_", n));
+                List<CentroidCluster<Clusterable>> bestClusters = fitter.getBestClusters();
+                int cSize = bestClusters.size();
+                output[n] = new double[cSize * 4 + 2];
+                output[n][0] = n;
+                output[n][1] = cSize;
+                for (int i = 0; i < cSize; i++) {
+                    int outindex = 2 + i * 4;
+                    CentroidCluster<Clusterable> cluster = bestClusters.get(i);
+                    Clusterable centre = cluster.getCenter();
+                    double[] sds = (new ClusterablePointScore()).calcVariance(cluster);
+                    output[n][outindex] = centre.getPoint()[0];
+                    output[n][outindex + 1] = centre.getPoint()[1];
+                    output[n][outindex + 2] = sds[0];
+                    output[n][outindex + 3] = sds[1];
+                }
+            } else {
+                output[n] = new double[2];
+                output[n][0] = n;
+                output[n][1] = 0;
             }
         }
         return output;
