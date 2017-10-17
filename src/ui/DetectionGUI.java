@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Properties;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JLabel;
+import javax.swing.JSlider;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 
@@ -115,7 +116,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         canvas1 = new ImageCanvas(imp);
         previewTextField = new javax.swing.JTextField();
         previewToggleButton = new javax.swing.JToggleButton();
-        previewScrollBar = new java.awt.Scrollbar();
+        previewSlider = new javax.swing.JSlider(JSlider.HORIZONTAL, 1, analyser.getStacks()[0].size(),1);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle(title);
@@ -403,7 +404,7 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(10, 10, 0, 10);
         jPanel2.add(canvas1, gridBagConstraints);
 
-        previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
+        previewTextField.setText(String.valueOf(previewSlider.getValue()));
         previewTextField.setEditable(false);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 2;
@@ -431,22 +432,18 @@ public class DetectionGUI extends javax.swing.JDialog {
         gridBagConstraints.insets = new java.awt.Insets(10, 10, 10, 10);
         jPanel2.add(previewToggleButton, gridBagConstraints);
 
-        previewScrollBar.setOrientation(java.awt.Scrollbar.HORIZONTAL);
-        previewScrollBar.setValues(1, 1, 1, analyser.getStacks()[0].getSize());
-        previewScrollBar.addAdjustmentListener(new java.awt.event.AdjustmentListener() {
-            public void adjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {
-                previewScrollBarAdjustmentValueChanged(evt);
+        previewSlider.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                previewSliderStateChanged(evt);
             }
         });
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 2;
         gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
         gridBagConstraints.weightx = 0.8;
         gridBagConstraints.weighty = 0.1;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 10, 10);
-        jPanel2.add(previewScrollBar, gridBagConstraints);
+        jPanel2.add(previewSlider, gridBagConstraints);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
@@ -458,7 +455,7 @@ public class DetectionGUI extends javax.swing.JDialog {
     }// </editor-fold>//GEN-END:initComponents
 
     private void previewToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_previewToggleButtonActionPerformed
-        previewScrollBarAdjustmentValueChanged(null);
+       previewSliderStateChanged(null);
     }//GEN-LAST:event_previewToggleButtonActionPerformed
 
     private void cancelButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cancelButtonActionPerformed
@@ -473,13 +470,6 @@ public class DetectionGUI extends javax.swing.JDialog {
         this.dispose();
         wasOKed = true;
     }//GEN-LAST:event_okButtonActionPerformed
-
-    private void previewScrollBarAdjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {//GEN-FIRST:event_previewScrollBarAdjustmentValueChanged
-        previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
-        if (previewToggleButton.isSelected() && !previewScrollBar.getValueIsAdjusting() && setVariables()) {
-            viewDetections(analyser, monoChrome, Double.parseDouble(spatResTextField.getText()), previewScrollBar.getValue(), canvas1, imp);
-        }
-    }//GEN-LAST:event_previewScrollBarAdjustmentValueChanged
 
     private void detectionModeComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_detectionModeComboBoxActionPerformed
         setVariables();
@@ -498,6 +488,12 @@ public class DetectionGUI extends javax.swing.JDialog {
         filterRadiusLabel.setEnabled(preprocessToggleButton.isSelected() && !(UserVariables.getDetectionMode() == UserVariables.BLOBS));
         filterRadiusTextField.setEnabled(preprocessToggleButton.isSelected() && !(UserVariables.getDetectionMode() == UserVariables.BLOBS));
     }//GEN-LAST:event_preprocessToggleButtonActionPerformed
+
+    private void previewSliderStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_previewSliderStateChanged
+               previewTextField.setText(String.valueOf(previewSlider.getValue()));
+        if (previewToggleButton.isSelected() && !previewSlider.getValueIsAdjusting() && setVariables()) {
+            viewDetections(analyser, monoChrome, Double.parseDouble(spatResTextField.getText()), previewSlider.getValue(), canvas1, imp);}
+    }//GEN-LAST:event_previewSliderStateChanged
 
     boolean setVariables() {
         try {
@@ -654,7 +650,7 @@ public class DetectionGUI extends javax.swing.JDialog {
     private javax.swing.JPanel jPanel3;
     private javax.swing.JButton okButton;
     private javax.swing.JToggleButton preprocessToggleButton;
-    private java.awt.Scrollbar previewScrollBar;
+    private javax.swing.JSlider previewSlider;
     private javax.swing.JTextField previewTextField;
     private javax.swing.JToggleButton previewToggleButton;
     private javax.swing.JLabel sigmaLabel;

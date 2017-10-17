@@ -212,7 +212,7 @@ public class Particle_Tracker implements PlugIn {
         while (sum < nPixels * NORM_VAL && thresh < histogram.length) {
             sum += histogram[thresh++];
         }
-        normFactor = 100.0 / thresh;
+        normFactor = 100.0 / (cytoStats2.binSize * thresh);
         GenUtils.convertStack(cytoImp, 32);
         cytoStack = cytoImp.getImageStack();
         for (int i = 1; i <= cytoSize; i++) {
