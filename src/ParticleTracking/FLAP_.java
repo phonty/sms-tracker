@@ -49,6 +49,7 @@ public class FLAP_ extends GPUAnalyse {
     private final String RESULTS_HEADINGS = String.format("X\tY\tFrame\tChannel 1\tChannel 2\tChannel 1 %c\tChannel 2 %c", '\u03C3', '\u03C3');
     private final int MIN_CLUSTER_RANGE = 2, MAX_CLUSTER_RANGE = 8;
     private final double VAR_THRESH = 5.0;
+    private double[][] gaussKernel;
 
     public FLAP_() {
         super();
@@ -190,21 +191,56 @@ public class FLAP_ extends GPUAnalyse {
                 int y0 = (int) Math.round(p.getY() / UserVariables.getSpatialRes());
                 ImageProcessor ip = stack.getProcessor(d + 1);
 //                if (stack != null && ip.getPixelValue(x0, y0) > c2Threshold) {
-                Particle p2 = new Particle(i - startSlice, x0 * UserVariables.getSpatialRes(), y0 * UserVariables.getSpatialRes(), ip.getPixelValue(x0, y0));
-                if (fitC2Gaussian) {
-                    Utils.extractValues(xCoords, yCoords, pixValues, x0, y0, ip);
-                    ArrayList<IsoGaussian> c2Fits = doFitting(xCoords, yCoords, pixValues,
-                            floatingSigma, x0, y0, fitRad, UserVariables.getSpatialRes(),
-                            i - startSlice, UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
-                    IsoGaussian c2 = c2Fits.get(0);
-                    if (c2.getFit() >= fitTol) {
-                        p2 = c2;
-                    }
-                }
+                Utils.extractValues(xCoords, yCoords, pixValues, x0, y0, ip);
+                Particle p2 = new Particle(i - startSlice, x0 * UserVariables.getSpatialRes(), y0 * UserVariables.getSpatialRes(), getGaussMean(pixValues));
+//                if (false) {
+//                    Utils.extractValues(xCoords, yCoords, pixValues, x0, y0, ip);
+//                    ArrayList<IsoGaussian> c2Fits = doFitting(xCoords, yCoords, pixValues,
+//                            floatingSigma, x0, y0, fitRad, UserVariables.getSpatialRes(),
+//                            i - startSlice, UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
+//                    IsoGaussian c2 = c2Fits.get(0);
+//                    if (c2.getFit() >= fitTol) {
+//                        p2 = c2;
+//                    }
+//                }
                 p.setColocalisedParticle(p2);
 //                }
             }
         }
+    }
+
+    double getGaussMean(double[][] pixValues) {
+        int size = pixValues.length;
+        double sum = 0.0;
+        if (gaussKernel == null) {
+            gaussKernel = getGaussKernel(size, UserVariables.getSigEstRed() / UserVariables.getSpatialRes());
+        }
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < size; i++) {
+                sum += pixValues[i][j] * gaussKernel[i][j];
+            }
+        }
+        return sum;
+    }
+
+    double[][] getGaussKernel(int size, double sigma) {
+        double[][] kernel = new double[size][size];
+        int i0 = (size - 1) / 2, j0 = i0;
+        double sum = 0.0;
+        double sigma2 = sigma * sigma;
+        double A = 1.0 / (2.0 * Math.PI * sigma2);
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < size; i++) {
+                kernel[i][j] = A * Math.exp(-(Math.pow(i - i0, 2.0) + Math.pow(j - j0, 2.0)) / (2.0 * sigma2));
+                sum += kernel[i][j];
+            }
+        }
+        for (int j = 0; j < size; j++) {
+            for (int i = 0; i < size; i++) {
+                kernel[i][j] /= sum;
+            }
+        }
+        return kernel;
     }
 
     public boolean showDialog() {

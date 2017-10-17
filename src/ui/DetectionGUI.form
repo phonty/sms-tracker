@@ -393,7 +393,7 @@
         <Component class="javax.swing.JTextField" name="previewTextField">
           <Properties>
             <Property name="text" type="java.lang.String" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
-              <Connection code="String.valueOf(previewScrollBar.getValue())" type="code"/>
+              <Connection code="String.valueOf(previewSlider.getValue())" type="code"/>
             </Property>
           </Properties>
           <AuxValues>
@@ -418,19 +418,16 @@
             </Constraint>
           </Constraints>
         </Component>
-        <Component class="java.awt.Scrollbar" name="previewScrollBar">
-          <Properties>
-            <Property name="orientation" type="int" value="0"/>
-          </Properties>
+        <Component class="javax.swing.JSlider" name="previewSlider">
           <Events>
-            <EventHandler event="adjustmentValueChanged" listener="java.awt.event.AdjustmentListener" parameters="java.awt.event.AdjustmentEvent" handler="previewScrollBarAdjustmentValueChanged"/>
+            <EventHandler event="stateChanged" listener="javax.swing.event.ChangeListener" parameters="javax.swing.event.ChangeEvent" handler="previewSliderStateChanged"/>
           </Events>
           <AuxValues>
-            <AuxValue name="JavaCodeGenerator_InitCodePost" type="java.lang.String" value="previewScrollBar.setValues(1, 1, 1, analyser.getStacks()[0].getSize());"/>
+            <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new javax.swing.JSlider(JSlider.HORIZONTAL, 1, analyser.getStacks()[0].size(),1)"/>
           </AuxValues>
           <Constraints>
             <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout" value="org.netbeans.modules.form.compat2.layouts.DesignGridBagLayout$GridBagConstraintsDescription">
-              <GridBagConstraints gridX="1" gridY="2" gridWidth="1" gridHeight="1" fill="2" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="10" insetsBottom="10" insetsRight="10" anchor="17" weightX="0.8" weightY="0.1"/>
+              <GridBagConstraints gridX="1" gridY="2" gridWidth="1" gridHeight="1" fill="2" ipadX="0" ipadY="0" insetsTop="0" insetsLeft="0" insetsBottom="0" insetsRight="0" anchor="10" weightX="0.8" weightY="0.1"/>
             </Constraint>
           </Constraints>
         </Component>
