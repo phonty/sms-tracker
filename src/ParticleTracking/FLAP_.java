@@ -95,7 +95,7 @@ public class FLAP_ extends GPUAnalyse {
         int nC2 = stacks[1].getSize();
         ParticleArray c1Particles = findC1Particles();
         ParticleArray particles = duplicateDetections(c1Particles, nC2);
-        detectParticles(0, 0, particles, false, true, UserVariables.getCurveFitTol(), stacks[1]);
+        detectParticles(0, 0, particles, false, false, UserVariables.getCurveFitTol(), stacks[1]);
         TrajectoryBuilder.updateTrajectories(particles, UserVariables.getTimeRes(), UserVariables.getTrajMaxStep(),
                 UserVariables.getSpatialRes(), false, Utils.getStackMinMax(inputs[0].getImageStack())[1], trajectories, false);
         TextWindow results = new TextWindow(title + " Results", RESULTS_HEADINGS,
@@ -116,8 +116,8 @@ public class FLAP_ extends GPUAnalyse {
             DataWriter.saveTextWindow(results, new File(String.format("%s%s%s", parentDir, File.separator, "results.csv")), RESULTS_HEADINGS);
             double[][] fluorVals = extractFluorVals(trajectories, stacks[1].size());
             DataWriter.saveValues(fluorVals, new File(String.format("%s%s%s", parentDir, File.separator, "fluorVals.csv")), makeFluorHeadings(), null);
-            double[][] fluorAnalysis = analyseFluorVals(fluorVals, GenUtils.createDirectory(String.format("%s%s%s", parentDir, File.separator, "Plots"), false));
-            DataWriter.saveValues(fluorAnalysis, new File(String.format("%s%s%s", parentDir, File.separator, "fluorAnalysis.csv")), makeFluorAnalysisHeadings(), null);
+//            double[][] fluorAnalysis = analyseFluorVals(fluorVals, GenUtils.createDirectory(String.format("%s%s%s", parentDir, File.separator, "Plots"), false));
+//            DataWriter.saveValues(fluorAnalysis, new File(String.format("%s%s%s", parentDir, File.separator, "fluorAnalysis.csv")), makeFluorAnalysisHeadings(), null);
 //            try {
 //                printTrajectories(trajectories, new File(String.format("%s%s%s", parentDir, File.separator, "AllParticleData.csv")), stacks[1].size());
 //            } catch (IOException e) {
@@ -193,16 +193,16 @@ public class FLAP_ extends GPUAnalyse {
 //                if (stack != null && ip.getPixelValue(x0, y0) > c2Threshold) {
                 Utils.extractValues(xCoords, yCoords, pixValues, x0, y0, ip);
                 Particle p2 = new Particle(i - startSlice, x0 * UserVariables.getSpatialRes(), y0 * UserVariables.getSpatialRes(), getGaussMean(pixValues));
-//                if (false) {
-//                    Utils.extractValues(xCoords, yCoords, pixValues, x0, y0, ip);
-//                    ArrayList<IsoGaussian> c2Fits = doFitting(xCoords, yCoords, pixValues,
-//                            floatingSigma, x0, y0, fitRad, UserVariables.getSpatialRes(),
-//                            i - startSlice, UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
-//                    IsoGaussian c2 = c2Fits.get(0);
-//                    if (c2.getFit() >= fitTol) {
-//                        p2 = c2;
-//                    }
-//                }
+                if (fitC2Gaussian) {
+                    Utils.extractValues(xCoords, yCoords, pixValues, x0, y0, ip);
+                    ArrayList<IsoGaussian> c2Fits = doFitting(xCoords, yCoords, pixValues,
+                            floatingSigma, x0, y0, fitRad, UserVariables.getSpatialRes(),
+                            i - startSlice, UserVariables.getSigEstGreen() / UserVariables.getSpatialRes());
+                    IsoGaussian c2 = c2Fits.get(0);
+                    if (c2.getFit() >= fitTol) {
+                        p2 = c2;
+                    }
+                }
                 p.setColocalisedParticle(p2);
 //                }
             }
