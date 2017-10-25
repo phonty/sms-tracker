@@ -776,7 +776,7 @@ public class Particle_Mapper extends Particle_Tracker {
         for (Cell c : cells) {
             ArrayList<Particle> detections = c.getParticles();
             if (detections != null) {
-                double[] p = colocer.calcColoc(detections, ch1proc, ch2proc, null);
+                double[] p = colocer.calcColoc(detections, ch1proc, ch2proc, String.format("Cell %d", c.getID()));
                 results.append(String.format("Cell %d\t%3.0f\t%3.0f\t%3.3f\t%3.3f", c.getID(), p[1], p[0], (100.0 * p[0] / p[1]), (1000.0 * p[2] / p[1])));
             }
         }

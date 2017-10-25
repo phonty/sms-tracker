@@ -42,6 +42,7 @@ import ui.DetectionGUI;
 
 public class Particle_Colocaliser extends GPUAnalyse {
 
+    private static TextWindow particleCoords;
     public static final String COLOC_SUM_HEADINGS = String.format("Image\tChannel 1 Detections\tColocalised Channel 2 Detections\t%% Colocalisation\t%c (nm)", '\u0394'),
             coordHeadings = "C0_X\tC0_Y\tC1_X\tC1_Y";
     private Properties props;
@@ -87,7 +88,7 @@ public class Particle_Colocaliser extends GPUAnalyse {
             FloatProcessor ch1proc = new FloatProcessor(width, height);
             FloatProcessor ch2proc = new FloatProcessor(width, height);
             ArrayList<Particle> detections = curves.getLevel(i);
-            double[] colocParams = calcColoc(detections, ch1proc, ch2proc, particleCoords);
+            double[] colocParams = calcColoc(detections, ch1proc, ch2proc, null);
             results.append(String.format("Slice %d\t%3.0f\t%3.0f\t%3.3f\t%3.3f", i, colocParams[1], colocParams[0], (100.0 * colocParams[0] / colocParams[1]), (1000.0 * colocParams[2] / colocParams[1])));
             outStack[0].addSlice("" + i, ch1proc);
             outStack[1].addSlice("" + i, ch2proc);
@@ -110,12 +111,15 @@ public class Particle_Colocaliser extends GPUAnalyse {
         }
     }
 
-    public double[] calcColoc(ArrayList<Particle> detections, FloatProcessor ch1proc, FloatProcessor ch2proc, TextWindow particleCoords) {
+    public double[] calcColoc(ArrayList<Particle> detections, FloatProcessor ch1proc, FloatProcessor ch2proc, String label) {
         int colocalisation = 0;
         int count = 0;
         double sepsum = 0.0;
         if (particleCoords == null) {
             particleCoords = getParticleCoordsWindow();
+        }
+        if (label != null) {
+            particleCoords.append(label);
         }
         for (int j = 0; j < detections.size(); j++) {
             Particle p1 = detections.get(j);
