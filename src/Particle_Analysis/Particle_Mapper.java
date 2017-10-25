@@ -35,7 +35,6 @@ import Math.Histogram;
 import Particle.Particle;
 import Particle.ParticleArray;
 import ParticleTracking.UserVariables;
-import ParticleWriter.ParticleWriter;
 import Profile.PeakFinder;
 import Revision.Revision;
 import Segmentation.RegionGrower;
@@ -63,7 +62,6 @@ import ij.process.ByteProcessor;
 import ij.process.FloatBlitter;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
-import ij.process.ShortProcessor;
 import ij.text.TextWindow;
 import java.awt.Color;
 import java.awt.Font;
@@ -81,18 +79,18 @@ public class Particle_Mapper extends Particle_Tracker {
 
     private static double histMin = -5.0, histMax = 20.0, threshLevel = 50.0;
     private static boolean useThresh = true, isolateFoci = true, analyseFluorescence = true,
-            averageImage = false, junctions = false, fluorDist = false;
+            averageImage = false, junctions = false, fluorDist = false, doColoc = false;
     private static int histNBins = 40;
     String resultsDir;
     private Cell[] cells;
-    private final int N_INPUTS = 5, NUCLEI = 2, CYTO = 1, FOCI = 0, JUNCTION_ALIGN = 3,
+    private final int N_INPUTS = 6, NUCLEI = 2, CYTO = 1, FOCI = 0, JUNCTION_ALIGN = 3, COLOC = 5,
             JUNCTION_QUANT = 4, FLUOR_MAP_HEIGHT = 128, DILATION_COUNT = 40, DILATION_STEP = 2;
     private final String NUCLEI_MASK = "Nuclei Mask", FLUO_DIST = "fluorescence_distribution_data.csv",
             INDIVIDUAL_DISTANCES = "individual_distances.csv",
-            FOCI_DIST = "foci_distance_data.csv", FOCI_DETECTIONS = "Foci Detections", DIST_MAP = "Distance Map",
+            FOCI_DIST = "foci_distance_data.csv", FOCI_DETECTIONS[] = {"Foci Detections 1", "Foci Detections 2"}, DIST_MAP = "Distance Map",
             FOCI_DIST_HIST = "foci_distance_histogram.csv", FOCI_NUC_ASS = "Foci-Nuclei Associations",
             CELL_CELL_ASS = "Cell-Cell Associations",
-            CELL_BOUNDS = "Cell Boundaries";
+            CELL_BOUNDS = "Cell Boundaries", COLOC_DATA = "colocalisation_data.csv";
     private final String FLUO_HEADINGS[] = new String[]{"Cell ID", "Cell Mean", "Cell Std Dev",
         "Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
         "Cytosolic Std Dev", "Nuclear Mean / Cytosolic Mean",
@@ -641,8 +639,6 @@ public class Particle_Mapper extends Particle_Tracker {
             imageTitles[NUCLEI] = inputs[NUCLEI] != null ? inputs[NUCLEI].getTitle() : " ";
             imageTitles[FOCI] = inputs[FOCI] != null ? inputs[FOCI].getTitle() : " ";
             imageTitles[CYTO] = inputs[CYTO] != null ? inputs[CYTO].getTitle() : " ";
-//            imageTitles[JUNCTION_ALIGN] = inputs[JUNCTION_ALIGN] != null ? inputs[JUNCTION_ALIGN].getTitle() : " ";
-//            imageTitles[JUNCTION_QUANT] = inputs[JUNCTION_QUANT] != null ? inputs[JUNCTION_QUANT].getTitle() : " ";
         }
         int N = imageTitles.length;
         if (N < 2) {
@@ -670,6 +666,8 @@ public class Particle_Mapper extends Particle_Tracker {
         gd.addNumericField("Minimum Value:", histMin, 1);
         gd.addNumericField("Maximum Value:", histMax, 1);
         gd.addNumericField("Number of Bins:", histNBins, 0);
+        gd.addCheckbox("Colocalise foci", doColoc);
+        gd.addChoice("Select image for colocalisation: ", imageTitles, imageTitles[COLOC < N ? COLOC : 0]);
         gd.addMessage("Analyse cell-cell junctions?", bFont);
         gd.addCheckbox("Extract fluorescence profiles?", junctions);
         gd.addChoice("Align junctions according to: ", imageTitles, imageTitles[JUNCTION_ALIGN < N ? JUNCTION_ALIGN : 0]);
@@ -681,26 +679,31 @@ public class Particle_Mapper extends Particle_Tracker {
         if (gd.wasCanceled()) {
             return false;
         }
-        boolean c1, c2, c3, c4, c5;
-        int choice1 = gd.getNextChoiceIndex(), choice2 = gd.getNextChoiceIndex(), choice3 = gd.getNextChoiceIndex(), choice4 = gd.getNextChoiceIndex(), choice5 = gd.getNextChoiceIndex();
+        boolean c1, c2, c3, c4, c5, c6;
+        int choice1 = gd.getNextChoiceIndex(), choice2 = gd.getNextChoiceIndex(),
+                choice3 = gd.getNextChoiceIndex(), choice4 = gd.getNextChoiceIndex(),
+                choice5 = gd.getNextChoiceIndex(), choice6 = gd.getNextChoiceIndex();
         if (IJ.getInstance() == null) {
             c1 = inputs[choice1] != null;
             c2 = inputs[choice2] != null;
             c3 = inputs[choice3] != null;
             c4 = inputs[choice4] != null;
             c5 = inputs[choice5] != null;
+            c6 = inputs[choice6] != null;
         } else {
             c1 = WindowManager.getImage(imageTitles[choice1]) != null;
             c2 = WindowManager.getImage(imageTitles[choice2]) != null;
             c3 = WindowManager.getImage(imageTitles[choice3]) != null;
             c4 = WindowManager.getImage(imageTitles[choice4]) != null;
             c5 = WindowManager.getImage(imageTitles[choice5]) != null;
+            c6 = WindowManager.getImage(imageTitles[choice6]) != null;
         }
         useThresh = gd.getNextBoolean();
         threshLevel = gd.getNextNumber();
         isolateFoci = gd.getNextBoolean();
         analyseFluorescence = gd.getNextBoolean();
         fluorDist = gd.getNextBoolean();
+        doColoc = gd.getNextBoolean();
         histMin = gd.getNextNumber();
         histMax = gd.getNextNumber();
         histNBins = (int) Math.round(gd.getNextNumber());
@@ -715,10 +718,13 @@ public class Particle_Mapper extends Particle_Tracker {
         } else if (!c3 && useThresh) {
             GenUtils.error("You have not specified an image for thresholding.");
             return showDialog();
-        } else if (!c4 && junctions) {
-            GenUtils.error("You have not specified an image for junction alignment.");
+        } else if (!c4 && doColoc) {
+            GenUtils.error("You have not specified an image for colocalisation.");
             return showDialog();
         } else if (!c5 && junctions) {
+            GenUtils.error("You have not specified an image for junction alignment.");
+            return showDialog();
+        } else if (!c6 && junctions) {
             GenUtils.error("You have not specified an image for junction fluorescence profiling.");
             return showDialog();
         } else {
@@ -727,19 +733,22 @@ public class Particle_Mapper extends Particle_Tracker {
                 inputsCopy[NUCLEI] = inputs[NUCLEI] != null ? inputs[NUCLEI].duplicate() : null;
                 inputsCopy[FOCI] = inputs[FOCI] != null ? inputs[FOCI].duplicate() : null;
                 inputsCopy[CYTO] = inputs[CYTO] != null ? inputs[CYTO].duplicate() : null;
+                inputsCopy[COLOC] = inputs[COLOC] != null ? inputs[COLOC].duplicate() : null;
                 inputsCopy[JUNCTION_ALIGN] = inputs[JUNCTION_ALIGN] != null ? inputs[JUNCTION_ALIGN].duplicate() : null;
                 inputsCopy[JUNCTION_QUANT] = inputs[JUNCTION_QUANT] != null ? inputs[JUNCTION_QUANT].duplicate() : null;
                 inputs[NUCLEI] = inputs[choice1] != null ? inputsCopy[choice1].duplicate() : null;
                 inputs[FOCI] = inputs[choice2] != null ? inputsCopy[choice2].duplicate() : null;
                 inputs[CYTO] = inputs[choice3] != null ? inputsCopy[choice3].duplicate() : null;
-                inputs[JUNCTION_ALIGN] = inputs[choice4] != null ? inputsCopy[choice4].duplicate() : null;
-                inputs[JUNCTION_QUANT] = inputs[choice5] != null ? inputsCopy[choice5].duplicate() : null;
+                inputs[COLOC] = inputs[choice4] != null ? inputsCopy[choice4].duplicate() : null;
+                inputs[JUNCTION_ALIGN] = inputs[choice5] != null ? inputsCopy[choice5].duplicate() : null;
+                inputs[JUNCTION_QUANT] = inputs[choice6] != null ? inputsCopy[choice6].duplicate() : null;
             } else {
                 inputs[NUCLEI] = WindowManager.getImage(imageTitles[choice1]).duplicate();
                 inputs[FOCI] = WindowManager.getImage(imageTitles[choice2]).duplicate();
                 inputs[CYTO] = WindowManager.getImage(imageTitles[choice3]).duplicate();
-                inputs[JUNCTION_ALIGN] = WindowManager.getImage(imageTitles[choice4]).duplicate();
-                inputs[JUNCTION_QUANT] = WindowManager.getImage(imageTitles[choice5]).duplicate();
+                inputs[COLOC] = WindowManager.getImage(imageTitles[choice4]).duplicate();
+                inputs[JUNCTION_ALIGN] = WindowManager.getImage(imageTitles[choice5]).duplicate();
+                inputs[JUNCTION_QUANT] = WindowManager.getImage(imageTitles[choice6]).duplicate();
             }
             return true;
         }
@@ -759,19 +768,24 @@ public class Particle_Mapper extends Particle_Tracker {
      * @param height
      * @param resultsDir
      */
-    public void drawDetections(Cell[] cells, int width, int height, String resultsDir) {
-        ShortProcessor output = new ShortProcessor(width, height);
-        output.setColor(Color.white);
+    public void drawDetections(Cell[] cells, int width, int height, String resultsDir) throws IOException{
+        Particle_Colocaliser colocer = new Particle_Colocaliser();
+        FloatProcessor ch1proc = new FloatProcessor(width, height);
+        FloatProcessor ch2proc = new FloatProcessor(width, height);
+        TextWindow results = new TextWindow("Colocalisation Results", Particle_Colocaliser.COLOC_SUM_HEADINGS, new String(), 1000, 500);
         for (Cell c : cells) {
             ArrayList<Particle> detections = c.getParticles();
             if (detections != null) {
-                ParticleWriter.drawDetections(detections, output, false, UserVariables.getBlobSize(), UserVariables.getSpatialRes(), true);
+                double[] p = colocer.calcColoc(detections, ch1proc, ch2proc, null);
+                results.append(String.format("Cell %d\t%3.0f\t%3.0f\t%3.3f\t%3.3f", c.getID(), p[1], p[0], (100.0 * p[0] / p[1]), (1000.0 * p[2] / p[1])));
             }
         }
         if (UserVariables.getDetectionMode() == UserVariables.GAUSS) {
-            output.multiply(1.0 / normFactor);
+            ch1proc.multiply(1.0 / normFactor);
         }
-        IJ.saveAs(new ImagePlus("", output), "TIF", String.format("%s%s%s", resultsDir, File.separator, FOCI_DETECTIONS));
+        IJ.saveAs(new ImagePlus("", ch1proc), "TIF", String.format("%s%s%s", resultsDir, File.separator, FOCI_DETECTIONS[0]));
+        IJ.saveAs(new ImagePlus("", ch2proc), "TIF", String.format("%s%s%s", resultsDir, File.separator, FOCI_DETECTIONS[1]));
+        saveTextWindow(results, new File(String.format("%s%s%s", resultsDir, File.separator, COLOC_DATA)), Particle_Colocaliser.COLOC_SUM_HEADINGS);
     }
 
     /**
