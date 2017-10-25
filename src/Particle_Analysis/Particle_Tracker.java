@@ -201,10 +201,11 @@ public class Particle_Tracker implements PlugIn {
         for (int i = 1; i <= cytoSize; i++) {
             cytoStack.getProcessor(i).subtract(stackMin);
         }
-        StackStatistics cytoStats2 = new StackStatistics(cytoImp);
+        StackStatistics cytoStats2 = new StackStatistics(cytoImp,256,0.0,0.0);
         int histogram[] = cytoStats2.histogram16;
         if (histogram == null) {
             histogram = cytoStats2.histogram;
+            normFactor = 1.0 / cytoStats2.binSize;
         }
         double sum = 0.0;
         int nPixels = cytoStats2.pixelCount;
@@ -212,7 +213,7 @@ public class Particle_Tracker implements PlugIn {
         while (sum < nPixels * NORM_VAL && thresh < histogram.length) {
             sum += histogram[thresh++];
         }
-        normFactor = 100.0 / (cytoStats2.binSize * thresh);
+        normFactor = 100.0 / thresh;
         GenUtils.convertStack(cytoImp, 32);
         cytoStack = cytoImp.getImageStack();
         for (int i = 1; i <= cytoSize; i++) {
