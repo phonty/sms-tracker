@@ -16,15 +16,13 @@
  */
 package ParticleTracking;
 
-import Particle_Analysis.Particle_Mapper;
-
 public class Main {
 
-    public static void main(String args[]) {
-        Particle_Mapper instance = new Particle_Mapper();
-        instance.run(null);
-        System.exit(0);
-    }
+//    public static void main(String args[]) {
+//        Particle_Mapper instance = new Particle_Mapper();
+//        instance.run(null);
+//        System.exit(0);
+//    }
 //    public static void main(String args[]) {
 //        TestGenerator tg = new TestGenerator();
 //        tg.generateMulti(1000, 512, 512, 100, "D:\\UserData\\barryd\\debugging\\particle_sim_data\\");
@@ -56,9 +54,9 @@ public class Main {
 //        instance.run(null);
 //        System.exit(0);
 //    }
-//    public static void main(String args[]) {
-//        FLAP_ instance = new FLAP_();
-//        instance.run(null);
-//        System.exit(0);
-//    }
+    public static void main(String args[]) {
+        FLAP_ instance = new FLAP_();
+        instance.run(null);
+        System.exit(0);
+    }
 }
