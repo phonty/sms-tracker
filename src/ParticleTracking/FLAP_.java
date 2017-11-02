@@ -56,7 +56,7 @@ public class FLAP_ extends GPUAnalyse {
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
         inputs = new ImagePlus[2];
         if (IJ.getInstance() != null) {
-            if (!getActiveImages()) {
+            if (!getActiveImages(false)) {
                 return;
             }
         } else {

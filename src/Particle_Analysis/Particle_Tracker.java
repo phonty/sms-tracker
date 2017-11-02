@@ -123,7 +123,7 @@ public class Particle_Tracker implements PlugIn {
         title = title + "_v" + Revision.VERSION + "." + intFormat.format(Revision.revisionNumber);
         inputs = new ImagePlus[2];
         if (IJ.getInstance() != null) {
-            if (!getActiveImages()) {
+            if (!getActiveImages(true)) {
                 return;
             }
         } else {
@@ -1174,7 +1174,7 @@ public class Particle_Tracker implements PlugIn {
         }
     }
 
-    protected boolean getActiveImages() {
+    protected boolean getActiveImages(boolean sameLength) {
         ImageStack[] stacks = new ImageStack[2];
         if (IJ.getInstance() != null) {
             inputs = GenUtils.specifyInputs(labels);
@@ -1191,7 +1191,7 @@ public class Particle_Tracker implements PlugIn {
             GenUtils.error("Monochrome images required.");
             return false;
         }
-        if (!(stacks[1] == null) && stacks[0].getSize() != stacks[1].getSize()) {
+        if (!(stacks[1] == null) && sameLength && stacks[0].getSize() != stacks[1].getSize()) {
             GenUtils.error("Stacks must have same number of slices.");
             return false;
         }
