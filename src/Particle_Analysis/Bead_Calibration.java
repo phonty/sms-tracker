@@ -75,7 +75,7 @@ public class Bead_Calibration extends Particle_Tracker implements PlugIn {
         labels[1] = "Channel 2";
         if (IJ.getInstance() != null) {
             stacks = new ImageStack[2];
-            getActiveImages();
+            getActiveImages(true);
         }
         if (stacks[1] == null) {
             GenUtils.error("Not enough stacks open.");
