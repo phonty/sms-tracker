@@ -16,15 +16,26 @@
  */
 package ParticleTracking;
 
-import Particle_Analysis.Particle_Colocaliser;
+import IO.DataReader;
+import Particle_Analysis.Particle_Mapper;
+import java.io.File;
+import java.io.IOException;
+import org.apache.commons.csv.CSVFormat;
 
 public class Main {
 
-//    public static void main(String args[]) {
-//        Particle_Mapper instance = new Particle_Mapper();
-//        instance.run(null);
-//        System.exit(0);
-//    }
+    public static void main(String args[]) {
+        Particle_Mapper instance = new Particle_Mapper();
+        instance.run(null);
+//        try {
+//            String[] rowLabels = new String[]{};
+//            String[] colHeadings = new String[]{};
+//            double[][] coords = DataReader.readFile(new File("C:/Users/barryd/OneDrive - The Francis Crick Institute/Working Data/Gandhi-Patani/Jasmine/Treated/Particle Mapper_v5.151_Output/Slice_1/particle_coordinates.csv"), CSVFormat.EXCEL, colHeadings, rowLabels);
+//        } catch (IOException e) {
+//            System.out.println(e.toString());
+//        }
+        System.exit(0);
+    }
 //    public static void main(String args[]) {
 //        TestGenerator tg = new TestGenerator();
 //        tg.generateMulti(1000, 512, 512, 100, "D:\\UserData\\barryd\\debugging\\particle_sim_data\\");
@@ -51,11 +62,11 @@ public class Main {
 //        }
 //        System.exit(0);
 //    }
-    public static void main(String args[]) {
-        Particle_Colocaliser instance = new Particle_Colocaliser();
-        instance.run(null);
-        System.exit(0);
-    }
+//    public static void main(String args[]) {
+//        Particle_Colocaliser instance = new Particle_Colocaliser();
+//        instance.run(null);
+//        System.exit(0);
+//    }
 //    public static void main(String args[]) {
 //        FLAP_ instance = new FLAP_();
 //        instance.run(null);
