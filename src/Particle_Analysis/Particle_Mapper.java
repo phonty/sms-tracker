@@ -90,7 +90,8 @@ public class Particle_Mapper extends Particle_Tracker {
             FOCI_DIST = "foci_distance_data.csv", FOCI_DETECTIONS[] = {"Foci Detections 1", "Foci Detections 2"}, DIST_MAP = "Distance Map",
             FOCI_DIST_HIST = "foci_distance_histogram.csv", FOCI_NUC_ASS = "Foci-Nuclei Associations",
             CELL_CELL_ASS = "Cell-Cell Associations",
-            CELL_BOUNDS = "Cell Boundaries", COLOC_DATA = "colocalisation_data.csv";
+            CELL_BOUNDS = "Cell Boundaries", COLOC_DATA = "colocalisation_data.csv",
+            PARTICLE_COORDS = "particle_coordinates.csv";
     private final String FLUO_HEADINGS[] = new String[]{"Cell ID", "Cell Mean", "Cell Std Dev",
         "Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
         "Cytosolic Std Dev", "Nuclear Mean / Cytosolic Mean",
@@ -186,6 +187,7 @@ public class Particle_Mapper extends Particle_Tracker {
                     if (isolateFoci) {
                         assignParticlesToCells(pa, cellMap, thisDir.getAbsolutePath(), i - 1);
                         drawDetections(cells, stacks[FOCI].getWidth(), stacks[FOCI].getHeight(), thisDir.getAbsolutePath());
+                        saveDetectionsDataFile(cells, thisDir.getAbsolutePath());
                         double[][] distances = calcDistances(buildDistanceMap(binaryNuclei, thisDir.getAbsolutePath()));
                         String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, INDIVIDUAL_DISTANCES);
                         String[] rowLabels = new String[getMaxNumberOfParticles(cells)];
@@ -768,7 +770,7 @@ public class Particle_Mapper extends Particle_Tracker {
      * @param height
      * @param resultsDir
      */
-    public void drawDetections(Cell[] cells, int width, int height, String resultsDir) throws IOException{
+    public void drawDetections(Cell[] cells, int width, int height, String resultsDir) throws IOException {
         Particle_Colocaliser colocer = new Particle_Colocaliser();
         FloatProcessor ch1proc = new FloatProcessor(width, height);
         FloatProcessor ch2proc = new FloatProcessor(width, height);
@@ -786,6 +788,30 @@ public class Particle_Mapper extends Particle_Tracker {
         IJ.saveAs(new ImagePlus("", ch1proc), "TIF", String.format("%s%s%s", resultsDir, File.separator, FOCI_DETECTIONS[0]));
         IJ.saveAs(new ImagePlus("", ch2proc), "TIF", String.format("%s%s%s", resultsDir, File.separator, FOCI_DETECTIONS[1]));
         saveTextWindow(results, new File(String.format("%s%s%s", resultsDir, File.separator, COLOC_DATA)), Particle_Colocaliser.COLOC_SUM_HEADINGS);
+    }
+
+    public void saveDetectionsDataFile(Cell[] cells, String resultsDir) throws IOException {
+        double[][] detectionCoords = new double[cells.length][];
+        String[] rowLabels = new String[cells.length];
+        ArrayList<String> colHeadings = new ArrayList();
+        for (int i = 0; i < cells.length; i++) {
+            Cell c = cells[i];
+            rowLabels[i] = String.format("Cell %d", i);
+            ArrayList<Particle> detections = c.getParticles();
+            if (detections != null) {
+                detectionCoords[i] = new double[detections.size() * 2];
+                for (int j = 0; j < detections.size(); j++) {
+                    Particle p = detections.get(j);
+                    detectionCoords[i][2 * j] = p.getX();
+                    detectionCoords[i][2 * j + 1] = p.getY();
+                    if(colHeadings.size() < 2 * (j + 1) + 1){
+                        colHeadings.add(String.format("X%d", j));
+                        colHeadings.add(String.format("Y%d", j));
+                    }
+                }
+            }
+        }
+        DataWriter.saveValues(detectionCoords, new File(String.format("%s%s%s", resultsDir, File.separator, PARTICLE_COORDS)), colHeadings.toArray(new String[]{}), rowLabels);
     }
 
     /**
