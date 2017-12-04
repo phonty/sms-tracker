@@ -792,26 +792,30 @@ public class Particle_Mapper extends Particle_Tracker {
 
     public void saveDetectionsDataFile(Cell[] cells, String resultsDir) throws IOException {
         double[][] detectionCoords = new double[cells.length][];
-        String[] rowLabels = new String[cells.length];
         ArrayList<String> colHeadings = new ArrayList();
+        colHeadings.add("Cell ID");
+        colHeadings.add("N");
         for (int i = 0; i < cells.length; i++) {
             Cell c = cells[i];
-            rowLabels[i] = String.format("Cell %d", i);
             ArrayList<Particle> detections = c.getParticles();
             if (detections != null) {
-                detectionCoords[i] = new double[detections.size() * 2];
+                detectionCoords[i] = new double[detections.size() * 3 + 2];
+                detectionCoords[i][0] = c.getID();
+                detectionCoords[i][1] = detections.size();
                 for (int j = 0; j < detections.size(); j++) {
                     Particle p = detections.get(j);
-                    detectionCoords[i][2 * j] = p.getX();
-                    detectionCoords[i][2 * j + 1] = p.getY();
-                    if(colHeadings.size() < 2 * (j + 1) + 1){
+                    detectionCoords[i][2 + 3 * j] = p.getX();
+                    detectionCoords[i][2 + 3 * j + 1] = p.getY();
+                    detectionCoords[i][2 + 3 * j + 2] = p.getMagnitude();
+                    if (colHeadings.size() < 3 * (j + 1) + 2) {
                         colHeadings.add(String.format("X%d", j));
                         colHeadings.add(String.format("Y%d", j));
+                        colHeadings.add(String.format("I%d", j));
                     }
                 }
             }
         }
-        DataWriter.saveValues(detectionCoords, new File(String.format("%s%s%s", resultsDir, File.separator, PARTICLE_COORDS)), colHeadings.toArray(new String[]{}), rowLabels);
+        DataWriter.saveValues(detectionCoords, new File(String.format("%s%s%s", resultsDir, File.separator, PARTICLE_COORDS)), colHeadings.toArray(new String[]{}), null);
     }
 
     /**
