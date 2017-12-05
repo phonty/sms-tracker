@@ -101,6 +101,7 @@ public class Particle_Mapper extends Particle_Tracker {
      */
     protected String title = "Particle Mapper";
     private final String resultsHeadings = "Cell ID\t X\t Y\t Number of Foci\t Mean Intensity of Foci\t Mean Foci Distance To Nuclear Boundary (" + IJ.micronSymbol + "m)";
+    public static final int ID_INDEX = 0, N_INDEX = 1;
 
     /**
      * Default constructor.
@@ -800,8 +801,8 @@ public class Particle_Mapper extends Particle_Tracker {
             ArrayList<Particle> detections = c.getParticles();
             if (detections != null) {
                 detectionCoords[i] = new double[detections.size() * 3 + 2];
-                detectionCoords[i][0] = c.getID();
-                detectionCoords[i][1] = detections.size();
+                detectionCoords[i][ID_INDEX] = c.getID();
+                detectionCoords[i][N_INDEX] = detections.size();
                 for (int j = 0; j < detections.size(); j++) {
                     Particle p = detections.get(j);
                     detectionCoords[i][2 + 3 * j] = p.getX();
