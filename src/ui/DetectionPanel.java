@@ -316,6 +316,7 @@ public class DetectionPanel extends javax.swing.JPanel {
     }//GEN-LAST:event_preProcessToggleButtonActionPerformed
 
     private void detectionModeComboBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_detectionModeComboBoxActionPerformed
+        UserVariables.setDetectionMode(getDetectionMode());
         parent.setVariables();
         boolean psfs = UserVariables.getDetectionMode() == UserVariables.GAUSS;
         curveFitTolTextField.setEnabled(psfs);
@@ -328,7 +329,7 @@ public class DetectionPanel extends javax.swing.JPanel {
     }//GEN-LAST:event_detectionModeComboBoxActionPerformed
 
     public int getDetectionMode() {
-        return detectionModeComboBox.getSelectedIndex();
+        return detectionModeComboBox.getSelectedIndex()+ UserVariables.MAXIMA;
     }
 
     public double getC1MaxThresh() {

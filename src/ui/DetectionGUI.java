@@ -227,7 +227,6 @@ public class DetectionGUI extends javax.swing.JDialog implements GUIMethods{
 
     public boolean setVariables() {
         try {
-            UserVariables.setDetectionMode(detectionPanel.getDetectionMode() + UserVariables.MAXIMA);
             UserVariables.setChan1MaxThresh(detectionPanel.getC1MaxThresh());
             UserVariables.setChan2MaxThresh(detectionPanel.getC2MaxThresh());
             UserVariables.setSpatialRes(detectionPanel.getSpatialRes());

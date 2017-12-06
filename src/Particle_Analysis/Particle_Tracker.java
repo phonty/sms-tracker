@@ -593,7 +593,7 @@ public class Particle_Tracker implements PlugIn {
 
     protected void updateTrajs(ParticleArray particles, double spatialRes, boolean update) {
         if (update) {
-            TrajectoryBuilder.updateTrajectories(particles, UserVariables.getTimeRes(), UserVariables.getTrajMaxStep(), spatialRes, true, Utils.getStackMinMax(inputs[0].getImageStack())[1], trajectories, UserVariables.isTrackRegions());
+            TrajectoryBuilder.updateTrajectories(particles, UserVariables.getTimeRes(), UserVariables.getTrajMaxStep(), spatialRes, Utils.getStackMinMax(inputs[0].getImageStack())[1], trajectories, UserVariables.isTrackRegions());
         }
     }
 
@@ -716,7 +716,7 @@ public class Particle_Tracker implements PlugIn {
                 current = traj.getEnd();
                 lastX = current.getX();
                 lastY = current.getY();
-                lastTP = current.getTimePoint();
+                lastTP = current.getFrameNumber();
                 current = current.getLink();
                 while (current != null) {
                     for (j = frames - 1; j >= lastTP; j--) {
@@ -735,7 +735,7 @@ public class Particle_Tracker implements PlugIn {
                     }
                     lastX = current.getX();
                     lastY = current.getY();
-                    lastTP = current.getTimePoint();
+                    lastTP = current.getFrameNumber();
                     current = current.getLink();
                 }
                 processor = outputStack.getProcessor(lastTP + 1);
@@ -840,20 +840,20 @@ public class Particle_Tracker implements PlugIn {
             if (last != null) {
                 x1 = last.getX();
                 y1 = last.getY();
-                t1 = last.getTimePoint() / UserVariables.getTimeRes();
+                t1 = last.getFrameNumber() / UserVariables.getTimeRes();
             } else {
                 x1 = sigStartP.getX();
                 y1 = sigStartP.getY();
-                t1 = sigStartP.getTimePoint() / UserVariables.getTimeRes();
+                t1 = sigStartP.getFrameNumber() / UserVariables.getTimeRes();
             }
             if (next != null) {
                 x2 = next.getX();
                 y2 = next.getY();
-                t2 = next.getTimePoint() / UserVariables.getTimeRes();
+                t2 = next.getFrameNumber() / UserVariables.getTimeRes();
             } else {
                 x2 = sigStartP.getX();
                 y2 = sigStartP.getY();
-                t2 = sigStartP.getTimePoint() / UserVariables.getTimeRes();
+                t2 = sigStartP.getFrameNumber() / UserVariables.getTimeRes();
             }
             double vel;
             if (t1 - t2 > 0.0) {
@@ -902,14 +902,14 @@ public class Particle_Tracker implements PlugIn {
             PolygonRoi sigProi = new PolygonRoi(xSigArray, ySigArray, xSigArray.length, Roi.POLYLINE);
             PolygonRoi virProi = new PolygonRoi(xVirArray, yVirArray, xVirArray.length, Roi.POLYLINE);
             Straightener straightener = new Straightener();
-            ImagePlus sigImp = new ImagePlus("", stacks[1].getProcessor(sigStartP.getTimePoint() + 1));
-            ImagePlus virImp = new ImagePlus("", stacks[0].getProcessor(sigStartP.getTimePoint() + 1));
+            ImagePlus sigImp = new ImagePlus("", stacks[1].getProcessor(sigStartP.getFrameNumber() + 1));
+            ImagePlus virImp = new ImagePlus("", stacks[0].getProcessor(sigStartP.getFrameNumber() + 1));
             sigImp.setRoi(sigProi);
             virImp.setRoi(virProi);
             sigTemps[size - 1 - i] = straightener.straighten(sigImp, sigProi, signalWidth);
             virTemps[size - 1 - i] = straightener.straighten(virImp, virProi, signalWidth);
             if (virTemps[size - 1 - i] != null) {
-                virTemps[size - 1 - i].putPixelValue(0, 0, sigStartP.getTimePoint());
+                virTemps[size - 1 - i].putPixelValue(0, 0, sigStartP.getFrameNumber());
                 virTemps[size - 1 - i].putPixelValue(1, 0, vel);
             }
             last = sigStartP;
@@ -1218,7 +1218,7 @@ public class Particle_Tracker implements PlugIn {
             Arrays.fill(particles[i], null);
             Particle current = pt.getEnd();
             while (current != null) {
-                particles[i][current.getTimePoint()] = current;
+                particles[i][current.getFrameNumber()] = current;
                 current = current.getLink();
             }
         }

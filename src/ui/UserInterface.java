@@ -24,6 +24,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.ImageCanvas;
+import javax.swing.DefaultComboBoxModel;
 
 public class UserInterface extends javax.swing.JDialog implements GUIMethods {
 
@@ -55,6 +56,8 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
     private static final String redSigEstText = "C1 PSF Width (" + IJ.micronSymbol + "m):";
     private static final String greenSigEstText = "C2 PSF Width (" + IJ.micronSymbol + "m):";
     private static final String minMSDPointsLabelText = "Minimum Points for MSD Calculation:";
+    private static final String trackingModeLabelText = "Tracking Model:";
+    protected static final DefaultComboBoxModel<String> TRACKING_MODE_OPTIONS = new DefaultComboBoxModel(new String[]{"Random", "Directed"});
 
     /**
      * Creates new form UserInterface
@@ -92,21 +95,7 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
         previewToggleButton = new javax.swing.JToggleButton();
         previewScrollBar = new java.awt.Scrollbar();
         jTabbedPane1 = new javax.swing.JTabbedPane();
-        detectionPanel = new javax.swing.JPanel();
-        spatResLabel = new javax.swing.JLabel();
-        chan1MaxThreshLabel = new javax.swing.JLabel();
-        spatResTextField = new javax.swing.JTextField();
-        chan1MaxThreshTextField = new javax.swing.JTextField();
-        preprocessToggleButton = new javax.swing.JToggleButton();
-        c1CurveFitTolLabel = new javax.swing.JLabel();
-        c1CurveFitTolTextField = new javax.swing.JTextField();
-        gpuToggleButton = new javax.swing.JToggleButton();
-        redSigmaLabel = new javax.swing.JLabel();
-        greenSigmaLabel = new javax.swing.JLabel();
-        redSigmaTextField = new javax.swing.JTextField();
-        greenSigmaTextField = new javax.swing.JTextField();
-        chan2MaxThreshLabel = new javax.swing.JLabel();
-        chan2MaxThreshTextField = new javax.swing.JTextField();
+        detectionPanel = new ui.DetectionPanel(this,analyser.isGpuEnabled());
         trackingPanel = new javax.swing.JPanel();
         timeResLabel = new javax.swing.JLabel();
         timeResTextField = new javax.swing.JTextField();
@@ -126,6 +115,8 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
         useCalsToggleButton = new javax.swing.JToggleButton();
         minMSDPointsTextField = new javax.swing.JTextField();
         minMSDPointsLabel = new javax.swing.JLabel();
+        trackingModeComboBox = new javax.swing.JComboBox<>();
+        trackingModeLabel = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle(title);
@@ -231,163 +222,11 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
         gridBagConstraints.gridx = 1;
         gridBagConstraints.gridy = 0;
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weightx = 0.7;
         gridBagConstraints.weighty = 1.0;
         getContentPane().add(jPanel2, gridBagConstraints);
 
         jTabbedPane1.setPreferredSize(new java.awt.Dimension(350, 270));
-
-        detectionPanel.setBorder(javax.swing.BorderFactory.createEtchedBorder());
-        detectionPanel.setLayout(new java.awt.GridBagLayout());
-
-        spatResLabel.setText(spatResLabelText);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
-        detectionPanel.add(spatResLabel, gridBagConstraints);
-
-        chan1MaxThreshLabel.setText(chan1MaxThreshLabelText);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 3;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
-        detectionPanel.add(chan1MaxThreshLabel, gridBagConstraints);
-
-        spatResTextField.setText(String.valueOf(UserVariables.getSpatialRes()));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
-        gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
-        detectionPanel.add(spatResTextField, gridBagConstraints);
-
-        chan1MaxThreshTextField.setText(String.valueOf(UserVariables.getChan1MaxThresh()));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 3;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
-        gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
-        detectionPanel.add(chan1MaxThreshTextField, gridBagConstraints);
-
-        preprocessToggleButton.setText(preprocessToggleText);
-        preprocessToggleButton.setSelected(UserVariables.isPreProcess());
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 6;
-        gridBagConstraints.gridwidth = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
-        detectionPanel.add(preprocessToggleButton, gridBagConstraints);
-
-        c1CurveFitTolLabel.setText(c1CurveFitTolLabelText);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 5;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
-        detectionPanel.add(c1CurveFitTolLabel, gridBagConstraints);
-
-        c1CurveFitTolTextField.setText(String.valueOf(UserVariables.getCurveFitTol()));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 5;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
-        gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
-        detectionPanel.add(c1CurveFitTolTextField, gridBagConstraints);
-
-        gpuToggleButton.setText(gpuToggleText);
-        gpuToggleButton.setEnabled(analyser.isGpuEnabled());
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 8;
-        gridBagConstraints.gridwidth = 2;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
-        detectionPanel.add(gpuToggleButton, gridBagConstraints);
-
-        redSigmaLabel.setText(redSigEstText);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
-        detectionPanel.add(redSigmaLabel, gridBagConstraints);
-
-        greenSigmaLabel.setText(greenSigEstText);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 1;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
-        detectionPanel.add(greenSigmaLabel, gridBagConstraints);
-
-        redSigmaTextField.setText(String.valueOf(UserVariables.getSigEstRed()));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
-        gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
-        detectionPanel.add(redSigmaTextField, gridBagConstraints);
-
-        greenSigmaTextField.setText(String.valueOf(UserVariables.getSigEstGreen()));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 1;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
-        gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
-        detectionPanel.add(greenSigmaTextField, gridBagConstraints);
-
-        chan2MaxThreshLabel.setText(chan2MaxThreshLabelText);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 4;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
-        gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
-        detectionPanel.add(chan2MaxThreshLabel, gridBagConstraints);
-
-        chan2MaxThreshTextField.setText(String.valueOf(UserVariables.getChan2MaxThresh()));
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 4;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
-        gridBagConstraints.weightx = 0.5;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
-        detectionPanel.add(chan2MaxThreshTextField, gridBagConstraints);
-
         jTabbedPane1.addTab("Detection", detectionPanel);
 
         trackingPanel.setLayout(new java.awt.GridBagLayout());
@@ -590,13 +429,36 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
         gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
         trackingPanel.add(minMSDPointsLabel, gridBagConstraints);
 
+        trackingModeComboBox.setModel(TRACKING_MODE_OPTIONS);
+        trackingModeComboBox.setSelectedIndex(UserVariables.getMotionModel() - UserVariables.RANDOM);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 1;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_END;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 0, 0, 10);
+        trackingPanel.add(trackingModeComboBox, gridBagConstraints);
+
+        trackingModeLabel.setText(trackingModeLabelText);
+        trackingModeLabel.setLabelFor(trackingModeComboBox);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 0;
+        gridBagConstraints.gridy = 0;
+        gridBagConstraints.anchor = java.awt.GridBagConstraints.LINE_START;
+        gridBagConstraints.weightx = 1.0;
+        gridBagConstraints.weighty = 1.0;
+        gridBagConstraints.insets = new java.awt.Insets(0, 10, 0, 10);
+        trackingPanel.add(trackingModeLabel, gridBagConstraints);
+
         jTabbedPane1.addTab("Tracking", trackingPanel);
 
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 0;
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-        gridBagConstraints.weightx = 0.5;
+        gridBagConstraints.weightx = 0.3;
         gridBagConstraints.weighty = 1.0;
         getContentPane().add(jTabbedPane1, gridBagConstraints);
 
@@ -623,36 +485,37 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
     private void previewScrollBarAdjustmentValueChanged(java.awt.event.AdjustmentEvent evt) {//GEN-FIRST:event_previewScrollBarAdjustmentValueChanged
         previewTextField.setText(String.valueOf(previewScrollBar.getValue()));
         if (previewToggleButton.isSelected() && !previewScrollBar.getValueIsAdjusting() && setVariables()) {
-            DetectionGUI.viewDetections(analyser, monoChrome, Double.parseDouble(spatResTextField.getText()), previewScrollBar.getValue(), canvas1, imp);
+            DetectionGUI.viewDetections(analyser, monoChrome, detectionPanel.getSpatialRes(), previewScrollBar.getValue(), canvas1, imp);
         }
     }//GEN-LAST:event_previewScrollBarAdjustmentValueChanged
 
     public boolean setVariables() {
         try {
-            UserVariables.setChan1MaxThresh(Double.parseDouble(chan1MaxThreshTextField.getText()));
-            UserVariables.setChan2MaxThresh(Double.parseDouble(chan2MaxThreshTextField.getText()));
+            UserVariables.setChan1MaxThresh(detectionPanel.getC1MaxThresh());
+            UserVariables.setChan2MaxThresh(detectionPanel.getC2MaxThresh());
 //            UserVariables.setChan2MaxThresh(Double.parseDouble(chan2MaxThreshTextField.getText()));
             UserVariables.setMinTrajLength(Double.parseDouble(minTrajLengthTextField.getText()));
             UserVariables.setMinTrajDist(Double.parseDouble(minTrajDistTextField.getText()));
 //            UserVariables.setMsdThresh(Double.parseDouble(minTrajMSDTextField.getText()));
-            UserVariables.setSpatialRes(Double.parseDouble(spatResTextField.getText()));
+            UserVariables.setSpatialRes(detectionPanel.getSpatialRes());
             UserVariables.setTimeRes(Double.parseDouble(timeResTextField.getText()));
             UserVariables.setTrajMaxStep(Double.parseDouble(maxTrajStepTextField.getText()));
-            UserVariables.setCurveFitTol(Double.parseDouble(c1CurveFitTolTextField.getText()));
+            UserVariables.setCurveFitTol(detectionPanel.getCurveFitTol());
 //            UserVariables.setC2CurveFitTol(Double.parseDouble(c2CurveFitTolTextField.getText()));
             UserVariables.setColocal(colocalToggleButton.isSelected());
-            UserVariables.setPreProcess(preprocessToggleButton.isSelected());
+            UserVariables.setPreProcess(detectionPanel.isPreProcess());
 //            UserVariables.setC1Index(c1ComboBox.getSelectedIndex());
 //            UserVariables.setC2Index(c2ComboBox.getSelectedIndex());
-            UserVariables.setGpu(gpuToggleButton.isSelected());
+            UserVariables.setGpu(detectionPanel.isGPU());
             UserVariables.setTrackLength(Double.parseDouble(trackLengthTextField.getText()));
             UserVariables.setPrevRes(previewResultsToggleButton.isSelected());
             UserVariables.setUseCals(useCalsToggleButton.isSelected());
             UserVariables.setExtractsigs(extractSigsToggleButton.isSelected());
             UserVariables.setColocalThresh(Double.parseDouble(colocalThreshTextField.getText()));
-            UserVariables.setSigEstRed(Double.parseDouble(redSigmaTextField.getText()));
-            UserVariables.setSigEstGreen(Double.parseDouble(greenSigmaTextField.getText()));
+            UserVariables.setSigEstRed(detectionPanel.getSigmaC1());
+            UserVariables.setSigEstGreen(detectionPanel.getSigmaC1());
             UserVariables.setMinMSDPoints(Integer.parseInt(minMSDPointsTextField.getText()));
+            UserVariables.setMotionModel(trackingModeComboBox.getSelectedIndex()+ UserVariables.RANDOM);
 //            printParams();
         } catch (NumberFormatException e) {
             IJ.error("Number formatting error " + e.toString());
@@ -752,22 +615,13 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JLabel c1CurveFitTolLabel;
-    private javax.swing.JTextField c1CurveFitTolTextField;
     private javax.swing.JButton cancelButton;
     private java.awt.Canvas canvas1;
-    private javax.swing.JLabel chan1MaxThreshLabel;
-    private javax.swing.JTextField chan1MaxThreshTextField;
-    private javax.swing.JLabel chan2MaxThreshLabel;
-    private javax.swing.JTextField chan2MaxThreshTextField;
     private javax.swing.JLabel colocalThreshLabel;
     private javax.swing.JTextField colocalThreshTextField;
     private javax.swing.JToggleButton colocalToggleButton;
-    private javax.swing.JPanel detectionPanel;
+    private ui.DetectionPanel detectionPanel;
     private javax.swing.JToggleButton extractSigsToggleButton;
-    private javax.swing.JToggleButton gpuToggleButton;
-    private javax.swing.JLabel greenSigmaLabel;
-    private javax.swing.JTextField greenSigmaTextField;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JTabbedPane jTabbedPane1;
@@ -780,19 +634,16 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
     private javax.swing.JLabel minTrajLengthLabel;
     private javax.swing.JTextField minTrajLengthTextField;
     private javax.swing.JButton okButton;
-    private javax.swing.JToggleButton preprocessToggleButton;
     private javax.swing.JToggleButton previewResultsToggleButton;
     private java.awt.Scrollbar previewScrollBar;
     private javax.swing.JTextField previewTextField;
     private javax.swing.JToggleButton previewToggleButton;
-    private javax.swing.JLabel redSigmaLabel;
-    private javax.swing.JTextField redSigmaTextField;
-    private javax.swing.JLabel spatResLabel;
-    private javax.swing.JTextField spatResTextField;
     private javax.swing.JLabel timeResLabel;
     private javax.swing.JTextField timeResTextField;
     private javax.swing.JLabel trackLengthLabel;
     private javax.swing.JTextField trackLengthTextField;
+    private javax.swing.JComboBox<String> trackingModeComboBox;
+    private javax.swing.JLabel trackingModeLabel;
     private javax.swing.JPanel trackingPanel;
     private javax.swing.JToggleButton useCalsToggleButton;
     // End of variables declaration//GEN-END:variables

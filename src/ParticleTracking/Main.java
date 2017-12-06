@@ -16,22 +16,20 @@
  */
 package ParticleTracking;
 
-import Particle_Analysis.Particle_Mapper;
-
 public class Main {
 
-    public static void main(String args[]) {
-        Particle_Mapper instance = new Particle_Mapper();
-        instance.run(null);
-//        try {
-//            String[] rowLabels = new String[]{};
-//            String[] colHeadings = new String[]{};
-//            double[][] coords = DataReader.readFile(new File("C:/Users/barryd/OneDrive - The Francis Crick Institute/Working Data/Gandhi-Patani/Jasmine/Treated/Particle Mapper_v5.151_Output/Slice_1/particle_coordinates.csv"), CSVFormat.EXCEL, colHeadings, rowLabels);
-//        } catch (IOException e) {
-//            System.out.println(e.toString());
-//        }
-        System.exit(0);
-    }
+//    public static void main(String args[]) {
+//        Particle_Mapper instance = new Particle_Mapper();
+//        instance.run(null);
+////        try {
+////            String[] rowLabels = new String[]{};
+////            String[] colHeadings = new String[]{};
+////            double[][] coords = DataReader.readFile(new File("C:/Users/barryd/OneDrive - The Francis Crick Institute/Working Data/Gandhi-Patani/Jasmine/Treated/Particle Mapper_v5.151_Output/Slice_1/particle_coordinates.csv"), CSVFormat.EXCEL, colHeadings, rowLabels);
+////        } catch (IOException e) {
+////            System.out.println(e.toString());
+////        }
+//        System.exit(0);
+//    }
 //    public static void main(String args[]) {
 //        TestGenerator tg = new TestGenerator();
 //        tg.generateMulti(1000, 512, 512, 100, "D:\\UserData\\barryd\\debugging\\particle_sim_data\\");
@@ -63,4 +61,10 @@ public class Main {
 //        instance.run(null);
 //        System.exit(0);
 //    }
+    public static void main(String args[]) {
+        GPUAnalyse instance = new GPUAnalyse();
+        instance.run(null);
+        System.exit(0);
+    }
+
 }
