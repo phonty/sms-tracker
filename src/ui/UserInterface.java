@@ -25,7 +25,7 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.ImageCanvas;
 
-public class UserInterface extends javax.swing.JDialog {
+public class UserInterface extends javax.swing.JDialog implements GUIMethods {
 
     private final Particle_Tracker analyser;
     private final ImagePlus imp;
@@ -627,7 +627,7 @@ public class UserInterface extends javax.swing.JDialog {
         }
     }//GEN-LAST:event_previewScrollBarAdjustmentValueChanged
 
-    boolean setVariables() {
+    public boolean setVariables() {
         try {
             UserVariables.setChan1MaxThresh(Double.parseDouble(chan1MaxThreshTextField.getText()));
             UserVariables.setChan2MaxThresh(Double.parseDouble(chan2MaxThreshTextField.getText()));
