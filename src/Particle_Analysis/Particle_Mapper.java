@@ -30,6 +30,7 @@ import static IO.DataWriter.convertArrayToString;
 import static IO.DataWriter.saveTextWindow;
 import static IO.DataWriter.saveValues;
 import Image.ImageChecker;
+import Image.ImageNormaliser;
 import MacroWriter.MacroWriter;
 import Math.Histogram;
 import Particle.Particle;
@@ -83,7 +84,7 @@ public class Particle_Mapper extends Particle_Tracker {
     private static int histNBins = 40;
     String resultsDir;
     private Cell[] cells;
-    private final int N_INPUTS = 6, NUCLEI = 2, CYTO = 1, FOCI = 0, JUNCTION_ALIGN = 3, COLOC = 5,
+    private final int N_INPUTS = 6, NUCLEI = 2, THRESH = 1, FOCI = 0, JUNCTION_ALIGN = 3, COLOC = 5,
             JUNCTION_QUANT = 4, FLUOR_MAP_HEIGHT = 128, DILATION_COUNT = 40, DILATION_STEP = 2;
     private final String NUCLEI_MASK = "Nuclei Mask", FLUO_DIST = "fluorescence_distribution_data.csv",
             INDIVIDUAL_DISTANCES = "individual_distances.csv",
@@ -118,7 +119,7 @@ public class Particle_Mapper extends Particle_Tracker {
         if (IJ.getInstance() == null) {
             inputs[NUCLEI] = IJ.openImage((new OpenDialog("Specify Nuclei Image", null)).getPath());
             inputs[FOCI] = IJ.openImage((new OpenDialog("Specify Foci Image", null)).getPath());
-            inputs[CYTO] = IJ.openImage((new OpenDialog("Specify Image For Thresholding", null)).getPath());
+            inputs[THRESH] = IJ.openImage((new OpenDialog("Specify Image For Thresholding", null)).getPath());
         } else {
             int[] idList = WindowManager.getIDList();
             if (idList == null) {
@@ -177,10 +178,9 @@ public class Particle_Mapper extends Particle_Tracker {
 //                    buildTerritories2(binaryNuclei.duplicate(), stacks[CYTO].getProcessor(i), thisDir.getAbsolutePath());
                     Arrays.sort(cells);
                     if (useThresh) {
-                        cells = FluorescenceAnalyser.filterCells(stacks[CYTO].getProcessor(i), new Cytoplasm(), threshLevel, Measurements.MEAN, cells);
+                        cells = FluorescenceAnalyser.filterCells(stacks[THRESH].getProcessor(i), new Cytoplasm(), threshLevel, Measurements.MEAN, cells);
                         labelActiveCellsInRegionImage(String.format("%s%s%s%s", thisDir, File.separator, CELL_BOUNDS, ".png"), cells);
                     }
-                    linkCells(cellMap, thisDir.getAbsolutePath());
                     String[] cellHeadings = new String[cells.length];
                     for (int c = 0; c < cellHeadings.length; c++) {
                         cellHeadings[c] = String.format("Cell %d", cells[c].getID());
@@ -189,23 +189,23 @@ public class Particle_Mapper extends Particle_Tracker {
                         assignParticlesToCells(pa, cellMap, thisDir.getAbsolutePath(), i - 1);
                         drawDetections(cells, stacks[FOCI].getWidth(), stacks[FOCI].getHeight(), thisDir.getAbsolutePath());
                         saveDetectionsDataFile(cells, thisDir.getAbsolutePath());
-                        double[][] distances = calcDistances(buildDistanceMap(binaryNuclei, thisDir.getAbsolutePath()));
-                        String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, INDIVIDUAL_DISTANCES);
-                        String[] rowLabels = new String[getMaxNumberOfParticles(cells)];
-                        for (int r = 0; r < rowLabels.length; r++) {
-                            rowLabels[r] = String.format("Particle %d", (r + 1));
+                        if (fluorDist) {
+                            double[][] distances = calcDistances(buildDistanceMap(binaryNuclei, thisDir.getAbsolutePath()));
+                            String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, INDIVIDUAL_DISTANCES);
+                            String[] rowLabels = new String[getMaxNumberOfParticles(cells)];
+                            for (int r = 0; r < rowLabels.length; r++) {
+                                rowLabels[r] = String.format("Particle %d", (r + 1));
+                            }
+                            saveValues(DataWriter.transposeValues(distances), new File(outputFileName), cellHeadings, rowLabels);
+                            buildHistograms(distances, histNBins, histMax, histMin, thisDir.getAbsoluteFile(), hideOutputs);
+                            outputFociDistanceData(distances, thisDir.getAbsolutePath(), resultsHeadings, hideOutputs);
                         }
-                        saveValues(DataWriter.transposeValues(distances), new File(outputFileName), cellHeadings, rowLabels);
-                        buildHistograms(distances, histNBins, histMax, histMin, thisDir.getAbsoluteFile(), hideOutputs);
-                        outputFociDistanceData(distances, thisDir.getAbsolutePath(), resultsHeadings, hideOutputs);
                     }
-                    if (fluorDist) {
+                    if (analyseFluorescence) {
                         FluorescenceAnalyser.generateFluorMapsFromStack(
                                 FluorescenceAnalyser.getMeanFluorDists(cells, FLUOR_MAP_HEIGHT,
                                         stacks[FOCI], ImageProcessor.MIN, DILATION_COUNT, DILATION_STEP),
                                 thisDir.getAbsolutePath(), cellHeadings);
-                    }
-                    if (analyseFluorescence) {
                         double[][] vals = FluorescenceAnalyser.analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(i),
                                 Measurements.MEAN + Measurements.STD_DEV, cells);
                         String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, FLUO_DIST);
@@ -215,6 +215,7 @@ public class Particle_Mapper extends Particle_Tracker {
                         }
                     }
                     if (junctions) {
+                        linkCells(cellMap, thisDir.getAbsolutePath());
                         extractCellCellProfiles(stacks[JUNCTION_QUANT].getProcessor(i), stacks[JUNCTION_ALIGN].getProcessor(i), (int) Math.max(width, height), 1, thisDir.getAbsolutePath());
                     }
                 }
@@ -261,7 +262,9 @@ public class Particle_Mapper extends Particle_Tracker {
     }
 
     protected ParticleArray findParticles() {
-        return findParticles(false, 0, inputs[FOCI].getImageStackSize() - 1, UserVariables.getCurveFitTol(), inputs[FOCI].getImageStack(), inputs[COLOC].getImageStack());
+        ImageStack fociStack = inputs[FOCI] != null ? inputs[FOCI].getImageStack() : null;
+        ImageStack colocStack = inputs[COLOC] != null ? inputs[COLOC].getImageStack() : null;
+        return findParticles(false, 0, fociStack.getSize() - 1, UserVariables.getCurveFitTol(), fociStack, colocStack);
     }
 
     /**
@@ -624,7 +627,7 @@ public class Particle_Mapper extends Particle_Tracker {
         FloatProcessor fgDistanceMap = edm.makeFloatEDM(image, 0, false);
         FloatProcessor distanceMap = edm.makeFloatEDM(invertedImage, 0, false);
         (new FloatBlitter(distanceMap)).copyBits(fgDistanceMap, 0, 0, Blitter.SUBTRACT);
-        IJ.saveAs(new ImagePlus("", distanceMap), "TIF", String.format("%s%s%s", resultsDir, File.separator, DIST_MAP));
+        IJ.saveAs(new ImagePlus("", ImageNormaliser.normaliseImage(distanceMap, 255.0, ImageNormaliser.SHORT)), "PNG", String.format("%s%s%s", resultsDir, File.separator, DIST_MAP));
         return distanceMap;
     }
 
@@ -641,7 +644,7 @@ public class Particle_Mapper extends Particle_Tracker {
             imageTitles = new String[3];
             imageTitles[NUCLEI] = inputs[NUCLEI] != null ? inputs[NUCLEI].getTitle() : " ";
             imageTitles[FOCI] = inputs[FOCI] != null ? inputs[FOCI].getTitle() : " ";
-            imageTitles[CYTO] = inputs[CYTO] != null ? inputs[CYTO].getTitle() : " ";
+            imageTitles[THRESH] = inputs[THRESH] != null ? inputs[THRESH].getTitle() : " ";
         }
         int N = imageTitles.length;
         if (N < 2) {
@@ -660,7 +663,7 @@ public class Particle_Mapper extends Particle_Tracker {
         gd.addChoice("Protein distribution to be quantified: ", imageTitles, imageTitles[FOCI < N ? FOCI : 0]);
         gd.addMessage("Do you want to use a third image to select cells based on intensity threshold?", bFont);
         gd.addCheckbox("Use threshold image", useThresh);
-        gd.addChoice("Select threshold image: ", imageTitles, imageTitles[CYTO < N ? CYTO : 0]);
+        gd.addChoice("Select threshold image: ", imageTitles, imageTitles[THRESH < N ? THRESH : 0]);
         gd.addSlider("Specify threshold level %", 0.0, 100.0, threshLevel);
         gd.addMessage("How do you want to analyse the protein distribution?", bFont);
         String[] checkBoxLabels = new String[]{"Attempt to isolate foci", "Quantify entire distribution", "Plot distribution from nucleus"};
@@ -735,21 +738,21 @@ public class Particle_Mapper extends Particle_Tracker {
                 ImagePlus[] inputsCopy = new ImagePlus[inputs.length];
                 inputsCopy[NUCLEI] = inputs[NUCLEI] != null ? inputs[NUCLEI].duplicate() : null;
                 inputsCopy[FOCI] = inputs[FOCI] != null ? inputs[FOCI].duplicate() : null;
-                inputsCopy[CYTO] = inputs[CYTO] != null ? inputs[CYTO].duplicate() : null;
+                inputsCopy[THRESH] = inputs[THRESH] != null ? inputs[THRESH].duplicate() : null;
                 inputsCopy[COLOC] = inputs[COLOC] != null ? inputs[COLOC].duplicate() : null;
                 inputsCopy[JUNCTION_ALIGN] = inputs[JUNCTION_ALIGN] != null ? inputs[JUNCTION_ALIGN].duplicate() : null;
                 inputsCopy[JUNCTION_QUANT] = inputs[JUNCTION_QUANT] != null ? inputs[JUNCTION_QUANT].duplicate() : null;
                 inputs[NUCLEI] = inputs[choice1] != null ? inputsCopy[choice1].duplicate() : null;
                 inputs[FOCI] = inputs[choice2] != null ? inputsCopy[choice2].duplicate() : null;
-                inputs[CYTO] = inputs[choice3] != null ? inputsCopy[choice3].duplicate() : null;
-                inputs[COLOC] = inputs[choice4] != null ? inputsCopy[choice4].duplicate() : null;
+                inputs[THRESH] = inputs[choice3] != null && useThresh ? inputsCopy[choice3].duplicate() : null;
+                inputs[COLOC] = inputs[choice4] != null && doColoc ? inputsCopy[choice4].duplicate() : null;
                 inputs[JUNCTION_ALIGN] = inputs[choice5] != null ? inputsCopy[choice5].duplicate() : null;
                 inputs[JUNCTION_QUANT] = inputs[choice6] != null ? inputsCopy[choice6].duplicate() : null;
             } else {
                 inputs[NUCLEI] = WindowManager.getImage(imageTitles[choice1]).duplicate();
                 inputs[FOCI] = WindowManager.getImage(imageTitles[choice2]).duplicate();
-                inputs[CYTO] = WindowManager.getImage(imageTitles[choice3]).duplicate();
-                inputs[COLOC] = WindowManager.getImage(imageTitles[choice4]).duplicate();
+                inputs[THRESH] = useThresh ? WindowManager.getImage(imageTitles[choice3]).duplicate() : null;
+                inputs[COLOC] = doColoc ? WindowManager.getImage(imageTitles[choice4]).duplicate() : null;
                 inputs[JUNCTION_ALIGN] = WindowManager.getImage(imageTitles[choice5]).duplicate();
                 inputs[JUNCTION_QUANT] = WindowManager.getImage(imageTitles[choice6]).duplicate();
             }
@@ -780,15 +783,21 @@ public class Particle_Mapper extends Particle_Tracker {
             ArrayList<Particle> detections = c.getParticles();
             if (detections != null) {
                 double[] p = colocer.calcColoc(detections, ch1proc, ch2proc, String.format("Cell %d", c.getID()));
-                results.append(String.format("Cell %d\t%3.0f\t%3.0f\t%3.3f\t%3.3f", c.getID(), p[1], p[0], (100.0 * p[0] / p[1]), (1000.0 * p[2] / p[1])));
+                if (doColoc) {
+                    results.append(String.format("Cell %d\t%3.0f\t%3.0f\t%3.3f\t%3.3f", c.getID(), p[1], p[0], (100.0 * p[0] / p[1]), (1000.0 * p[2] / p[1])));
+                }
             }
         }
         if (UserVariables.getDetectionMode() == UserVariables.GAUSS) {
             ch1proc.multiply(1.0 / normFactor);
         }
-        IJ.saveAs(new ImagePlus("", ch1proc), "TIF", String.format("%s%s%s", resultsDir, File.separator, FOCI_DETECTIONS[0]));
-        IJ.saveAs(new ImagePlus("", ch2proc), "TIF", String.format("%s%s%s", resultsDir, File.separator, FOCI_DETECTIONS[1]));
-        saveTextWindow(results, new File(String.format("%s%s%s", resultsDir, File.separator, COLOC_DATA)), Particle_Colocaliser.COLOC_SUM_HEADINGS);
+        IJ.saveAs(new ImagePlus("", ImageNormaliser.normaliseImage(ch1proc, 255.0, ImageNormaliser.BYTE)), "PNG", String.format("%s%s%s", resultsDir, File.separator, FOCI_DETECTIONS[0]));
+        if (inputs[COLOC] != null) {
+            IJ.saveAs(new ImagePlus("", ImageNormaliser.normaliseImage(ch2proc, 255.0, ImageNormaliser.BYTE)), "PNG", String.format("%s%s%s", resultsDir, File.separator, FOCI_DETECTIONS[1]));
+        }
+        if (doColoc) {
+            saveTextWindow(results, new File(String.format("%s%s%s", resultsDir, File.separator, COLOC_DATA)), Particle_Colocaliser.COLOC_SUM_HEADINGS);
+        }
     }
 
     public void saveDetectionsDataFile(Cell[] cells, String resultsDir) throws IOException {
