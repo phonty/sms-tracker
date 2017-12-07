@@ -778,7 +778,10 @@ public class Particle_Mapper extends Particle_Tracker {
         Particle_Colocaliser colocer = new Particle_Colocaliser();
         FloatProcessor ch1proc = new FloatProcessor(width, height);
         FloatProcessor ch2proc = new FloatProcessor(width, height);
-        TextWindow results = new TextWindow("Colocalisation Results", Particle_Colocaliser.COLOC_SUM_HEADINGS, new String(), 1000, 500);
+        TextWindow results = null;
+        if (doColoc) {
+            results = new TextWindow("Colocalisation Results", Particle_Colocaliser.COLOC_SUM_HEADINGS, new String(), 1000, 500);
+        }
         for (Cell c : cells) {
             ArrayList<Particle> detections = c.getParticles();
             if (detections != null) {
