@@ -88,7 +88,7 @@ public class Particle_Colocaliser extends GPUAnalyse {
             FloatProcessor ch1proc = new FloatProcessor(width, height);
             FloatProcessor ch2proc = new FloatProcessor(width, height);
             ArrayList<Particle> detections = curves.getLevel(i);
-            double[] colocParams = calcColoc(detections, ch1proc, ch2proc, null);
+            double[] colocParams = calcColoc(detections, ch1proc, ch2proc, null, false);
             results.append(String.format("Slice %d\t%3.0f\t%3.0f\t%3.3f\t%3.3f", i, colocParams[1], colocParams[0], (100.0 * colocParams[0] / colocParams[1]), (1000.0 * colocParams[2] / colocParams[1])));
             outStack[0].addSlice("" + i, ch1proc);
             outStack[1].addSlice("" + i, ch2proc);
@@ -111,14 +111,14 @@ public class Particle_Colocaliser extends GPUAnalyse {
         }
     }
 
-    public double[] calcColoc(ArrayList<Particle> detections, FloatProcessor ch1proc, FloatProcessor ch2proc, String label) {
+    public double[] calcColoc(ArrayList<Particle> detections, FloatProcessor ch1proc, FloatProcessor ch2proc, String label, boolean suppressTextOutput) {
         int colocalisation = 0;
         int count = 0;
         double sepsum = 0.0;
-        if (particleCoords == null) {
+        if (!suppressTextOutput && particleCoords == null) {
             particleCoords = getParticleCoordsWindow();
         }
-        if (label != null) {
+        if (!suppressTextOutput && label != null) {
             particleCoords.append(label);
         }
         for (int j = 0; j < detections.size(); j++) {
@@ -133,7 +133,9 @@ public class Particle_Colocaliser extends GPUAnalyse {
                 sepsum += Utils.calcDistance(p1.getX(), p1.getY(), p2.getX(), p2.getY());
                 coordString = String.format("%s\t%3.3f\t%3.3f", coordString, p2.getX(), p2.getY());
             }
-            particleCoords.append(coordString);
+            if (!suppressTextOutput) {
+                particleCoords.append(coordString);
+            }
         }
         return new double[]{colocalisation, count, sepsum};
     }
