@@ -31,7 +31,6 @@ import static IO.DataWriter.saveTextWindow;
 import static IO.DataWriter.saveValues;
 import Image.ImageChecker;
 import Image.ImageNormaliser;
-import MacroWriter.MacroWriter;
 import Math.Histogram;
 import Particle.Particle;
 import Particle.ParticleArray;
@@ -48,8 +47,10 @@ import ij.ImageStack;
 import ij.Prefs;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
+import ij.gui.Overlay;
 import ij.gui.Plot;
 import ij.gui.Roi;
+import ij.gui.TextRoi;
 import ij.io.OpenDialog;
 import ij.measure.Measurements;
 import ij.measure.ResultsTable;
@@ -63,6 +64,7 @@ import ij.process.ByteProcessor;
 import ij.process.FloatBlitter;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
+import ij.process.ShortProcessor;
 import ij.text.TextWindow;
 import java.awt.Color;
 import java.awt.Font;
@@ -92,7 +94,7 @@ public class Particle_Mapper extends Particle_Tracker {
             FOCI_DIST_HIST = "foci_distance_histogram.csv", FOCI_NUC_ASS = "Foci-Nuclei Associations",
             CELL_CELL_ASS = "Cell-Cell Associations",
             CELL_BOUNDS = "Cell Boundaries", COLOC_DATA = "colocalisation_data.csv",
-            PARTICLE_COORDS = "particle_coordinates.csv";
+            PARTICLE_COORDS = "particle_coordinates.csv", CELL_FLUOR = "Cell Fluorescence Map";
     private final String FLUO_HEADINGS[] = new String[]{"Cell ID", "Cell Mean", "Cell Std Dev",
         "Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
         "Cytosolic Std Dev", "Nuclear Mean / Cytosolic Mean",
@@ -112,7 +114,7 @@ public class Particle_Mapper extends Particle_Tracker {
     }
 
     public void run(String arg) {
-        MacroWriter.write();
+//        MacroWriter.write();
         Prefs.blackBackground = false;
         title = String.format("%s_v%d.%d", title, Revision.VERSION, Revision.revisionNumber);
         inputs = new ImagePlus[N_INPUTS];
@@ -210,6 +212,7 @@ public class Particle_Mapper extends Particle_Tracker {
                                 Measurements.MEAN + Measurements.STD_DEV, cells);
                         String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, FLUO_DIST);
                         saveValues(vals, new File(outputFileName), FLUO_HEADINGS, null);
+                        outputCellFluorImage(stacks[NUCLEI].getWidth(), stacks[NUCLEI].getHeight(), thisDir.getAbsolutePath());
                         if (averageImage) {
                             aveFluoDistTW.append(convertArrayToString(null, getAverageValues(vals, FLUO_HEADINGS.length), "\t"));
                         }
@@ -252,7 +255,7 @@ public class Particle_Mapper extends Particle_Tracker {
     void labelActiveCellsInRegionImage(String pathToRegionImage, Cell[] cells) {
         ImagePlus regionImage = IJ.openImage(pathToRegionImage);
         ImageProcessor ip = regionImage.getProcessor().convertToRGB();
-        ip.setLineWidth(3);
+        ip.setLineWidth(1);
         ip.setColor(Color.green);
         for (Cell cell : cells) {
             CellRegion cyto = cell.getRegion(new Cytoplasm());
@@ -315,10 +318,8 @@ public class Particle_Mapper extends Particle_Tracker {
         edm.setup("voronoi", imp);
         edm.run(image);
         image.threshold(1);
-        image.setColor(Color.white);
-        int fontsize = (int) Math.round(0.05 * Math.min(image.getWidth(), image.getHeight()));
-        Font font = new Font("Times", Font.BOLD, fontsize);
-        image.setFont(font);
+        int fontsize = (int) Math.round(0.005 * Math.min(image.getWidth(), image.getHeight()));
+        Font font = new Font("Times", Font.PLAIN, fontsize);
         rt.reset();
         resetRoiManager();
         ParticleAnalyzer pa = new ParticleAnalyzer(ParticleAnalyzer.SHOW_ROI_MASKS + ParticleAnalyzer.ADD_TO_MANAGER, 0, rt, 0, Double.MAX_VALUE);
@@ -331,6 +332,7 @@ public class Particle_Mapper extends Particle_Tracker {
         roimanager.runCommand("Save", String.format("%s%s%s", resultsDir, File.separator, "rois.zip"));
         ImageProcessor cellMap = pa.getOutputImage().getProcessor();
         int duds = -1;
+        Overlay overlay = new Overlay();
         for (int i = 0; i < n; i++) {
             Cell c = cells[i];
             double[] centroid = c.getNucleus().getCentroid();
@@ -348,8 +350,9 @@ public class Particle_Mapper extends Particle_Tracker {
             if (id > 0) {
                 c.addCellRegion(new Cytoplasm(rois[id - 1]));
             }
-            image.drawString(String.valueOf(id), xc, yc);
+            overlay.add(new TextRoi(xc,yc,String.valueOf(id),font));
         }
+        image.setOverlay(overlay);
         IJ.saveAs(new ImagePlus("", image), "PNG", String.format("%s%s%s", resultsDir, File.separator, CELL_BOUNDS));
         return pa.getOutputImage();
     }
@@ -880,4 +883,12 @@ public class Particle_Mapper extends Particle_Tracker {
         saveTextWindow(tw, new File(String.format("%s%s%s", resultsDir, File.separator, FOCI_DIST)), resultsHeadings);
     }
 
+    void outputCellFluorImage(int width, int height, String directory) {
+        ShortProcessor fluorImage = new ShortProcessor(width, height);
+        for (Cell c : cells) {
+            fluorImage.setValue(c.getFluorStats().mean / normFactor);
+            fluorImage.fill((c.getRegion(new Cytoplasm())).getRoi());
+        }
+        IJ.saveAs(new ImagePlus("", fluorImage), "PNG", String.format("%s%s%s", directory, File.separator, CELL_FLUOR));
+    }
 }
