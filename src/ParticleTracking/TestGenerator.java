@@ -128,7 +128,7 @@ public class TestGenerator {
         Random r = new Random();
         for (int i = 0; i < n; i++) {
             particles[i] = new MotileGaussian(width * res * r.nextDouble(), height * res * r.nextDouble(),
-                    90.0, sigmaEstPix, sigmaEstPix, 0.1, sens, true, false);
+                    90.0, sigmaEstPix, sigmaEstPix, 0.1, sens, true, false, 0.001);
         }
         for (int i = 0; i < length; i++) {
             FloatProcessor c1image = new FloatProcessor(width, height);
@@ -153,7 +153,7 @@ public class TestGenerator {
 //                        particles[j] = null;
                         particles[j] = new MotileGaussian(width * res * r.nextDouble(),
                                 height * res * r.nextDouble(), 100.0, sigmaEstPix, sigmaEstPix,
-                                0.1, sens, true, false);
+                                0.1, sens, true, false, 0.001);
 //                        totalcount++;
 
                     }
@@ -168,6 +168,38 @@ public class TestGenerator {
 //                    "C:\\Users\\barry05\\Desktop\\Test_Data_Sets\\Tracking_Test_Sequences\\Simulation\\C1\\"
 //                    + indFormat.format(i));
 //            System.out.println("Frame:\t" + i + "\tTotal Count:\t" + totalcount);
+        }
+    }
+
+    public void generateBrownian(int n, int width, int height, int length, double D, String directory) {
+        MotileGaussian particles[] = new MotileGaussian[n];
+        Random r = new Random();
+        for (int i = 0; i < n; i++) {
+            particles[i] = new MotileGaussian(width * res * r.nextDouble(), height * res * r.nextDouble(),
+                    90.0, sigmaEstPix, sigmaEstPix, 0.1, sens, true, false, D);
+        }
+        for (int i = 0; i < length; i++) {
+            FloatProcessor c1image = new FloatProcessor(width, height);
+            c1image.setColor(100);
+            for (int j = 0; j < n; j++) {
+                if (particles[j] != null) {
+                    Utils.draw2DGaussian(c1image, particles[j], 0.0, res, false);
+                    particles[j].updatePosition();
+                    double x = particles[j].getX() / res;
+                    double y = particles[j].getY() / res;
+                    if (x < -2.0 * particles[j].getXSigma()
+                            || x > width + 2.0 * particles[j].getXSigma()
+                            || y < -2.0 * particles[j].getYSigma()
+                            || y > height + 2.0 * particles[j].getYSigma()) {
+                        particles[j] = new MotileGaussian(width * res * r.nextDouble(),
+                                height * res * r.nextDouble(), 100.0, sigmaEstPix, sigmaEstPix,
+                                0.1, sens, true, false, D);
+                    }
+                }
+            }
+            IJ.saveAs(new ImagePlus("", c1image.duplicate()), "TIF",
+                    directory
+                    + indFormat.format(i));
         }
     }
 
