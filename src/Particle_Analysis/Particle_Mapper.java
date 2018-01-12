@@ -95,7 +95,7 @@ public class Particle_Mapper extends Particle_Tracker {
             CELL_CELL_ASS = "Cell-Cell Associations",
             CELL_BOUNDS = "Cell Boundaries", COLOC_DATA = "colocalisation_data.csv",
             PARTICLE_COORDS = "particle_coordinates.csv", CELL_FLUOR = "Cell Fluorescence Map";
-    private final String FLUO_HEADINGS[] = new String[]{"Cell ID", "Cell Mean", "Cell Std Dev",
+    private final String FLUO_HEADINGS[] = new String[]{"Cell ID", "X", "Y", "Cell Mean", "Cell Std Dev",
         "Nuclear Mean", "Nuclear Std Dev", "Cytosolic Mean",
         "Cytosolic Std Dev", "Nuclear Mean / Cytosolic Mean",
         "Nuclear Std Dev / Cytosolic Std Dev"};
@@ -170,18 +170,19 @@ public class Particle_Mapper extends Particle_Tracker {
                 pa = findParticles();
             }
             for (int i = 1; i <= stacks[0].size(); i++) {
+                IJ.log(String.format("Processing slice %d - %s", i, stacks[0].getSliceLabel(i)));
                 File thisDir = GenUtils.createDirectory(String.format("%s%sSlice_%d", resultsDir, File.separator, i), true);
                 ByteProcessor binaryNuclei = ImageChecker.checkBinaryImage(stacks[NUCLEI].getProcessor(i));
                 IJ.saveAs(new ImagePlus("", binaryNuclei), "PNG", String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, NUCLEI_MASK));
                 if (!findCells(binaryNuclei.duplicate())) {
                     IJ.log(String.format("No cells found in image %d.", i));
                 } else {
-                    ImageProcessor cellMap = buildTerritories(binaryNuclei.duplicate(), thisDir.getAbsolutePath()).getProcessor();
+                    ImageProcessor cellMap = buildTerritories(binaryNuclei.duplicate(), thisDir.getAbsolutePath(), stacks[0].getSliceLabel(i)).getProcessor();
 //                    buildTerritories2(binaryNuclei.duplicate(), stacks[CYTO].getProcessor(i), thisDir.getAbsolutePath());
                     Arrays.sort(cells);
                     if (useThresh) {
                         cells = FluorescenceAnalyser.filterCells(stacks[THRESH].getProcessor(i), new Cytoplasm(), threshLevel, Measurements.MEAN, cells);
-                        labelActiveCellsInRegionImage(String.format("%s%s%s%s", thisDir, File.separator, CELL_BOUNDS, ".png"), cells);
+                        labelActiveCellsInRegionImage(String.format("%s%s%s-%s%s", thisDir, File.separator, stacks[0].getSliceLabel(i),CELL_BOUNDS, ".png"), cells);
                     }
                     String[] cellHeadings = new String[cells.length];
                     for (int c = 0; c < cellHeadings.length; c++) {
@@ -204,15 +205,15 @@ public class Particle_Mapper extends Particle_Tracker {
                         }
                     }
                     if (analyseFluorescence) {
-                        FluorescenceAnalyser.generateFluorMapsFromStack(
-                                FluorescenceAnalyser.getMeanFluorDists(cells, FLUOR_MAP_HEIGHT,
-                                        stacks[FOCI], ImageProcessor.MIN, DILATION_COUNT, DILATION_STEP),
-                                thisDir.getAbsolutePath(), cellHeadings);
+//                        FluorescenceAnalyser.generateFluorMapsFromStack(
+//                                FluorescenceAnalyser.getMeanFluorDists(cells, FLUOR_MAP_HEIGHT,
+//                                        stacks[FOCI], ImageProcessor.MIN, DILATION_COUNT, DILATION_STEP),
+//                                thisDir.getAbsolutePath(), cellHeadings);
                         double[][] vals = FluorescenceAnalyser.analyseCellFluorescenceDistribution(stacks[FOCI].getProcessor(i),
-                                Measurements.MEAN + Measurements.STD_DEV, cells);
+                                Measurements.MEAN + Measurements.STD_DEV, cells, 1.0 / normFactor);
                         String outputFileName = String.format("%s%s%s", thisDir.getAbsolutePath(), File.separator, FLUO_DIST);
                         saveValues(vals, new File(outputFileName), FLUO_HEADINGS, null);
-                        outputCellFluorImage(stacks[NUCLEI].getWidth(), stacks[NUCLEI].getHeight(), thisDir.getAbsolutePath());
+                        outputCellFluorImage(stacks[NUCLEI].getWidth(), stacks[NUCLEI].getHeight(), thisDir.getAbsolutePath(), stacks[0].getSliceLabel(i));
                         if (averageImage) {
                             aveFluoDistTW.append(convertArrayToString(null, getAverageValues(vals, FLUO_HEADINGS.length), "\t"));
                         }
@@ -311,7 +312,7 @@ public class Particle_Mapper extends Particle_Tracker {
      * unique label
      * @return
      */
-    public ImagePlus buildTerritories(ImageProcessor image, String resultsDir) {
+    public ImagePlus buildTerritories(ImageProcessor image, String resultsDir, String label) {
         ImagePlus imp = new ImagePlus("", image);
         ResultsTable rt = Analyzer.getResultsTable();
         EDM edm = new EDM();
@@ -341,10 +342,10 @@ public class Particle_Mapper extends Particle_Tracker {
             int id = cellMap.getPixel(xc, yc);
             if (id < 1 || cellExists(new Cell(id))) {
                 id = duds--;
-                IJ.log(String.format("The object detected at (%d, %d) could not be"
-                        + " assigned to a unique cell. This could indicate a multi-nucleate"
-                        + " cell, but could also suggest an excessively noisy image."
-                        + " Consider preprocessing your nuclei image to reduce noise.", xc, yc));
+//                IJ.log(String.format("The object detected at (%d, %d) could not be"
+//                        + " assigned to a unique cell. This could indicate a multi-nucleate"
+//                        + " cell, but could also suggest an excessively noisy image."
+//                        + " Consider preprocessing your nuclei image to reduce noise.", xc, yc));
             }
             c.setID(id);
             if (id > 0) {
@@ -353,7 +354,7 @@ public class Particle_Mapper extends Particle_Tracker {
             overlay.add(new TextRoi(xc,yc,String.valueOf(id),font));
         }
         image.setOverlay(overlay);
-        IJ.saveAs(new ImagePlus("", image), "PNG", String.format("%s%s%s", resultsDir, File.separator, CELL_BOUNDS));
+        IJ.saveAs(new ImagePlus("", image), "PNG", String.format("%s%s%s-%s", resultsDir, File.separator,label, CELL_BOUNDS));
         return pa.getOutputImage();
     }
 
@@ -883,12 +884,12 @@ public class Particle_Mapper extends Particle_Tracker {
         saveTextWindow(tw, new File(String.format("%s%s%s", resultsDir, File.separator, FOCI_DIST)), resultsHeadings);
     }
 
-    void outputCellFluorImage(int width, int height, String directory) {
+    void outputCellFluorImage(int width, int height, String directory, String label) {
         ShortProcessor fluorImage = new ShortProcessor(width, height);
         for (Cell c : cells) {
-            fluorImage.setValue(c.getFluorStats().mean / normFactor);
+            fluorImage.setValue(c.getFluorStats().mean);
             fluorImage.fill((c.getRegion(new Cytoplasm())).getRoi());
         }
-        IJ.saveAs(new ImagePlus("", fluorImage), "PNG", String.format("%s%s%s", directory, File.separator, CELL_FLUOR));
+        IJ.saveAs(new ImagePlus("", fluorImage), "PNG", String.format("%s%s%s-%s", directory, File.separator, label, CELL_FLUOR));
     }
 }
