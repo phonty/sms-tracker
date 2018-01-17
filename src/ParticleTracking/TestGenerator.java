@@ -176,7 +176,7 @@ public class TestGenerator {
         Random r = new Random();
         for (int i = 0; i < n; i++) {
             particles[i] = new MotileGaussian(width * res * r.nextDouble(), height * res * r.nextDouble(),
-                    90.0, sigmaEstPix, sigmaEstPix, 0.1, sens, true, false, D);
+                    90.0, sigmaEstPix, sigmaEstPix, 0.1, sens, false, false, D);
         }
         for (int i = 0; i < length; i++) {
             FloatProcessor c1image = new FloatProcessor(width, height);
@@ -193,7 +193,7 @@ public class TestGenerator {
                             || y > height + 2.0 * particles[j].getYSigma()) {
                         particles[j] = new MotileGaussian(width * res * r.nextDouble(),
                                 height * res * r.nextDouble(), 100.0, sigmaEstPix, sigmaEstPix,
-                                0.1, sens, true, false, D);
+                                0.1, sens, false, false, D);
                     }
                 }
             }
