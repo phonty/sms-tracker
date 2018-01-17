@@ -11,7 +11,6 @@ import Particle.IsoGaussian;
 import IAClasses.ProgressDialog;
 import ij.IJ;
 import ij.ImagePlus;
-import ij.ImageStack;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 import java.awt.Toolkit;

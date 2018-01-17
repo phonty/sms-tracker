@@ -17,8 +17,8 @@
 package ui;
 
 import IAClasses.Utils;
-import Particle_Analysis.Particle_Tracker;
 import ParticleTracking.UserVariables;
+import Particle_Analysis.Particle_Tracker;
 import UIClasses.UIMethods;
 import ij.IJ;
 import ij.ImagePlus;
@@ -500,6 +500,7 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
             UserVariables.setSpatialRes(detectionPanel.getSpatialRes());
             UserVariables.setTimeRes(Double.parseDouble(timeResTextField.getText()));
             UserVariables.setTrajMaxStep(Double.parseDouble(maxTrajStepTextField.getText()));
+            UserVariables.setBlobSize(detectionPanel.getBlobSize());
             UserVariables.setCurveFitTol(detectionPanel.getCurveFitTol());
 //            UserVariables.setC2CurveFitTol(Double.parseDouble(c2CurveFitTolTextField.getText()));
             UserVariables.setColocal(colocalToggleButton.isSelected());
