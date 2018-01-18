@@ -455,7 +455,7 @@ public class Particle_Tracker implements PlugIn {
                 if (C1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
                     double px = c1X * UserVariables.getSpatialRes();
                     double py = c1Y * UserVariables.getSpatialRes();
-                    Blob p1 = new Blob(i - startSlice, px, py, c1Proc.getPixelValue(c1X, c1Y));
+                    Blob p1 = new Blob(i - startSlice, px, py, c1Proc.getPixelValue(c1X, c1Y), c1Proc, searchRad, UserVariables.getSpatialRes());
                     Point p2 = (c2Proc != null && c2Proc.getPixelValue(c1X, c1Y) > c2Threshold) ? new Point(i - startSlice, px, py, c2Proc.getPixelValue(c1X, c1Y)) : null;
                     if (c2Proc != null && fitC2) {
                         int[][] c2Points = Utils.searchNeighbourhood(c1X, c1Y, searchRad, UserVariables.FOREGROUND, C2Max);
