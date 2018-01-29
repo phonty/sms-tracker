@@ -37,7 +37,6 @@ import ij.process.TypeConverter;
 import ij.text.TextWindow;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Properties;
 import ui.DetectionGUI;
 
 public class Particle_Colocaliser extends GPUAnalyse {
@@ -45,7 +44,6 @@ public class Particle_Colocaliser extends GPUAnalyse {
     private static TextWindow particleCoords;
     public static final String COLOC_SUM_HEADINGS = String.format("Image\tChannel 1 Detections\tColocalised Channel 2 Detections\t%% Colocalisation\t%c (nm)", '\u0394'),
             coordHeadings = "C0_X\tC0_Y\tC1_X\tC1_Y";
-    private Properties props;
 
     public Particle_Colocaliser() {
         super();

@@ -9,6 +9,7 @@ import Particle.IsoGaussian;
 import IAClasses.ProgressDialog;
 import IAClasses.Region;
 import IAClasses.Utils;
+import IO.PropertyWriter;
 import Math.Optimisation.IsoGaussianFitter;
 import Particle.Particle;
 import Particle.ParticleArray;
@@ -22,6 +23,7 @@ import Particle.Point;
 import ParticleTracking.ParticleTrajectory;
 import ParticleTracking.TrajectoryBuilder;
 import ParticleTracking.UserVariables;
+import Trajectory.TrajectoryBridger;
 import UtilClasses.GenVariables;
 import goshtasby.Multi_Goshtasby;
 import ij.IJ;
@@ -40,6 +42,7 @@ import ij.plugin.filter.GaussianBlur;
 import ij.process.AutoThresholder;
 import ij.process.Blitter;
 import ij.process.ByteProcessor;
+import ij.process.ColorProcessor;
 import ij.process.FloatBlitter;
 import ij.process.FloatProcessor;
 import ij.process.FloatStatistics;
@@ -59,6 +62,7 @@ import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Properties;
 import java.util.Random;
 import javax.swing.JFileChooser;
 import org.apache.commons.csv.CSVFormat;
@@ -102,6 +106,7 @@ public class Particle_Tracker implements PlugIn {
     private static File calFile;
     protected double normFactor;
     private final double NOISE = 0.0001;
+    protected Properties props;
 
     public Particle_Tracker() {
     }
@@ -142,7 +147,6 @@ public class Particle_Tracker implements PlugIn {
         } catch (Exception e) {
             GenUtils.error(e.getMessage());
         }
-
     }
 
     protected File buildStacks(boolean sameSize) {
@@ -183,7 +187,7 @@ public class Particle_Tracker implements PlugIn {
         ImageStack sigStack = null;
         if (sigImp != null) {
             sigStack = sigImp.getImageStack();
-            if (sameSize&&sigStack.getSize() != cytoSize) {
+            if (sameSize && sigStack.getSize() != cytoSize) {
                 IJ.error("Stacks must contain same number of slices.");
                 return null;
             }
@@ -200,7 +204,7 @@ public class Particle_Tracker implements PlugIn {
         for (int i = 1; i <= cytoSize; i++) {
             cytoStack.getProcessor(i).subtract(stackMin);
         }
-        StackStatistics cytoStats2 = new StackStatistics(cytoImp,256,0.0,0.0);
+        StackStatistics cytoStats2 = new StackStatistics(cytoImp, 256, 0.0, 0.0);
         int histogram[] = cytoStats2.histogram16;
         if (histogram == null) {
             histogram = cytoStats2.histogram;
@@ -234,6 +238,7 @@ public class Particle_Tracker implements PlugIn {
     public boolean showDialog() {
         UserInterface ui = new UserInterface(null, true, title, this);
         ui.setVisible(true);
+        props = ui.getProps();
         return ui.isWasOKed();
     }
 
@@ -359,7 +364,7 @@ public class Particle_Tracker implements PlugIn {
                 IJ.log("No Particle Trajectories Constructed.");
             }
         }
-        printParams(parentDir);
+        PropertyWriter.printProperties(props, parentDir, title, true);
     }
 
     protected ParticleArray findParticles() {
@@ -426,7 +431,7 @@ public class Particle_Tracker implements PlugIn {
                     detectParticles(startSlice, i, particles,
                             floatingSigma, fitC2, c1FitTol, thisC1Max, ip1Proc, ip2);
                 } else {
-                    storeMaximaAsParticles(startSlice, i, particles, thisC1Max, ip1Proc, ip2);
+                    storeMaximaAsParticles(startSlice, i, particles, thisC1Max, ip1Proc, ip2, searchRad);
                 }
             }
         }
@@ -455,7 +460,8 @@ public class Particle_Tracker implements PlugIn {
                 if (C1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
                     double px = c1X * UserVariables.getSpatialRes();
                     double py = c1Y * UserVariables.getSpatialRes();
-                    Blob p1 = new Blob(i - startSlice, px, py, c1Proc.getPixelValue(c1X, c1Y), c1Proc, searchRad, UserVariables.getSpatialRes());
+                    Blob p1 = new Blob(i - startSlice, px, py, c1Proc.getPixelValue(c1X, c1Y));
+                    p1.refineCentroid(c1Proc, searchRad, UserVariables.getSpatialRes());
                     Point p2 = (c2Proc != null && c2Proc.getPixelValue(c1X, c1Y) > c2Threshold) ? new Point(i - startSlice, px, py, c2Proc.getPixelValue(c1X, c1Y)) : null;
                     if (c2Proc != null && fitC2) {
                         int[][] c2Points = Utils.searchNeighbourhood(c1X, c1Y, searchRad, UserVariables.FOREGROUND, C2Max);
@@ -560,7 +566,7 @@ public class Particle_Tracker implements PlugIn {
         }
     }
 
-    public void storeMaximaAsParticles(int startSlice, int i, ParticleArray particles, ByteProcessor thisC1Max, FloatProcessor chan1Proc, ImageProcessor ip2) {
+    public void storeMaximaAsParticles(int startSlice, int i, ParticleArray particles, ByteProcessor thisC1Max, FloatProcessor chan1Proc, ImageProcessor ip2, int searchRad) {
         int width = chan1Proc.getWidth();
         int height = chan1Proc.getHeight();
         double c2Threshold = ip2 == null ? 0.0 : Utils.getPercentileThresh(ip2, UserVariables.getChan2MaxThresh());
@@ -568,6 +574,7 @@ public class Particle_Tracker implements PlugIn {
             for (int c1Y = 0; c1Y < height; c1Y++) {
                 if (thisC1Max.getPixel(c1X, c1Y) == UserVariables.FOREGROUND) {
                     Point p1 = new Point(i - startSlice, c1X * UserVariables.getSpatialRes(), c1Y * UserVariables.getSpatialRes(), chan1Proc.getPixelValue(c1X, c1Y));
+                    p1.refineCentroid(chan1Proc, searchRad, UserVariables.getSpatialRes());
                     Point p2 = null;
                     if (ip2 != null && ip2.getPixelValue(c1X, c1Y) > c2Threshold) {
                         p2 = new Point(i - startSlice, c1X * UserVariables.getSpatialRes(), c1Y * UserVariables.getSpatialRes(), ip2.getPixelValue(c1X, c1Y));
@@ -593,6 +600,7 @@ public class Particle_Tracker implements PlugIn {
     protected void updateTrajs(ParticleArray particles, double spatialRes, boolean update) {
         if (update) {
             TrajectoryBuilder.updateTrajectories(particles, UserVariables.getTimeRes(), UserVariables.getTrajMaxStep(), spatialRes, Utils.getStackMinMax(inputs[0].getImageStack())[1], trajectories, UserVariables.isTrackRegions());
+            TrajectoryBridger.bridgeTrajectories(trajectories, new double[]{0.0, 0.0, 1.0}, 2);
         }
     }
 
@@ -692,16 +700,15 @@ public class Particle_Tracker implements PlugIn {
         Particle current;
         ParticleTrajectory traj;
         int n = trajectories.size();
-        ImageProcessor processor;
         int lastTP;
         if (n < 1) {
             return null;
         }
         for (i = 0; i < frames; i++) {
-            processor = (new TypeConverter(stack.getProcessor(i + 1).duplicate(), true).convertToRGB());
-            processor.setInterpolationMethod(ImageProcessor.BICUBIC);
-            processor.setInterpolate(true);
-            outputStack.addSlice("" + i, processor.resize(width, height));
+            ColorProcessor processor = new ColorProcessor(width, height);
+            processor.setColor(Color.black);
+            processor.fill();
+            outputStack.addSlice(processor.duplicate());
         }
         Random r = new Random();
         int tLength = (int) Math.round(UserVariables.getTrackLength() / UserVariables.getSpatialRes());
@@ -719,7 +726,7 @@ public class Particle_Tracker implements PlugIn {
                 current = current.getLink();
                 while (current != null) {
                     for (j = frames - 1; j >= lastTP; j--) {
-                        processor = outputStack.getProcessor(j + 1);
+                        ImageProcessor processor = outputStack.getProcessor(j + 1);
                         processor.setColor(thiscolor);
                         if (j - 1 < lastTP) {
                             markParticle(processor, (int) Math.round(lastX / spatialRes) - radius,
@@ -737,7 +744,7 @@ public class Particle_Tracker implements PlugIn {
                     lastTP = current.getFrameNumber();
                     current = current.getLink();
                 }
-                processor = outputStack.getProcessor(lastTP + 1);
+                ImageProcessor processor = outputStack.getProcessor(lastTP + 1);
                 processor.setColor(thiscolor);
                 markParticle(processor, (int) Math.round(lastX / spatialRes) - radius,
                         (int) Math.round(lastY / spatialRes) - radius, radius, true, "" + index);

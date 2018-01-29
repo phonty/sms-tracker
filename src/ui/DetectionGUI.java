@@ -31,15 +31,12 @@ import ij.gui.ImageCanvas;
 import ij.process.ImageProcessor;
 import java.awt.Canvas;
 import java.awt.Color;
-import java.awt.Component;
+import java.awt.Container;
 import java.util.ArrayList;
 import java.util.Properties;
-import javax.swing.JLabel;
 import javax.swing.JSlider;
-import javax.swing.JTextField;
-import javax.swing.JToggleButton;
 
-public class DetectionGUI extends javax.swing.JDialog implements GUIMethods{
+public class DetectionGUI extends javax.swing.JDialog implements GUIMethods {
 
     protected final Particle_Tracker analyser;
     protected final ImagePlus imp;
@@ -241,20 +238,12 @@ public class DetectionGUI extends javax.swing.JDialog implements GUIMethods{
             IJ.error("Number formatting error " + e.toString());
             return false;
         }
-        setProperties();
+        setProperties(props, this);
         return true;
     }
 
-    private void setProperties() {
-        Component[] comps = detectionPanel.getComponents();
-        props = new Properties();
-        for (Component c : comps) {
-            if (c instanceof JLabel && ((JLabel) c).getLabelFor() instanceof JTextField) {
-                props.setProperty(((JLabel) c).getText(), ((JTextField) ((JLabel) c).getLabelFor()).getText());
-            } else if (c instanceof JToggleButton) {
-                props.setProperty(((JToggleButton) c).getText(), String.format("%b", ((JToggleButton) c).isSelected()));
-            }
-        }
+    public void setProperties(Properties p, Container container) {
+        PropertyExtractor.setProperties(props, container);
     }
 
     public static void viewDetections(Particle_Tracker analyser, boolean monoChrome, double spatRes, int psv, Canvas canvas1, ImagePlus imp) {

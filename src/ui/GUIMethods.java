@@ -16,6 +16,9 @@
  */
 package ui;
 
+import java.awt.Container;
+import java.util.Properties;
+
 /**
  *
  * @author Dave Barry <david.barry at crick.ac.uk>
@@ -23,4 +26,6 @@ package ui;
 public interface GUIMethods {
 
     public boolean setVariables();
+
+    public void setProperties(Properties p, Container c);
 }
