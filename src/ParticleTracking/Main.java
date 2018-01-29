@@ -16,6 +16,8 @@
  */
 package ParticleTracking;
 
+import UtilClasses.GenUtils;
+
 public class Main {
 
 //    public static void main(String args[]) {
@@ -32,8 +34,13 @@ public class Main {
 //    }
 //    public static void main(String args[]) {
 //        TestGenerator tg = new TestGenerator();
-//        tg.generateBrownian(50, 512, 512, 1000, 0.0001, "c:\\Users\\barryd\\debugging\\particle_sim_data\\");
-////        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
+//        tg.generateBrownian(100, 512, 512, 1000, 0.0001, "c:\\Users\\barryd\\debugging\\particle_sim_data\\");
+////        int nNuc = 12;
+////        int nFoci = 20;
+////        double maxDist = 10.0;
+////        double coloc = 10.0;
+////        String dir = GenUtils.openResultsDirectory(String.format("C://Users/barryd/debugging/particle_sim_data/%d_%d_%f_%f", nNuc, nFoci, maxDist, coloc));
+////        tg.generateColocalisedParticles(512, 512, tg.generateMulti(nFoci, maxDist, 512, 512, tg.generateNuclei(nNuc, 512, 512, 24, 36, dir), dir), coloc, dir);
 //        System.exit(0);
 //    }
 //    public static void main(String args[]) {

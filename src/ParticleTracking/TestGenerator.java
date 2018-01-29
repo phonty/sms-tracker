@@ -6,6 +6,7 @@ package ParticleTracking;
 
 import Particle.IsoGaussian;
 import IAClasses.Utils;
+import Particle.Particle;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.OvalRoi;
@@ -16,6 +17,7 @@ import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Random;
 
 /**
@@ -482,31 +484,31 @@ public class TestGenerator {
         }
     }
 
-    public double[][] generateNuclei(int n, int imageWidth, int imageHeight, int nWidth, int nHeight) {
+    public double[][] generateNuclei(int n, int imageWidth, int imageHeight, int nWidth, int nHeight, String dir) {
         Random r = new Random();
-        ByteProcessor c1image = new ByteProcessor(imageWidth, imageHeight);
+        ShortProcessor c1image = new ShortProcessor(imageWidth, imageHeight);
         c1image.setColor(100.0);
         double[][] centres = new double[n][2];
         for (int i = 0; i < n; i++) {
             int x = r.nextInt(imageWidth);
             int y = r.nextInt(imageHeight);
-            double width = nWidth + r.nextDouble() * nWidth / 10.0;
-            double height = nHeight + r.nextDouble() * nHeight / 10.0;
+            double width = nWidth + r.nextDouble() * nWidth;
+            double height = nHeight + r.nextDouble() * nHeight;
             OvalRoi nucleus = new OvalRoi(x, y, width, height);
             c1image.fill(RoiRotator.rotate(nucleus, r.nextDouble() * 360.0));
             centres[i] = new double[]{x + width / 2.0, y + height / 2.0};
         }
         c1image.noise(10.0);
-        IJ.saveAs(new ImagePlus("", c1image), "PNG",
-                "C:\\Users\\barryd\\sim_data\\nuclei");
+        IJ.saveAs(new ImagePlus("", c1image), "TIF", dir + "/nuclei.tif");
         return centres;
     }
 
-    public void generateMulti(int maxNPerCell, double maxDist, int width, int height, double[][] centres) {
+    public ArrayList<Particle> generateMulti(int maxNPerCell, double maxDist, int width, int height, double[][] centres, String dir) {
         Random r = new Random();
         int nCentres = centres.length;
         ShortProcessor c1image = new ShortProcessor(width, height);
         c1image.setColor(100);
+        ArrayList<Particle> output = new ArrayList();
         for (int n = 0; n < nCentres; n++) {
             int N = r.nextInt(maxNPerCell);
             for (int j = 0; j < N; j++) {
@@ -515,12 +517,28 @@ public class TestGenerator {
                 double px = centres[n][0] + radius * Math.cos(theta);
                 double py = centres[n][1] + radius * Math.sin(theta);
                 IsoGaussian particle = new IsoGaussian(px, py, 100.0 + 50.0 * r.nextGaussian(), 1.0);
+                output.add(particle);
                 Utils.draw2DGaussian(c1image, particle, 0.0, 1.0, false);
             }
         }
         c1image.noise(10.0);
-        IJ.saveAs(new ImagePlus("", c1image.duplicate()), "TIF",
-                "C:\\Users\\barryd\\sim_data\\foci");
+        IJ.saveAs(new ImagePlus("", c1image.duplicate()), "TIF", dir + "/foci.tif");
+        return output;
     }
 
+    public void generateColocalisedParticles(int width, int height, ArrayList<Particle> particles, double colocFactor, String dir) {
+        Random r = new Random();
+        int N = particles.size();
+        ShortProcessor c2image = new ShortProcessor(width, height);
+        c2image.setColor(100);
+        for (int n = 0; n < N; n++) {
+            Particle p = particles.get(n);
+            IsoGaussian p2 = new IsoGaussian(p.getX() + r.nextGaussian() * colocFactor,
+                    p.getY() + r.nextGaussian() * colocFactor, 100.0 + 50.0 * r.nextGaussian(), 1.0);
+            p.setColocalisedParticle(p2);
+            Utils.draw2DGaussian(c2image, p2, 0.0, 1.0, false);
+        }
+        c2image.noise(10.0);
+        IJ.saveAs(new ImagePlus("", c2image.duplicate()), "TIF", dir + "/coloc_foci.tif");
+    }
 }

@@ -24,10 +24,18 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.ImageCanvas;
+import java.awt.Component;
+import java.awt.Container;
+import java.util.Properties;
 import javax.swing.DefaultComboBoxModel;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
+import javax.swing.JToggleButton;
 
 public class UserInterface extends javax.swing.JDialog implements GUIMethods {
 
+    private Properties props;
     private final Particle_Tracker analyser;
     private final ImagePlus imp;
     private final String title;
@@ -232,6 +240,7 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
         trackingPanel.setLayout(new java.awt.GridBagLayout());
 
         timeResLabel.setText(fpsLabelText);
+        timeResLabel.setLabelFor(timeResTextField);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 3;
@@ -254,6 +263,7 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
         trackingPanel.add(timeResTextField, gridBagConstraints);
 
         minTrajLengthLabel.setText(minTrajLengthLabelText);
+        minTrajLengthLabel.setLabelFor(minTrajLengthTextField);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 4;
@@ -265,6 +275,7 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
         trackingPanel.add(minTrajLengthLabel, gridBagConstraints);
 
         maxTrajStepLabel.setText(maxLinkDistLabelText);
+        maxTrajStepLabel.setLabelFor(maxTrajStepTextField);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 7;
@@ -298,6 +309,7 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
         trackingPanel.add(maxTrajStepTextField, gridBagConstraints);
 
         minTrajDistLabel.setText(minTrajDistLabelText);
+        minTrajDistLabel.setLabelFor(minTrajDistTextField);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 5;
@@ -320,6 +332,7 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
         trackingPanel.add(minTrajDistTextField, gridBagConstraints);
 
         trackLengthLabel.setText(trackLengthText);
+        trackLengthLabel.setLabelFor(trackLengthTextField);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 8;
@@ -376,6 +389,7 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
         trackingPanel.add(colocalToggleButton, gridBagConstraints);
 
         colocalThreshLabel.setText(colocalThreshText);
+        colocalThreshLabel.setLabelFor(colocalThreshTextField);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 10;
@@ -420,6 +434,7 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
         trackingPanel.add(minMSDPointsTextField, gridBagConstraints);
 
         minMSDPointsLabel.setText(minMSDPointsLabelText);
+        minMSDPointsLabel.setLabelFor(minMSDPointsTextField);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 0;
         gridBagConstraints.gridy = 9;
@@ -516,12 +531,13 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
             UserVariables.setSigEstRed(detectionPanel.getSigmaC1());
             UserVariables.setSigEstGreen(detectionPanel.getSigmaC1());
             UserVariables.setMinMSDPoints(Integer.parseInt(minMSDPointsTextField.getText()));
-            UserVariables.setMotionModel(trackingModeComboBox.getSelectedIndex()+ UserVariables.RANDOM);
+            UserVariables.setMotionModel(trackingModeComboBox.getSelectedIndex() + UserVariables.RANDOM);
 //            printParams();
         } catch (NumberFormatException e) {
             IJ.error("Number formatting error " + e.toString());
             return false;
         }
+        setProperties(props, this);
         return true;
     }
 
@@ -613,6 +629,14 @@ public class UserInterface extends javax.swing.JDialog implements GUIMethods {
 
     public static String getChan2MaxThreshLabelText() {
         return chan2MaxThreshLabelText;
+    }
+
+    public void setProperties(Properties p, Container container) {
+        PropertyExtractor.setProperties(props, container);
+    }
+
+    public Properties getProps() {
+        return props;
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
