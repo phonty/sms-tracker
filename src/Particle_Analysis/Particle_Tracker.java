@@ -136,16 +136,11 @@ public class Particle_Tracker implements PlugIn {
                 return;
             }
         }
-//        readParamsFromImage();
-        try {
-            if (showDialog()) {
-                analyse(inputDir);
-            }
-            if (IJ.getInstance() == null) {
-                cleanUp();
-            }
-        } catch (Exception e) {
-            GenUtils.error(e.getMessage());
+        if (showDialog()) {
+            analyse(inputDir);
+        }
+        if (IJ.getInstance() == null) {
+            cleanUp();
         }
     }
 
@@ -245,9 +240,14 @@ public class Particle_Tracker implements PlugIn {
     /**
      * Analyses the {@link ImageStack} specified by <code>stack</code>.
      */
-    public void analyse(File inputDir) throws Exception {
+    public void analyse(File inputDir) {
         ImageStack[] stacks = getStacks();
-        File outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
+        File outputDir = null;
+        try {
+            outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
+        } catch (Exception e) {
+            IJ.log("Failed to create output directory.");
+        }
         String parentDir = GenUtils.openResultsDirectory(outputDir + delimiter + title);
         String sigc0Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C0");
         String sigc1Dir = GenUtils.openResultsDirectory(parentDir + delimiter + "C1");
@@ -364,7 +364,11 @@ public class Particle_Tracker implements PlugIn {
                 IJ.log("No Particle Trajectories Constructed.");
             }
         }
-        PropertyWriter.printProperties(props, parentDir, title, true);
+        try {
+            PropertyWriter.printProperties(props, parentDir, title, true);
+        } catch (IOException e) {
+            IJ.log("Failed to create properties file.");
+        }
     }
 
     protected ParticleArray findParticles() {
