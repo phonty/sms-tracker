@@ -30,11 +30,8 @@ import javax.swing.JToggleButton;
  */
 public class PropertyExtractor {
 
-    public static void setProperties(Properties props, Container container) {
+    public static Properties setProperties(Properties props, Container container) {
         Component[] comps = container.getComponents();
-        if (props == null) {
-            props = new Properties();
-        }
         for (Component c : comps) {
             if (c instanceof Container) {
                 setProperties(props, (Container) c);
@@ -49,5 +46,6 @@ public class PropertyExtractor {
                 props.setProperty(((JToggleButton) c).getText(), String.format("%b", ((JToggleButton) c).isSelected()));
             }
         }
+        return props;
     }
 }
