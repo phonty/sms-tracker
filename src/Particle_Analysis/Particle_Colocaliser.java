@@ -61,13 +61,22 @@ public class Particle_Colocaliser extends GPUAnalyse {
         return findParticles(false, 0, stacks[0].getSize() - 1, UserVariables.getCurveFitTol(), stacks[0], stacks[1]);
     }
 
-    public void analyse(File inputDir) throws Exception {
+    public void analyse(File inputDir) {
         ImageStack[] stacks = getStacks();
-        File outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
+        File outputDir = null;
+        try {
+            outputDir = Utilities.getFolder(inputDir, "Specify directory for output files...", true);
+        } catch (Exception e) {
+            IJ.log("Failed to generate output file.");
+        }
         if (stacks != null) {
             startTime = System.currentTimeMillis();
             buildOutput(findParticles(), GenUtils.openResultsDirectory(String.format("%s%s%s", outputDir, File.separator, title)), COLOC_SUM_HEADINGS, coordHeadings, title, true, true);
-            PropertyWriter.printProperties(props, outputDir.getAbsolutePath(), title, true);
+            try {
+                PropertyWriter.printProperties(props, outputDir.getAbsolutePath(), title, true);
+            } catch (Exception e) {
+                IJ.log("Failed to write properties file.");
+            }
         }
     }
 
