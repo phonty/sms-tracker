@@ -205,6 +205,30 @@ public class TestGenerator {
         }
     }
 
+    public void twoColocalised(int width, double sep, String directory) {
+        MotileGaussian particles[] = new MotileGaussian[2];
+        Random r = new Random();
+        particles[0] = new MotileGaussian(width/2 * res, width/2 * res,
+                90.0, sigmaEstPix, sigmaEstPix, 0.1, sens, true, false, 0.1);
+        particles[1] = new MotileGaussian(particles[0].getX() + sep * r.nextDouble(), particles[0].getY() + sep * r.nextDouble(),
+                90.0, sigmaEstPix, sigmaEstPix, 0.1, sens, true, false, 0.1);
+        int width2 = width;
+        double res2 = res;
+        while (width2 > 1) {
+            for (int j = 0; j < particles.length; j++) {
+                if (particles[j] != null) {
+                    FloatProcessor c1image = new FloatProcessor(width2, width2);
+                    c1image.setColor(100);
+                    Utils.draw2DGaussian(c1image, particles[j], 0.0, res2, false);
+                    IJ.saveAs(new ImagePlus("", c1image.duplicate()), "TIF",
+                            directory + "C" + j + "_" + indFormat.format(res2));
+                }
+            }
+            res2 *= 2;
+            width2 /= 2;
+        }
+    }
+
     public void generateFluorophoreCircle(int radius, int width, int height, int length,
             double finalRes, double thresh, String outputDir) {
         int circum = (int) Math.ceil(2.0 * Math.PI * radius);
