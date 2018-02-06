@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package ParticleTracking;
+
 public class Main {
 
 //    public static void main(String args[]) {
@@ -43,8 +44,8 @@ public class Main {
 //    }
 //    public static void main(String args[]) {
 //        TestGenerator tg = new TestGenerator();
-//        tg.twoColocalised(512, 10, "c:\\Users\\barryd\\debugging\\particle_sim_data\\");
-////        tg.generateBrownian(50, 512, 512, 1000, 0.0001, "c:\\Users\\barryd\\debugging\\particle_sim_data\\");
+////        tg.twoColocalised(512, 10, "c:\\Users\\barryd\\debugging\\particle_sim_data\\");
+//        tg.generateBrownian(50, 512, 512, 1000, 0.0001, "c:\\Users\\barryd\\debugging\\particle_sim_data\\");
 ////        tg.generateMulti(40, 10, 512, 512, tg.generateNuclei(10, 512, 512, 24, 36));
 //        System.exit(0);
 //    }
