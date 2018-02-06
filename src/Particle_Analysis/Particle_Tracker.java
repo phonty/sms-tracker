@@ -280,7 +280,7 @@ public class Particle_Tracker implements PlugIn {
             for (int i = 0; i < n; i++) {
                 ParticleTrajectory traj = (ParticleTrajectory) trajectories.get(i);
                 if (!(traj.getDisplacement(traj.getEnd(), traj.getSize()) > UserVariables.getMinTrajDist()
-                        && traj.getDuration() > UserVariables.getMinTrajLength()
+                        && traj.getNumberOfFrames() > UserVariables.getMinTrajLength()
                         && checkTrajColocalisation(traj, UserVariables.getColocalThresh(), UserVariables.isColocal()))) {
                     trajectories.remove(i);
                     i--;
@@ -679,7 +679,7 @@ public class Particle_Tracker implements PlugIn {
         double points[][] = traj.getPoints();
         traj.calcDirectionality(points[0], points[1]);
         double displacement = traj.getDisplacement(traj.getEnd(), traj.getSize());
-        double duration = traj.getDuration();
+        double duration = traj.getNumberOfFrames();
         output.append(label + "\t"
                 + decFormat.format(duration) + "\t"
                 + decFormat.format(displacement)
